@@ -1,0 +1,71 @@
+package com.example.labb_microservices.auth_service
+
+import com.example.labb_microservices.auth_service.client.UserGrpcClient
+import com.example.labb_microservices.auth_service.controller.LoginRequest
+import com.example.labb_microservices.proto.CredentialsResponse
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.`when`
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.context.ApplicationContext
+import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.WebTestClient
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class AuthControllerTests {
+
+    @Autowired
+    private lateinit var context: ApplicationContext
+
+    private lateinit var webTestClient: WebTestClient
+
+    @MockitoBean
+    private lateinit var userGrpcClient: UserGrpcClient
+
+    @BeforeEach
+    fun setUp() {
+        webTestClient = WebTestClient.bindToApplicationContext(context).build()
+    }
+
+    @Test
+    fun `should login and return jwt`() {
+        val loginRequest = LoginRequest("testuser", "testpassword")
+        val grpcResponse = CredentialsResponse.newBuilder()
+            .setValid(true)
+            .setUserId("123")
+            .setUsername("testuser")
+            .build()
+
+        `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))
+            .thenReturn(grpcResponse)
+
+        webTestClient.post()
+            .uri("/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(loginRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.token").exists()
+    }
+
+    @Test
+    fun `should return unauthorized for invalid credentials`() {
+        val loginRequest = LoginRequest("testuser", "wrongpassword")
+        val grpcResponse = CredentialsResponse.newBuilder()
+            .setValid(false)
+            .build()
+
+        `when`(userGrpcClient.validateCredentials("testuser", "wrongpassword"))
+            .thenReturn(grpcResponse)
+
+        webTestClient.post()
+            .uri("/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(loginRequest)
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+}

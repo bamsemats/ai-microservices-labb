@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.example.labb_microservices.proto;
+
+option java_multiple_files = true;
+option java_package = "com.example.labb_microservices.proto";
+
+service UserService {
+  rpc ValidateCredentials(CredentialsRequest) returns (CredentialsResponse);
+}
+
+message CredentialsRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message CredentialsResponse {
+  bool valid = 1;
+  string userId = 2;
+  string username = 3;
+}
