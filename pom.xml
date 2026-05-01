@@ -11,89 +11,23 @@
 	<groupId>com.example</groupId>
 	<artifactId>labb-microservices</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<packaging>pom</packaging>
+	<name>labb-microservices</name>
+	<description>Parent POM for Labb Microservices</description>
+
+	<modules>
+		<module>gateway</module>
+		<module>auth-service</module>
+		<module>user-service</module>
+		<module>message-service</module>
+	</modules>
+
 	<properties>
 		<java.version>21</java.version>
 		<kotlin.version>2.2.21</kotlin.version>
-		<spring-cloud.version>2025.1.1</spring-cloud.version>
+		<spring-cloud.version>2024.0.0</spring-cloud.version>
 	</properties>
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.projectreactor.kotlin</groupId>
-			<artifactId>reactor-kotlin-extensions</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlin</groupId>
-			<artifactId>kotlin-reflect</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlin</groupId>
-			<artifactId>kotlin-stdlib</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlinx</groupId>
-			<artifactId>kotlinx-coroutines-reactor</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-config-server</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-config</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-consul-config</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>tools.jackson.module</groupId>
-			<artifactId>jackson-module-kotlin</artifactId>
-		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb-reactive-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlin</groupId>
-			<artifactId>kotlin-test-junit5</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlinx</groupId>
-			<artifactId>kotlinx-coroutines-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -107,34 +41,33 @@
 	</dependencyManagement>
 
 	<build>
-		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.jetbrains.kotlin</groupId>
-				<artifactId>kotlin-maven-plugin</artifactId>
-				<configuration>
-					<args>
-						<arg>-Xjsr305=strict</arg>
-						<arg>-Xannotation-default-target=param-property</arg>
-					</args>
-					<compilerPlugins>
-						<plugin>spring</plugin>
-					</compilerPlugins>
-				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>org.jetbrains.kotlin</groupId>
-						<artifactId>kotlin-maven-allopen</artifactId>
-						<version>${kotlin.version}</version>
-					</dependency>
-				</dependencies>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-maven-plugin</artifactId>
+				</plugin>
+				<plugin>
+					<groupId>org.jetbrains.kotlin</groupId>
+					<artifactId>kotlin-maven-plugin</artifactId>
+					<version>${kotlin.version}</version>
+					<configuration>
+						<args>
+							<arg>-Xjsr305=strict</arg>
+						</args>
+						<compilerPlugins>
+							<plugin>spring</plugin>
+						</compilerPlugins>
+					</configuration>
+					<dependencies>
+						<dependency>
+							<groupId>org.jetbrains.kotlin</groupId>
+							<artifactId>kotlin-maven-allopen</artifactId>
+							<version>${kotlin.version}</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
-
 </project>

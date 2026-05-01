@@ -1,11 +1,11 @@
-package com.example.labb_microservices
+package com.example.labb_microservices.gateway
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class LabbMicroservicesApplication
+class GatewayApplication
 
 fun main(args: Array<String>) {
-	runApplication<LabbMicroservicesApplication>(*args)
+    runApplication<GatewayApplication>(*args)
 }

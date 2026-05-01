@@ -6,7 +6,8 @@ target/
 gemini.md
 .gemini/
 docs/
-
+.scratch/
+ralph/
 ### STS ###
 .apt_generated
 .classpath
