@@ -107,3 +107,6 @@ All manifests are located in the `k8s/` directory.
 
 ## 📈 Scalability Note
 The current architecture supports horizontal scaling for all services. For the **Message Service**, scaling WebSockets across multiple replicas requires a RabbitMQ fanout strategy (as documented in `docs/RESILIENCE.md`) to ensure messages reach the correct node holding the recipient's active connection.
+
+## Author
+- [Bamsemats](https://github.com/bamsemats)
