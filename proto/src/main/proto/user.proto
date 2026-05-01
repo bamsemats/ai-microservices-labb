@@ -7,6 +7,7 @@ option java_package = "com.example.labb_microservices.proto";
 
 service UserService {
   rpc ValidateCredentials(CredentialsRequest) returns (CredentialsResponse);
+  rpc GetUserById(UserLookupRequest) returns (UserResponse);
 }
 
 message CredentialsRequest {
@@ -18,4 +19,14 @@ message CredentialsResponse {
   bool valid = 1;
   string userId = 2;
   string username = 3;
+}
+
+message UserLookupRequest {
+  string userId = 1;
+}
+
+message UserResponse {
+  string userId = 1;
+  string username = 2;
+  string email = 3;
 }

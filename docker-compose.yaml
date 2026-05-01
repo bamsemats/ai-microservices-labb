@@ -1,0 +1,68 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "8082:8082"
+      - "9090:9090"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
+    depends_on:
+      - mongodb
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+    depends_on:
+      - user-service
+
+  message-service:
+    build: ./message-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - user-service
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - USER_SERVICE_URL=http://user-service:8082
+      - MESSAGE_SERVICE_URL=http://message-service:8083
+    depends_on:
+      - auth-service
+      - user-service
+      - message-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+volumes:
+  mongodb_data:

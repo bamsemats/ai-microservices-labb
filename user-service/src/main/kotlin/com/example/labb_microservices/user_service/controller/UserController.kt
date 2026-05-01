@@ -15,4 +15,9 @@ class UserController(private val userService: UserService) {
     fun register(@RequestBody user: User): Mono<User> {
         return userService.register(user)
     }
+
+    @GetMapping("/me")
+    fun me(): Mono<String> {
+        return Mono.just("authenticated")
+    }
 }

@@ -2,13 +2,16 @@ package com.example.labb_microservices.auth_service.service
 
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
 import javax.crypto.SecretKey
 
 @Service
-class JwtService {
-    private val secret = "a-very-long-and-secure-secret-key-that-is-at-least-256-bits"
+class JwtService(
+    @Value("\${jwt.secret:a-very-long-and-secure-secret-key-that-is-at-least-256-bits}")
+    private val secret: String
+) {
     private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
     private val expirationTimeInMs = 3600000 // 1 hour
 
