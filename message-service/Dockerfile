@@ -1,11 +1,25 @@
 # Build stage
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+
+# Copy poms to satisfy Maven's monorepo validation
 COPY pom.xml .
+COPY proto/pom.xml proto/
+COPY common-security/pom.xml common-security/
+COPY gateway/pom.xml gateway/
+COPY auth-service/pom.xml auth-service/
+COPY user-service/pom.xml user-service/
 COPY message-service/pom.xml message-service/
-RUN mvn -pl message-service dependency:go-offline -B
+
+# Install parent and shared modules
+RUN mvn install -N -B
+COPY proto/src proto/src
+COPY common-security/src common-security/src
+RUN mvn install -pl proto,common-security -DskipTests -B
+
+# Build the service
 COPY message-service/src message-service/src
-RUN mvn -pl message-service clean package -DskipTests
+RUN mvn package -pl message-service -DskipTests -B
 
 # Run stage
 FROM eclipse-temurin:21-jre

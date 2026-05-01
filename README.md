@@ -71,21 +71,37 @@ Even though the Gateway validates incoming tokens, every microservice in the clu
    mvn spring-boot:run -pl user-service
    ```
 
-### Infrastructure (Docker Compose)
-A `docker-compose.yaml` (not yet explicitly created but implied by individual Dockerfiles) would typically spin up:
-- MongoDB (Port 27017)
-- RabbitMQ (Port 5672, Management: 15672)
+### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
+This is the fastest way to test the entire system. From the project root, run:
+```bash
+docker-compose up --build
+```
+Once started:
+- **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+- **API Gateway**: [http://localhost:8080](http://localhost:8080)
+- **RabbitMQ Dashboard**: [http://localhost:15672](http://localhost:15672) (guest/guest)
+- **MongoDB**: [localhost:27018](localhost:27018) (Internal: 27017)
 
-### Kubernetes Deployment
+### Local Development (Manual)
+1. **Prerequisites**: Start MongoDB and RabbitMQ:
+   ```bash
+   docker-compose up mongodb rabbitmq
+   ```
+2. **Install shared modules**:
+   ```bash
+   mvn install -pl proto,common-security -DskipTests
+   ```
+3. **Run Services**: Start services via IDE or Maven (e.g., `mvn spring-boot:run -pl user-service`).
+4. **Frontend Dev Server**:
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
+   The UI will be at [http://localhost:5173](http://localhost:5173) (proxies to gateway on `8080`).
+
+### Kubernetes Deployment (Production-like)
 All manifests are located in the `k8s/` directory.
-1. **Apply Infrastructure**:
-   ```bash
-   kubectl apply -f k8s/infrastructure/
-   ```
-2. **Apply Services**:
-   ```bash
-   kubectl apply -f k8s/services/
-   ```
+1. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
+2. **Apply Services**: `kubectl apply -f k8s/services/`
 
 ---
 
