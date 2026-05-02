@@ -262,6 +262,18 @@ button:hover {
   text-transform: uppercase;
   letter-spacing: 0.025em;
   opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bot-badge {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.6rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
 }
 
 .message-item.own .sender {

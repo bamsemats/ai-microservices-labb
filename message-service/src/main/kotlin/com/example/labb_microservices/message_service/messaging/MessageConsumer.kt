@@ -40,4 +40,13 @@ class MessageConsumer(
         }
     }
 
+    @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
+    fun consumeAiResponse(message: Message) {
+        logger.info("Received AI response: \${message.id}")
+        messageRepository.save(message)
+            .subscribe { savedMessage ->
+                logger.info("Saved AI message to MongoDB: \${savedMessage.id}")
+                messageProducer.deliverMessage(savedMessage)
+            }
+    }
 }

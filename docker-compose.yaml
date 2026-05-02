@@ -84,5 +84,16 @@ services:
     depends_on:
       - gateway
 
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+
 volumes:
   mongodb_data:

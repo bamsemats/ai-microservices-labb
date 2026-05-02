@@ -1,4 +1,4 @@
-package com.example.labb_microservices.message_service.messaging
+package com.example.labb_microservices.ai_service.messaging
 
 import org.springframework.amqp.core.*
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
@@ -10,10 +10,7 @@ import org.springframework.context.annotation.Configuration
 class RabbitMQConfig {
 
     companion object {
-        const val STORAGE_EXCHANGE_NAME = "chat.storage.exchange"
-        const val DELIVERY_EXCHANGE_NAME = "chat.delivery.exchange"
         const val AI_EXCHANGE_NAME = "chat.ai.exchange"
-        const val STORAGE_QUEUE_NAME = "chat.storage.queue"
         const val AI_REQUEST_QUEUE_NAME = "chat.ai.request.queue"
         const val AI_RESPONSE_QUEUE_NAME = "chat.ai.response.queue"
     }
@@ -41,36 +38,6 @@ class RabbitMQConfig {
     @Bean
     fun aiResponseBinding(aiResponseQueue: Queue, aiExchange: DirectExchange): Binding {
         return BindingBuilder.bind(aiResponseQueue).to(aiExchange).with("ai.response")
-    }
-
-    @Bean
-    fun storageExchange(): DirectExchange {
-        return DirectExchange(STORAGE_EXCHANGE_NAME)
-    }
-
-    @Bean
-    fun deliveryExchange(): FanoutExchange {
-        return FanoutExchange(DELIVERY_EXCHANGE_NAME)
-    }
-
-    @Bean
-    fun storageQueue(): Queue {
-        return Queue(STORAGE_QUEUE_NAME, true)
-    }
-
-    @Bean
-    fun websocketQueue(): Queue {
-        return AnonymousQueue()
-    }
-
-    @Bean
-    fun storageBinding(storageQueue: Queue, storageExchange: DirectExchange): Binding {
-        return BindingBuilder.bind(storageQueue).to(storageExchange).with("")
-    }
-
-    @Bean
-    fun websocketBinding(websocketQueue: Queue, deliveryExchange: FanoutExchange): Binding {
-        return BindingBuilder.bind(websocketQueue).to(deliveryExchange)
     }
 
     @Bean

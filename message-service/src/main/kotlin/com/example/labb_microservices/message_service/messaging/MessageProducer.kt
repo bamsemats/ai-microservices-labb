@@ -22,4 +22,12 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
             message
         )
     }
+
+    fun sendAiRequest(message: Message) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.AI_EXCHANGE_NAME,
+            "ai.request",
+            message
+        )
+    }
 }

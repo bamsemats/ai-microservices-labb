@@ -28,9 +28,15 @@ class MessageController(
                         id = UUID.randomUUID().toString(),
                         senderId = senderId,
                         receiverId = request.receiverId,
-                        content = request.content
+                        content = request.content,
+                        authorType = AuthorType.USER
                     )
                     messageProducer.sendMessage(message)
+
+                    if (request.content.contains("@ai", ignoreCase = true)) {
+                        messageProducer.sendAiRequest(message)
+                    }
+
                     "Message sent to queue by \${senderId}"
                 }
             }

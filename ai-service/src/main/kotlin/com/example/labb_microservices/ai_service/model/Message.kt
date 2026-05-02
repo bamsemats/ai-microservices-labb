@@ -1,15 +1,11 @@
-package com.example.labb_microservices.message_service.model
+package com.example.labb_microservices.ai_service.model
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
 import java.io.Serializable
 import java.time.LocalDateTime
 
 enum class AuthorType { USER, BOT }
 
-@Document(collection = "messages")
 data class Message(
-    @Id
     val id: String? = null,
     val senderId: String,
     val receiverId: String,

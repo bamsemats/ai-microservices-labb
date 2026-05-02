@@ -5,6 +5,7 @@ export interface Message {
   senderId: string;
   senderName: string;
   content: string;
+  authorType?: 'USER' | 'BOT';
   timestamp: string;
 }
 

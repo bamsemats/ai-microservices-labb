@@ -81,7 +81,10 @@ const ChatPage: React.FC = () => {
                   key={msg.id || idx} 
                   className={`message-item \${msg.senderId === userId ? 'own' : ''}`}
                 >
-                  <div className="sender">{msg.senderName || msg.senderId}</div>
+                  <div className="sender">
+                    {msg.senderName || msg.senderId}
+                    {msg.authorType === 'BOT' && <span className="bot-badge">BOT</span>}
+                  </div>
                   <div className="content">{msg.content}</div>
                 </div>
               ))
