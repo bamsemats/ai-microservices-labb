@@ -25,6 +25,7 @@ class AuthControllerTests {
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val redis = GenericContainer("redis:7.0").withExposedPorts(6379)
     }
 
@@ -64,6 +65,89 @@ class AuthControllerTests {
             .jsonPath("$.refreshToken").exists()
             .jsonPath("$.userId").isEqualTo("123")
             .jsonPath("$.username").isEqualTo("testuser")
+    }
+
+    @Test
+    fun `should refresh token`() {
+        val loginRequest = LoginRequest("testuser", "testpassword")
+        val grpcResponse = CredentialsResponse.newBuilder()
+            .setValid(true)
+            .setUserId("123")
+            .setUsername("testuser")
+            .build()
+
+        `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))
+            .thenReturn(Mono.just(grpcResponse))
+
+        val loginResponse = webTestClient.post()
+            .uri("/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(loginRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(Map::class.java)
+            .returnResult()
+            .responseBody!!
+
+        val refreshToken = loginResponse["refreshToken"] as String
+        val userId = loginResponse["userId"] as String
+
+        val refreshRequest = mapOf("userId" to userId, "refreshToken" to refreshToken)
+
+        webTestClient.post()
+            .uri("/refresh")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(refreshRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.accessToken").exists()
+            .jsonPath("$.refreshToken").exists()
+    }
+
+    @Test
+    fun `should logout and invalidate refresh token`() {
+        val loginRequest = LoginRequest("testuser", "testpassword")
+        val grpcResponse = CredentialsResponse.newBuilder()
+            .setValid(true)
+            .setUserId("123")
+            .setUsername("testuser")
+            .build()
+
+        `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))
+            .thenReturn(Mono.just(grpcResponse))
+
+        val loginResponse = webTestClient.post()
+            .uri("/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(loginRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(Map::class.java)
+            .returnResult()
+            .responseBody!!
+
+        val accessToken = loginResponse["accessToken"] as String
+        val refreshToken = loginResponse["refreshToken"] as String
+        val userId = loginResponse["userId"] as String
+
+        // Logout
+        val logoutRequest = mapOf("userId" to userId, "refreshToken" to refreshToken)
+        webTestClient.post()
+            .uri("/logout")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(logoutRequest)
+            .exchange()
+            .expectStatus().isNoContent
+
+        // Try to refresh - should fail
+        val refreshRequest = mapOf("userId" to userId, "refreshToken" to refreshToken)
+        webTestClient.post()
+            .uri("/refresh")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(refreshRequest)
+            .exchange()
+            .expectStatus().isUnauthorized
     }
 
     @Test

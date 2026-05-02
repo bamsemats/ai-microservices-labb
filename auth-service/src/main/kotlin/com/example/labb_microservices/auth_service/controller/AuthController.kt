@@ -28,12 +28,19 @@ class AuthController(
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): Mono<ResponseEntity<LoginResponse>> {
         return userGrpcClient.validateCredentials(request.username, request.password)
+            .subscribeOn(Schedulers.boundedElastic())
             .flatMap { response ->
                 if (response.valid) {
                     val accessToken = jwtService.generateAccessToken(response.username, response.userId)
                     val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
                     refreshTokenService.saveRefreshToken(response.userId, refreshToken)
-                        .map { ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)) }
+                        .flatMap { saved ->
+                            if (saved) {
+                                Mono.just(ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)))
+                            } else {
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
+                            }
+                        }
                 } else {
                     Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                 }
@@ -52,7 +59,13 @@ class AuthController(
                     val newRefreshToken = jwtService.generateRefreshToken(username, request.userId)
                     
                     refreshTokenService.saveRefreshToken(request.userId, newRefreshToken)
-                        .map { ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)) }
+                        .flatMap { saved ->
+                            if (saved) {
+                                Mono.just(ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)))
+                            } else {
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
+                            }
+                        }
                 } else {
                     Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                 }
@@ -60,9 +73,15 @@ class AuthController(
     }
 
     @PostMapping("/logout")
-    fun logout(principal: Principal): Mono<ResponseEntity<Void>> {
-        val userId = principal.name // Derive userId from authenticated principal
-        return refreshTokenService.deleteRefreshToken(userId)
-            .map { ResponseEntity.noContent().build<Void>() }
+    fun logout(@RequestBody request: RefreshRequest): Mono<ResponseEntity<Void>> {
+        return refreshTokenService.validateRefreshToken(request.userId, request.refreshToken)
+            .flatMap { isValid ->
+                if (isValid && jwtService.validateToken(request.refreshToken, "refresh")) {
+                    refreshTokenService.deleteRefreshToken(request.userId)
+                        .map { ResponseEntity.noContent().build<Void>() }
+                } else {
+                    Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+                }
+            }
     }
 }

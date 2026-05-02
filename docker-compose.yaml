@@ -11,6 +11,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7.0
@@ -64,7 +69,7 @@ services:
       mongodb:
         condition: service_started
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       user-service:
         condition: service_started
 
@@ -79,16 +84,20 @@ services:
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
     depends_on:
-      - auth-service
-      - user-service
-      - message-service
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      message-service:
+        condition: service_started
 
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
     depends_on:
-      - gateway
+      gateway:
+        condition: service_started
 
   ai-service:
     build:
@@ -99,7 +108,8 @@ services:
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   mongodb_data:

@@ -42,7 +42,7 @@ class JwtTokenValidator(
                 .build()
                 .parseSignedClaims(token)
                 .payload
-            if (claims["tokenType"] == "access") claims.subject else null
+            if (claims["tokenType"] == "access") claims["userId"] as? String else null
         } catch (e: Exception) {
             null
         }

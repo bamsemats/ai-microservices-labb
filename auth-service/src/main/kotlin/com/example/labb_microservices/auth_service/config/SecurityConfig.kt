@@ -18,6 +18,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http
             .csrf { it.disable() }
+            .logout { it.disable() }
             .authorizeExchange { it
                 .pathMatchers("/login", "/register", "/refresh", "/logout").permitAll()
                 .anyExchange().authenticated()
