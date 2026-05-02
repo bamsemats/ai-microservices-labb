@@ -15,10 +15,10 @@ class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing AI request from \${message.senderId}: \${message.content}")
+        logger.info("Processing AI request from ${message.senderId}: ${message.content}")
         
         // Simulate AI processing
-        val aiResponseContent = "Hello \${message.senderId}, I received your message: '\${message.content}'. This is an automated AI response."
+        val aiResponseContent = "Hello ${message.senderId}, I received your message: '${message.content}'. This is an automated AI response."
         
         val aiMessage = Message(
             id = UUID.randomUUID().toString(),

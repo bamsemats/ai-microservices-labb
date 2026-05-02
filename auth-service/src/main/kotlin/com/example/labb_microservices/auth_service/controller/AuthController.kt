@@ -49,23 +49,20 @@ class AuthController(
 
     @PostMapping("/refresh")
     fun refresh(@RequestBody request: RefreshRequest): Mono<ResponseEntity<TokenResponse>> {
-        return refreshTokenService.validateRefreshToken(request.userId, request.refreshToken)
-            .flatMap { isValid ->
-                if (isValid && jwtService.validateToken(request.refreshToken, "refresh")) {
-                    val claims = jwtService.getClaims(request.refreshToken)
-                    val username = claims?.subject ?: return@flatMap Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
-                    
-                    val newAccessToken = jwtService.generateAccessToken(username, request.userId)
-                    val newRefreshToken = jwtService.generateRefreshToken(username, request.userId)
-                    
-                    refreshTokenService.saveRefreshToken(request.userId, newRefreshToken)
-                        .flatMap { saved ->
-                            if (saved) {
-                                Mono.just(ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)))
-                            } else {
-                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
-                            }
-                        }
+        if (!jwtService.validateToken(request.refreshToken, "refresh")) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+        }
+        
+        val claims = jwtService.getClaims(request.refreshToken)
+        val username = claims?.subject ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+        
+        val newAccessToken = jwtService.generateAccessToken(username, request.userId)
+        val newRefreshToken = jwtService.generateRefreshToken(username, request.userId)
+        
+        return refreshTokenService.rotateRefreshToken(request.userId, request.refreshToken, newRefreshToken)
+            .flatMap { success ->
+                if (success) {
+                    Mono.just(ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)))
                 } else {
                     Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                 }
@@ -78,7 +75,13 @@ class AuthController(
             .flatMap { isValid ->
                 if (isValid && jwtService.validateToken(request.refreshToken, "refresh")) {
                     refreshTokenService.deleteRefreshToken(request.userId)
-                        .map { ResponseEntity.noContent().build<Void>() }
+                        .flatMap { success ->
+                            if (success) {
+                                Mono.just(ResponseEntity.noContent().build<Void>())
+                            } else {
+                                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build<Void>())
+                            }
+                        }
                 } else {
                     Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                 }

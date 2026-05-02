@@ -18,7 +18,10 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 @Testcontainers
 class AuthControllerTests {
 

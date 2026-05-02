@@ -18,7 +18,10 @@ import reactor.test.StepVerifier
 import java.net.URI
 import java.time.Duration
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 @Testcontainers
 class MessageWebSocketSecurityTests {
 
@@ -35,10 +38,10 @@ class MessageWebSocketSecurityTests {
     @LocalServerPort
     private var port: Int = 0
 
-    @MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var jwtTokenValidator: JwtTokenValidator
 
-    @MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
     @Test

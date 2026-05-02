@@ -19,6 +19,7 @@ class MessageWebSocketHandler(
 ) : WebSocketHandler {
 
     private val userSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
+    private val userStatusCache = ConcurrentHashMap<String, Mono<com.example.labb_microservices.proto.UserResponse>>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val token = extractToken(session)
@@ -27,7 +28,6 @@ class MessageWebSocketHandler(
             .map { it.name }
             .switchIfEmpty(
                 Mono.defer {
-                    // Try to authenticate via token if no principal
                     if (token != null && jwtTokenValidator.validateToken(token)) {
                         val auth = jwtTokenValidator.getAuthentication(token)
                         if (auth != null) Mono.just(auth) else Mono.empty()
@@ -42,17 +42,18 @@ class MessageWebSocketHandler(
                 }
 
                 val output = session.send(sink.asFlux().map { session.textMessage(it) })
+                    .doFinally {
+                        if (sink.currentSubscriberCount() == 0) {
+                            userSinks.remove(userId, sink)
+                        }
+                    }
                 
                 val validation = Flux.interval(Duration.ofSeconds(10))
                     .flatMap {
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
                             Mono.error<Void>(PolicyViolationException("Token invalid"))
                         } else {
-                            userGrpcClient.getUser(userId)
-                                .then(Mono.empty<Void>())
-                                .onErrorResume {
-                                    Mono.error(PolicyViolationException("User status check failed"))
-                                }
+                            checkUserStatus(userId)
                         }
                     }
                     .then()
@@ -72,6 +73,18 @@ class MessageWebSocketHandler(
             .switchIfEmpty(
                 session.close(CloseStatus(1008, "Unauthorized"))
             )
+    }
+
+    private fun checkUserStatus(userId: String): Mono<Void> {
+        return userStatusCache.computeIfAbsent(userId) { id ->
+            userGrpcClient.getUser(id)
+                .cache(Duration.ofMinutes(1))
+        }
+        .onErrorResume {
+            userStatusCache.remove(userId)
+            Mono.error(PolicyViolationException("User status check failed"))
+        }
+        .then()
     }
 
     private fun extractToken(session: WebSocketSession): String? {

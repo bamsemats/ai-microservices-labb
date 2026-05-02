@@ -23,7 +23,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.amqp.core.*
 import java.time.LocalDateTime
 
-@SpringBootTest
+@SpringBootTest(properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 @Testcontainers
 @Import(RabbitMQMessagingTests.TestConsumerConfig::class)
 class RabbitMQMessagingTests {

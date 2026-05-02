@@ -31,7 +31,7 @@ class JwtAuthenticationFilter(
 
     class Config
 
-    private val publicPaths = setOf("/login", "/register")
+    private val publicPaths = setOf("/login", "/register", "/refresh", "/logout")
 
     override fun apply(config: Config): GatewayFilter {
         return GatewayFilter { exchange, chain ->

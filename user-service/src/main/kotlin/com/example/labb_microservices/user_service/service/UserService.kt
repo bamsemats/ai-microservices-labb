@@ -7,12 +7,15 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
+import org.slf4j.LoggerFactory
+
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val encryptionUtils: EncryptionUtils
 ) {
+    private val logger = LoggerFactory.getLogger(UserService::class.java)
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
@@ -46,5 +49,16 @@ class UserService(
     fun findByEmail(email: String): Mono<User> {
         val emailHash = encryptionUtils.hash(email)
         return userRepository.findByEmailHash(emailHash)
+            .switchIfEmpty(
+                Mono.defer {
+                    val legacyEncryptedEmail = encryptionUtils.encryptLegacy(email)
+                    userRepository.findByEmail(legacyEncryptedEmail)
+                        .flatMap { user ->
+                            val updatedUser = user.copy(emailHash = emailHash)
+                            userRepository.save(updatedUser)
+                                .doOnNext { logger.info("Backfilled emailHash for user: ${it.id}") }
+                        }
+                }
+            )
     }
 }

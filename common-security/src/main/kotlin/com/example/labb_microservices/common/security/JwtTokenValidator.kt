@@ -42,9 +42,20 @@ class JwtTokenValidator(
                 .build()
                 .parseSignedClaims(token)
                 .payload
-            if (claims["tokenType"] == "access") claims["userId"] as? String else null
+
+            val tokenType = claims["tokenType"]
+            if (tokenType == "access") {
+                claims.subject
+            } else {
+                org.slf4j.LoggerFactory.getLogger(JwtTokenValidator::class.java)
+                    .warn("Invalid token type: {}", tokenType)
+                null
+            }
         } catch (e: Exception) {
+            org.slf4j.LoggerFactory.getLogger(JwtTokenValidator::class.java)
+                .error("Token validation failed: {}", e.message)
             null
         }
     }
+
 }

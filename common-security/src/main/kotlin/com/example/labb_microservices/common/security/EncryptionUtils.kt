@@ -65,7 +65,7 @@ class EncryptionUtils(
     fun decrypt(encryptedData: String): String {
         val data = Base64.getDecoder().decode(encryptedData)
         
-        if (data.size < saltSize + nonceSize + 1) {
+        if (data.size < saltSize + nonceSize + (tagSize / 8)) {
             throw IllegalArgumentException("Encrypted data too short or corrupted")
         }
 
@@ -91,5 +91,13 @@ class EncryptionUtils(
         hmac.init(secretKey)
         val hashBytes = hmac.doFinal(data.toByteArray())
         return Base64.getEncoder().encodeToString(hashBytes)
+    }
+
+    fun encryptLegacy(data: String): String {
+        val key = SecretKeySpec(secret.toByteArray().copyOf(32), "AES")
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val encryptedBytes = cipher.doFinal(data.toByteArray())
+        return Base64.getEncoder().encodeToString(encryptedBytes)
     }
 }

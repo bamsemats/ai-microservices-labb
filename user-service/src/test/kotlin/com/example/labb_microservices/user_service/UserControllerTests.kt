@@ -16,7 +16,10 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 @Testcontainers
 class UserControllerTests {
 
@@ -70,6 +73,8 @@ class UserControllerTests {
         val token = Jwts.builder()
             .subject("testuser")
             .claim("tokenType", "access")
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(KEY)
             .compact()
 
@@ -87,6 +92,8 @@ class UserControllerTests {
         val token = Jwts.builder()
             .subject("testuser")
             .claim("tokenType", "access")
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(invalidKey)
             .compact()
 
@@ -102,6 +109,8 @@ class UserControllerTests {
         val token = Jwts.builder()
             .subject("testuser")
             .claim("tokenType", "refresh")
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(KEY)
             .compact()
 
