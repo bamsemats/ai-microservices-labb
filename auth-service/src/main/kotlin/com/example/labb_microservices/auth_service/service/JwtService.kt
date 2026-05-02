@@ -13,11 +13,20 @@ class JwtService(
     private val secret: String
 ) {
     private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
-    private val expirationTimeInMs = 3600000 // 1 hour
+    private val accessTokenExpirationTimeInMs = 900000 // 15 minutes
+    private val refreshTokenExpirationTimeInMs = 604800000 // 7 days
 
-    fun generateToken(username: String, userId: String): String {
+    fun generateAccessToken(username: String, userId: String): String {
+        return generateToken(username, userId, accessTokenExpirationTimeInMs)
+    }
+
+    fun generateRefreshToken(username: String, userId: String): String {
+        return generateToken(username, userId, refreshTokenExpirationTimeInMs)
+    }
+
+    private fun generateToken(username: String, userId: String, expirationMs: Int): String {
         val now = Date()
-        val expiryDate = Date(now.time + expirationTimeInMs)
+        val expiryDate = Date(now.time + expirationMs)
 
         return Jwts.builder()
             .subject(username)
@@ -28,15 +37,19 @@ class JwtService(
             .compact()
     }
 
-    fun validateToken(token: String): Boolean {
+    fun getClaims(token: String): io.jsonwebtoken.Claims? {
         return try {
             Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
-            true
+                .payload
         } catch (e: Exception) {
-            false
+            null
         }
+    }
+
+    fun validateToken(token: String): Boolean {
+        return getClaims(token) != null
     }
 }

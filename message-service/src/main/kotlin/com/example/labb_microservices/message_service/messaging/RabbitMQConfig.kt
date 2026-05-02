@@ -11,23 +11,32 @@ class RabbitMQConfig {
 
     companion object {
         const val EXCHANGE_NAME = "chat.exchange"
-        const val QUEUE_NAME = "chat.messages.queue"
-        const val ROUTING_KEY = "chat.message.new"
+        const val STORAGE_QUEUE_NAME = "chat.storage.queue"
     }
 
     @Bean
-    fun exchange(): TopicExchange {
-        return TopicExchange(EXCHANGE_NAME)
+    fun exchange(): FanoutExchange {
+        return FanoutExchange(EXCHANGE_NAME)
     }
 
     @Bean
-    fun queue(): Queue {
-        return Queue(QUEUE_NAME)
+    fun storageQueue(): Queue {
+        return Queue(STORAGE_QUEUE_NAME, true)
     }
 
     @Bean
-    fun binding(queue: Queue, exchange: TopicExchange): Binding {
-        return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY)
+    fun websocketQueue(): Queue {
+        return AnonymousQueue()
+    }
+
+    @Bean
+    fun storageBinding(storageQueue: Queue, exchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(storageQueue).to(exchange)
+    }
+
+    @Bean
+    fun websocketBinding(websocketQueue: Queue, exchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(websocketQueue).to(exchange)
     }
 
     @Bean

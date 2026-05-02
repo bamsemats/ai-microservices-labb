@@ -2,34 +2,65 @@ package com.example.labb_microservices.auth_service.controller
 
 import com.example.labb_microservices.auth_service.client.UserGrpcClient
 import com.example.labb_microservices.auth_service.service.JwtService
+import com.example.labb_microservices.auth_service.service.RefreshTokenService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
 data class LoginRequest(val username: String, val password: String)
-data class LoginResponse(val token: String, val userId: String, val username: String)
+data class RefreshRequest(val userId: String, val refreshToken: String)
+data class LoginResponse(val accessToken: String, val refreshToken: String, val userId: String, val username: String)
+data class TokenResponse(val accessToken: String, val refreshToken: String)
 
 @RestController
 @RequestMapping
 class AuthController(
     private val userGrpcClient: UserGrpcClient,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val refreshTokenService: RefreshTokenService
 ) {
 
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): Mono<ResponseEntity<LoginResponse>> {
         return Mono.fromCallable {
-            val response = userGrpcClient.validateCredentials(request.username, request.password)
+            userGrpcClient.validateCredentials(request.username, request.password)
+        }.flatMap { response ->
             if (response.valid) {
-                val token = jwtService.generateToken(response.username, response.userId)
-                ResponseEntity.ok(LoginResponse(token, response.userId, response.username))
+                val accessToken = jwtService.generateAccessToken(response.username, response.userId)
+                val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
+                refreshTokenService.saveRefreshToken(response.userId, refreshToken)
+                    .map { ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)) }
             } else {
-                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+                Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
             }
         }
+    }
+
+    @PostMapping("/refresh")
+    fun refresh(@RequestBody request: RefreshRequest): Mono<ResponseEntity<TokenResponse>> {
+        return refreshTokenService.getRefreshToken(request.userId)
+            .flatMap { storedToken ->
+                if (storedToken == request.refreshToken && jwtService.validateToken(storedToken)) {
+                    val claims = jwtService.getClaims(storedToken)
+                    val username = claims?.subject ?: return@flatMap Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+                    
+                    val newAccessToken = jwtService.generateAccessToken(username, request.userId)
+                    val newRefreshToken = jwtService.generateRefreshToken(username, request.userId)
+                    
+                    refreshTokenService.saveRefreshToken(request.userId, newRefreshToken)
+                        .map { ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)) }
+                } else {
+                    Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+                }
+            }
+            .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
+    }
+
+    @PostMapping("/logout")
+    fun logout(@RequestBody request: Map<String, String>): Mono<ResponseEntity<Void>> {
+        val userId = request["userId"] ?: return Mono.just(ResponseEntity.badRequest().build())
+        return refreshTokenService.deleteRefreshToken(userId)
+            .map { ResponseEntity.noContent().build<Void>() }
     }
 }

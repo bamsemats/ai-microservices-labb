@@ -17,23 +17,25 @@ class MessageConsumer(
 
     private val logger = LoggerFactory.getLogger(MessageConsumer::class.java)
 
-    @RabbitListener(queues = [RabbitMQConfig.QUEUE_NAME])
-    fun consumeMessage(message: Message) {
-        logger.info("Consumed message: \${message.id} from \${message.senderId} to \${message.receiverId}")
-        
+    @RabbitListener(queues = [RabbitMQConfig.STORAGE_QUEUE_NAME])
+    fun storeMessage(message: Message) {
+        logger.info("Storing message: ${message.id}")
+        messageRepository.save(message)
+            .subscribe { savedMessage ->
+                logger.info("Saved message to MongoDB: ${savedMessage.id}")
+            }
+    }
+
+    @RabbitListener(queues = ["#{websocketQueue.name}"])
+    fun deliverMessage(message: Message) {
+        logger.info("Delivering message: ${message.id} to WebSockets")
         try {
             val jsonMessage = objectMapper.writeValueAsString(message)
-            // Push to WebSocket
             webSocketHandler.sendMessageToUser(message.receiverId, jsonMessage)
-            // Also push to sender for confirmation if needed, but here we assume multi-device or just simple delivery
             webSocketHandler.sendMessageToUser(message.senderId, jsonMessage)
         } catch (e: Exception) {
             logger.error("Failed to serialize message for WebSocket", e)
         }
-
-        messageRepository.save(message)
-            .subscribe { savedMessage ->
-                logger.info("Saved message to MongoDB: \${savedMessage.id}")
-            }
     }
+
 }

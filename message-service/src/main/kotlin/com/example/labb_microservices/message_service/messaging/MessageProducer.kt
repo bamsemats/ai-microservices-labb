@@ -10,7 +10,7 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
     fun sendMessage(message: Message) {
         rabbitTemplate.convertAndSend(
             RabbitMQConfig.EXCHANGE_NAME,
-            RabbitMQConfig.ROUTING_KEY,
+            "",
             message
         )
     }

@@ -19,7 +19,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
         return http
             .csrf { it.disable() }
             .authorizeExchange { it
-                .pathMatchers("/login", "/register").permitAll()
+                .pathMatchers("/login", "/register", "/refresh", "/logout").permitAll()
                 .anyExchange().authenticated()
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
