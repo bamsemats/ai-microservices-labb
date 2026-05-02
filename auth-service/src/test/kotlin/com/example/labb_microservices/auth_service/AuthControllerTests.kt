@@ -12,9 +12,20 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.context.ApplicationContext
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Testcontainers
 class AuthControllerTests {
+
+    companion object {
+        @Container
+        @ServiceConnection
+        val redis = GenericContainer("redis:7.0").withExposedPorts(6379)
+    }
 
     @Autowired
     private lateinit var context: ApplicationContext
@@ -48,7 +59,8 @@ class AuthControllerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.token").exists()
+            .jsonPath("$.accessToken").exists()
+            .jsonPath("$.refreshToken").exists()
             .jsonPath("$.userId").isEqualTo("123")
             .jsonPath("$.username").isEqualTo("testuser")
     }

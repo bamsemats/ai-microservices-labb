@@ -2,6 +2,7 @@ package com.example.labb_microservices.message_service.controller
 
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.messaging.MessageProducer
+import com.example.labb_microservices.message_service.model.AuthorType
 import com.example.labb_microservices.message_service.model.Message
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.web.bind.annotation.*

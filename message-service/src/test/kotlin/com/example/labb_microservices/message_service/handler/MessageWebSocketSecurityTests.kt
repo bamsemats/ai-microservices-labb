@@ -1,0 +1,65 @@
+package com.example.labb_microservices.message_service.handler
+
+import com.example.labb_microservices.common.security.JwtTokenValidator
+import com.example.labb_microservices.message_service.client.UserGrpcClient
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.`when`
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
+import org.testcontainers.containers.MongoDBContainer
+import org.testcontainers.containers.RabbitMQContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import reactor.core.publisher.Mono
+import reactor.test.StepVerifier
+import java.net.URI
+import java.time.Duration
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Testcontainers
+class MessageWebSocketSecurityTests {
+
+    companion object {
+        @Container
+        @ServiceConnection
+        val mongodb = MongoDBContainer("mongo:6.0.4")
+
+        @Container
+        @ServiceConnection
+        val rabbitmq = RabbitMQContainer("rabbitmq:3.11-management")
+    }
+
+    @LocalServerPort
+    private var port: Int = 0
+
+    @MockBean
+    private lateinit var jwtTokenValidator: JwtTokenValidator
+
+    @MockBean
+    private lateinit var userGrpcClient: UserGrpcClient
+
+    @Test
+    fun `should close websocket session when token becomes invalid`() {
+        val userId = "test-user"
+        val token = "valid-token"
+
+        `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
+        `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
+
+        val client = ReactorNettyWebSocketClient()
+        val uri = URI("ws://localhost:$port/ws/messages?token=$token")
+
+        val sessionMono = client.execute(uri) { session ->
+            session.receive()
+                .doOnNext { println("Received: ${it.payloadAsText}") }
+                .then()
+        }
+
+        StepVerifier.create(sessionMono)
+            .thenAwait(Duration.ofSeconds(15)) // Wait for periodic check (assuming 10s interval)
+            .verifyComplete()
+    }
+}
