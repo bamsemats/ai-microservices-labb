@@ -39,5 +39,15 @@ class UserService(
     fun findByEmail(email: String): Mono<User> {
         val emailHash = encryptionUtils.hash(email)
         return userRepository.findByEmailHash(emailHash)
+            .switchIfEmpty(
+                Mono.defer {
+                    val encryptedEmail = encryptionUtils.encrypt(email)
+                    userRepository.findByEmail(encryptedEmail) // Assuming findByEmail exists for encrypted field
+                        .flatMap { user ->
+                            val updatedUser = user.copy(emailHash = emailHash)
+                            userRepository.save(updatedUser)
+                        }
+                }
+            )
     }
 }

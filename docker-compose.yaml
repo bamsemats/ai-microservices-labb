@@ -13,7 +13,7 @@ services:
       - "15672:15672"
 
   redis:
-    image: redis:latest
+    image: redis:7.0
     ports:
       - "6379:6379"
     healthcheck:
@@ -32,7 +32,8 @@ services:
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_started
 
   auth-service:
     build:
@@ -44,8 +45,10 @@ services:
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
       - SPRING_DATA_REDIS_HOST=redis
     depends_on:
-      - user-service
-      - redis
+      user-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   message-service:
     build:
@@ -58,9 +61,12 @@ services:
       - SPRING_RABBITMQ_HOST=rabbitmq
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
     depends_on:
-      - mongodb
-      - rabbitmq
-      - user-service
+      mongodb:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      user-service:
+        condition: service_started
 
   gateway:
     build:

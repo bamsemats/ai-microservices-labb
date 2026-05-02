@@ -5,8 +5,12 @@ import com.example.labb_microservices.auth_service.service.JwtService
 import com.example.labb_microservices.auth_service.service.RefreshTokenService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
+import java.security.Principal
 
 data class LoginRequest(val username: String, val password: String)
 data class RefreshRequest(val userId: String, val refreshToken: String)
@@ -25,7 +29,9 @@ class AuthController(
     fun login(@RequestBody request: LoginRequest): Mono<ResponseEntity<LoginResponse>> {
         return Mono.fromCallable {
             userGrpcClient.validateCredentials(request.username, request.password)
-        }.flatMap { response ->
+        }
+        .subscribeOn(Schedulers.boundedElastic())
+        .flatMap { response ->
             if (response.valid) {
                 val accessToken = jwtService.generateAccessToken(response.username, response.userId)
                 val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
@@ -39,10 +45,10 @@ class AuthController(
 
     @PostMapping("/refresh")
     fun refresh(@RequestBody request: RefreshRequest): Mono<ResponseEntity<TokenResponse>> {
-        return refreshTokenService.getRefreshToken(request.userId)
-            .flatMap { storedToken ->
-                if (storedToken == request.refreshToken && jwtService.validateToken(storedToken)) {
-                    val claims = jwtService.getClaims(storedToken)
+        return refreshTokenService.validateRefreshToken(request.userId, request.refreshToken)
+            .flatMap { isValid ->
+                if (isValid && jwtService.validateToken(request.refreshToken, "refresh")) {
+                    val claims = jwtService.getClaims(request.refreshToken)
                     val username = claims?.subject ?: return@flatMap Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                     
                     val newAccessToken = jwtService.generateAccessToken(username, request.userId)
@@ -54,12 +60,11 @@ class AuthController(
                     Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
                 }
             }
-            .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
     }
 
     @PostMapping("/logout")
-    fun logout(@RequestBody request: Map<String, String>): Mono<ResponseEntity<Void>> {
-        val userId = request["userId"] ?: return Mono.just(ResponseEntity.badRequest().build())
+    fun logout(principal: Principal): Mono<ResponseEntity<Void>> {
+        val userId = principal.name // Derive userId from authenticated principal
         return refreshTokenService.deleteRefreshToken(userId)
             .map { ResponseEntity.noContent().build<Void>() }
     }

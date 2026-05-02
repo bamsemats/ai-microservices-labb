@@ -52,6 +52,7 @@ class GatewayRoutingTests {
     fun `should allow protected route with valid token`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(key)
             .compact()
@@ -68,6 +69,7 @@ class GatewayRoutingTests {
     fun `should allow protected route with valid token in query param`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(key)
             .compact()
@@ -91,6 +93,7 @@ class GatewayRoutingTests {
     fun `should reject query param token for non-ws routes`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(key)
             .compact()

@@ -71,12 +71,25 @@ const ChatPage: React.FC = () => {
 
         <section className="message-area">
           <div className="message-list" ref={scrollRef}>
-            {messages.length === 0 ? (
+            {messages.filter(msg => {
+              if (receiverId === 'all') {
+                return !msg.receiverId || msg.receiverId === 'all';
+              }
+              // Direct message context: either I sent it to the receiver, or the receiver sent it to me
+              return (msg.senderId === userId && msg.receiverId === receiverId) || 
+                     (msg.senderId === receiverId && msg.receiverId === userId);
+            }).length === 0 ? (
               <p style={{ textAlign: 'center', color: '#64748b', marginTop: '2rem' }}>
                 No messages yet. Say hello!
               </p>
             ) : (
-              messages.map((msg, idx) => (
+              messages.filter(msg => {
+                if (receiverId === 'all') {
+                  return !msg.receiverId || msg.receiverId === 'all';
+                }
+                return (msg.senderId === userId && msg.receiverId === receiverId) || 
+                       (msg.senderId === receiverId && msg.receiverId === userId);
+              }).map((msg, idx) => (
                 <div 
                   key={msg.id || idx} 
                   className={`message-item \${msg.senderId === userId ? 'own' : ''}`}

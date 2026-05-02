@@ -4,6 +4,7 @@ export interface Message {
   id: string;
   senderId: string;
   senderName: string;
+  receiverId?: string; // Added receiverId
   content: string;
   authorType?: 'USER' | 'BOT';
   timestamp: string;

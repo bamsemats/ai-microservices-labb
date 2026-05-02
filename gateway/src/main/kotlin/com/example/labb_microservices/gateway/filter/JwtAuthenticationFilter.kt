@@ -2,6 +2,8 @@ package com.example.labb_microservices.gateway.filter
 
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import jakarta.annotation.PostConstruct
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cloud.gateway.filter.GatewayFilter
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory
 import org.springframework.http.HttpHeaders
@@ -12,10 +14,20 @@ import reactor.core.publisher.Mono
 import javax.crypto.SecretKey
 
 @Component
-class JwtAuthenticationFilter : AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config>(Config::class.java) {
+class JwtAuthenticationFilter(
+    @Value("\${jwt.secret}")
+    private val secret: String
+) : AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config>(Config::class.java) {
 
-    private val secret = "a-very-long-and-secure-secret-key-that-is-at-least-256-bits"
-    private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
+    private lateinit var key: SecretKey
+
+    @PostConstruct
+    fun init() {
+        if (secret.isBlank()) {
+            throw IllegalStateException("JWT secret cannot be blank")
+        }
+        key = Keys.hmacShaKeyFor(secret.toByteArray())
+    }
 
     class Config
 
@@ -45,10 +57,14 @@ class JwtAuthenticationFilter : AbstractGatewayFilterFactory<JwtAuthenticationFi
             }
 
             try {
-                Jwts.parser()
+                val claims = Jwts.parser()
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
+                    .payload
+                if (claims["tokenType"] != "access") {
+                    return@GatewayFilter onError(exchange, "Invalid token type", HttpStatus.UNAUTHORIZED)
+                }
             } catch (e: Exception) {
                 return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
             }

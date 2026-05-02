@@ -2,24 +2,34 @@ package com.example.labb_microservices.common.security
 
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import javax.crypto.SecretKey
 
 @Component
 class JwtTokenValidator(
-    @Value("\${jwt.secret:a-very-long-and-secure-secret-key-that-is-at-least-256-bits}")
+    @Value("\${jwt.secret}")
     private val secret: String
 ) {
-    private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
+    private lateinit var key: SecretKey
+
+    @PostConstruct
+    fun init() {
+        if (secret.isBlank()) {
+            throw IllegalStateException("JWT secret cannot be blank")
+        }
+        key = Keys.hmacShaKeyFor(secret.toByteArray())
+    }
 
     fun validateToken(token: String): Boolean {
         return try {
-            Jwts.parser()
+            val claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
-            true
+                .payload
+            claims["tokenType"] == "access"
         } catch (e: Exception) {
             false
         }
@@ -32,7 +42,7 @@ class JwtTokenValidator(
                 .build()
                 .parseSignedClaims(token)
                 .payload
-            claims.subject
+            if (claims["tokenType"] == "access") claims.subject else null
         } catch (e: Exception) {
             null
         }

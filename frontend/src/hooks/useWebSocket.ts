@@ -4,7 +4,7 @@ import { useChatStore, type Message } from '../store/useChatStore';
 
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const { token, isAuthenticated } = useAuthStore();
   const { addMessage } = useChatStore();
@@ -13,7 +13,7 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `\${protocol}://\${window.location.host}/ws/messages?token=\${token}`;
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${token}`;
     
     const socket = new WebSocket(wsUrl);
 

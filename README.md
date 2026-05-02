@@ -87,9 +87,9 @@ Once started:
 - **MongoDB**: [localhost:27018](localhost:27018) (Internal: 27017)
 
 ### Local Development (Manual)
-1. **Prerequisites**: Start MongoDB and RabbitMQ:
+1. **Prerequisites**: Start MongoDB, RabbitMQ, and Redis:
    ```bash
-   docker-compose up mongodb rabbitmq
+   docker-compose up mongodb rabbitmq redis
    ```
 2. **Install shared modules**:
    ```bash
@@ -125,7 +125,8 @@ To save time during development, you can run tests for a specific service:
 ```
 
 ### Requirements
-- **Docker Desktop**: The `user-service` uses Testcontainers and requires a running Docker engine for its integration tests.
+- **Docker Desktop**: The `user-service` and `message-service` use Testcontainers and require a running Docker engine for their integration tests.
+
 - **Java 26 Compatibility**: The project is pre-configured to handle Java 26 (Byte Buddy experimental flags are included in the parent POM).
 
 ---

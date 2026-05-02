@@ -22,10 +22,12 @@ class MessageConsumer(
     fun storeMessage(message: Message) {
         logger.info("Storing message: \${message.id}")
         messageRepository.save(message)
-            .subscribe { savedMessage ->
+            .flatMap { savedMessage ->
                 logger.info("Saved message to MongoDB: \${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
+                reactor.core.publisher.Mono.just(savedMessage)
             }
+            .block()
     }
 
     @RabbitListener(queues = ["#{websocketQueue.name}"])
@@ -37,6 +39,7 @@ class MessageConsumer(
             webSocketHandler.sendMessageToUser(message.senderId, jsonMessage)
         } catch (e: Exception) {
             logger.error("Failed to serialize message for WebSocket", e)
+            throw e
         }
     }
 
@@ -44,9 +47,11 @@ class MessageConsumer(
     fun consumeAiResponse(message: Message) {
         logger.info("Received AI response: \${message.id}")
         messageRepository.save(message)
-            .subscribe { savedMessage ->
+            .flatMap { savedMessage ->
                 logger.info("Saved AI message to MongoDB: \${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
+                reactor.core.publisher.Mono.just(savedMessage)
             }
+            .block()
     }
 }

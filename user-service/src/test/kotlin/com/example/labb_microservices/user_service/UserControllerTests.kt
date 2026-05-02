@@ -69,6 +69,7 @@ class UserControllerTests {
     fun `should accept request to protected endpoint with valid token`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .signWith(KEY)
             .compact()
 
@@ -85,6 +86,7 @@ class UserControllerTests {
         val invalidKey = Keys.hmacShaKeyFor("different-secret-key-that-is-at-least-256-bits".toByteArray())
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .signWith(invalidKey)
             .compact()
 
