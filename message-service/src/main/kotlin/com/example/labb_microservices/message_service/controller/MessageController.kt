@@ -35,7 +35,13 @@ class MessageController(
                     messageProducer.sendMessage(message)
 
                     if (request.content.contains("@ai", ignoreCase = true)) {
-                        messageProducer.sendAiRequest(message)
+                        try {
+                            messageProducer.sendAiRequest(message)
+                        } catch (e: Exception) {
+                            // Log error but don't fail the primary message flow
+                            org.slf4j.LoggerFactory.getLogger(MessageController::class.java)
+                                .error("Failed to trigger AI request for message \${message.id}", e)
+                        }
                     }
 
                     "Message sent to queue by \${senderId}"

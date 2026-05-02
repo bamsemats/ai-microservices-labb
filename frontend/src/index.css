@@ -310,7 +310,8 @@ button:hover {
 }
 
 .message-input-form input:focus {
-  outline: none;
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
 }
 
 .message-input-form button {

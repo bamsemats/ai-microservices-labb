@@ -32,6 +32,13 @@ class UserService(
                             emailHash = emailHash
                         )
                     )
+                    .onErrorResume { e ->
+                        if (e is org.springframework.dao.DuplicateKeyException) {
+                            Mono.error(RuntimeException("Email already exists"))
+                        } else {
+                            Mono.error(e)
+                        }
+                    }
                 }
             )
     }
@@ -39,15 +46,5 @@ class UserService(
     fun findByEmail(email: String): Mono<User> {
         val emailHash = encryptionUtils.hash(email)
         return userRepository.findByEmailHash(emailHash)
-            .switchIfEmpty(
-                Mono.defer {
-                    val encryptedEmail = encryptionUtils.encrypt(email)
-                    userRepository.findByEmail(encryptedEmail) // Assuming findByEmail exists for encrypted field
-                        .flatMap { user ->
-                            val updatedUser = user.copy(emailHash = emailHash)
-                            userRepository.save(updatedUser)
-                        }
-                }
-            )
     }
 }

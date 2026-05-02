@@ -35,8 +35,18 @@ class MessageConsumer(
         logger.info("Delivering message: \${message.id} to WebSockets")
         try {
             val jsonMessage = objectMapper.writeValueAsString(message)
-            webSocketHandler.sendMessageToUser(message.receiverId, jsonMessage)
-            webSocketHandler.sendMessageToUser(message.senderId, jsonMessage)
+            
+            if (message.receiverId == "all") {
+                webSocketHandler.broadcastMessage(jsonMessage)
+            } else {
+                val recipients = setOfNotNull(
+                    message.receiverId.takeIf { it.isNotBlank() },
+                    message.senderId.takeIf { it.isNotBlank() }
+                )
+                recipients.forEach { userId ->
+                    webSocketHandler.sendMessageToUser(userId, jsonMessage)
+                }
+            }
         } catch (e: Exception) {
             logger.error("Failed to serialize message for WebSocket", e)
             throw e

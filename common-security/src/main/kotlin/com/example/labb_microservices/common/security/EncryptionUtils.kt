@@ -65,6 +65,10 @@ class EncryptionUtils(
     fun decrypt(encryptedData: String): String {
         val data = Base64.getDecoder().decode(encryptedData)
         
+        if (data.size < saltSize + nonceSize + 1) {
+            throw IllegalArgumentException("Encrypted data too short or corrupted")
+        }
+
         val salt = ByteArray(saltSize)
         val nonce = ByteArray(nonceSize)
         val ciphertext = ByteArray(data.size - saltSize - nonceSize)

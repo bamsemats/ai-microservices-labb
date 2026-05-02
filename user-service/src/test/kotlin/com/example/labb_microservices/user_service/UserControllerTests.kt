@@ -96,4 +96,19 @@ class UserControllerTests {
             .exchange()
             .expectStatus().isUnauthorized
     }
+
+    @Test
+    fun `should reject request to protected endpoint with refresh token`() {
+        val token = Jwts.builder()
+            .subject("testuser")
+            .claim("tokenType", "refresh")
+            .signWith(KEY)
+            .compact()
+
+        webTestClient.get()
+            .uri("/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
 }

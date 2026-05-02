@@ -12,7 +12,9 @@ import java.util.*
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "services.auth=http://localhost:12345",
     "services.user=http://localhost:12346",
-    "services.message=http://localhost:12347"
+    "services.message=http://localhost:12347",
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
 ])
 class GatewayRoutingTests {
 

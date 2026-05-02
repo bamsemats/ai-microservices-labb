@@ -25,7 +25,17 @@ class MessageWebSocketHandler(
 
         return session.handshakeInfo.principal
             .map { it.name }
-            .defaultIfEmpty("anonymous")
+            .switchIfEmpty(
+                Mono.defer {
+                    // Try to authenticate via token if no principal
+                    if (token != null && jwtTokenValidator.validateToken(token)) {
+                        val auth = jwtTokenValidator.getAuthentication(token)
+                        if (auth != null) Mono.just(auth) else Mono.empty()
+                    } else {
+                        Mono.empty()
+                    }
+                }
+            )
             .flatMap { userId ->
                 val sink = userSinks.computeIfAbsent(userId) {
                     Sinks.many().multicast().directBestEffort()
@@ -37,14 +47,12 @@ class MessageWebSocketHandler(
                     .flatMap {
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
                             Mono.error<Void>(PolicyViolationException("Token invalid"))
-                        } else if (userId != "anonymous") {
+                        } else {
                             userGrpcClient.getUser(userId)
                                 .then(Mono.empty<Void>())
                                 .onErrorResume {
                                     Mono.error(PolicyViolationException("User status check failed"))
                                 }
-                        } else {
-                            Mono.empty<Void>()
                         }
                     }
                     .then()
@@ -61,6 +69,9 @@ class MessageWebSocketHandler(
                         }
                     }
             }
+            .switchIfEmpty(
+                session.close(CloseStatus(1008, "Unauthorized"))
+            )
     }
 
     private fun extractToken(session: WebSocketSession): String? {
@@ -72,6 +83,10 @@ class MessageWebSocketHandler(
         return query.split("&")
             .find { it.startsWith("token=") }
             ?.substringAfter("token=")
+    }
+
+    fun broadcastMessage(message: String) {
+        userSinks.values.forEach { it.tryEmitNext(message) }
     }
 
     fun sendMessageToUser(userId: String, message: String) {

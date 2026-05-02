@@ -48,6 +48,7 @@ class MessageWebSocketSecurityTests {
 
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
+        `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUserId(userId).build()))
 
         val client = ReactorNettyWebSocketClient()
         val uri = URI("ws://localhost:$port/ws/messages?token=$token")

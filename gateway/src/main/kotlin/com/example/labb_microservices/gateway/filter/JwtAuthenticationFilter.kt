@@ -31,12 +31,14 @@ class JwtAuthenticationFilter(
 
     class Config
 
+    private val publicPaths = setOf("/login", "/register")
+
     override fun apply(config: Config): GatewayFilter {
         return GatewayFilter { exchange, chain ->
             val request = exchange.request
             val path = request.uri.path
 
-            if (path.contains("/login") || path.contains("/register")) {
+            if (publicPaths.any { path == it || path.startsWith("$it/") }) {
                 return@GatewayFilter chain.filter(exchange)
             }
 
@@ -48,7 +50,7 @@ class JwtAuthenticationFilter(
             }
 
             // Fallback to query parameter only for WebSocket handshake
-            if (token == null && path.startsWith("/ws/")) {
+            if (token == null && (path == "/ws/messages" || path.startsWith("/ws/"))) {
                 token = request.queryParams.getFirst("token")
             }
 
@@ -69,15 +71,18 @@ class JwtAuthenticationFilter(
                 return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
             }
 
-            // If token was in query param, we should ideally strip it before forwarding
-            // In Spring Cloud Gateway, we can mutate the exchange to remove the param
-            if (request.queryParams.containsKey("token")) {
+            // Convert query param token to Authorization header for non-WS routes
+            // Preserve query param token for WS routes as downstream auth might need it for initial handshake
+            if (request.queryParams.containsKey("token") && !path.startsWith("/ws/")) {
                 val newUri = org.springframework.web.util.UriComponentsBuilder.fromUri(request.uri)
                     .replaceQueryParam("token", null)
                     .build()
                     .toUri()
                 
-                val mutatedRequest = request.mutate().uri(newUri).build()
+                val mutatedRequest = request.mutate()
+                    .uri(newUri)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                    .build()
                 return@GatewayFilter chain.filter(exchange.mutate().request(mutatedRequest).build())
             }
 
