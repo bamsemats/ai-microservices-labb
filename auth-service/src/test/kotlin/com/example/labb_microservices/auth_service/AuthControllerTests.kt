@@ -3,6 +3,7 @@ package com.example.labb_microservices.auth_service
 import com.example.labb_microservices.auth_service.client.UserGrpcClient
 import com.example.labb_microservices.auth_service.controller.LoginRequest
 import com.example.labb_microservices.proto.CredentialsResponse
+import reactor.core.publisher.Mono
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -50,7 +51,7 @@ class AuthControllerTests {
             .build()
 
         `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))
-            .thenReturn(grpcResponse)
+            .thenReturn(Mono.just(grpcResponse))
 
         webTestClient.post()
             .uri("/login")
@@ -73,7 +74,7 @@ class AuthControllerTests {
             .build()
 
         `when`(userGrpcClient.validateCredentials("testuser", "wrongpassword"))
-            .thenReturn(grpcResponse)
+            .thenReturn(Mono.just(grpcResponse))
 
         webTestClient.post()
             .uri("/login")

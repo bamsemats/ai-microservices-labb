@@ -27,20 +27,17 @@ class AuthController(
 
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): Mono<ResponseEntity<LoginResponse>> {
-        return Mono.fromCallable {
-            userGrpcClient.validateCredentials(request.username, request.password)
-        }
-        .subscribeOn(Schedulers.boundedElastic())
-        .flatMap { response ->
-            if (response.valid) {
-                val accessToken = jwtService.generateAccessToken(response.username, response.userId)
-                val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
-                refreshTokenService.saveRefreshToken(response.userId, refreshToken)
-                    .map { ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)) }
-            } else {
-                Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+        return userGrpcClient.validateCredentials(request.username, request.password)
+            .flatMap { response ->
+                if (response.valid) {
+                    val accessToken = jwtService.generateAccessToken(response.username, response.userId)
+                    val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
+                    refreshTokenService.saveRefreshToken(response.userId, refreshToken)
+                        .map { ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)) }
+                } else {
+                    Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+                }
             }
-        }
     }
 
     @PostMapping("/refresh")

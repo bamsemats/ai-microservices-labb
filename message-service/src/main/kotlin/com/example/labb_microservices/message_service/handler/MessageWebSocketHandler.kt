@@ -37,15 +37,14 @@ class MessageWebSocketHandler(
                     .flatMap {
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
                             Mono.error<Void>(PolicyViolationException("Token invalid"))
-                        } else {
-                            try {
-                                if (userId != "anonymous") {
-                                    userGrpcClient.getUser(userId)
+                        } else if (userId != "anonymous") {
+                            userGrpcClient.getUser(userId)
+                                .then(Mono.empty<Void>())
+                                .onErrorResume {
+                                    Mono.error(PolicyViolationException("User status check failed"))
                                 }
-                                Mono.empty<Void>()
-                            } catch (e: Exception) {
-                                Mono.error<Void>(PolicyViolationException("User status check failed"))
-                            }
+                        } else {
+                            Mono.empty<Void>()
                         }
                     }
                     .then()

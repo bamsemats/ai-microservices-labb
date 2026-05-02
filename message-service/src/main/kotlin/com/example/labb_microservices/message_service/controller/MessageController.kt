@@ -45,10 +45,8 @@ class MessageController(
 
     @GetMapping("/user/{userId}")
     fun getUserInfo(@PathVariable userId: String): Mono<String> {
-        return Mono.fromCallable {
-            val user = userGrpcClient.getUser(userId)
-            "User: \${user.username}, Email: \${user.email}"
-        }
+        return userGrpcClient.getUser(userId)
+            .map { user -> "User: \${user.username}, Email: \${user.email}" }
     }
 
     @GetMapping
