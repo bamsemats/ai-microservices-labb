@@ -12,23 +12,25 @@ import org.springframework.stereotype.Service
 class MessageConsumer(
     private val messageRepository: MessageRepository,
     private val webSocketHandler: MessageWebSocketHandler,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val messageProducer: MessageProducer
 ) {
 
     private val logger = LoggerFactory.getLogger(MessageConsumer::class.java)
 
     @RabbitListener(queues = [RabbitMQConfig.STORAGE_QUEUE_NAME])
     fun storeMessage(message: Message) {
-        logger.info("Storing message: ${message.id}")
+        logger.info("Storing message: \${message.id}")
         messageRepository.save(message)
             .subscribe { savedMessage ->
-                logger.info("Saved message to MongoDB: ${savedMessage.id}")
+                logger.info("Saved message to MongoDB: \${savedMessage.id}")
+                messageProducer.deliverMessage(savedMessage)
             }
     }
 
     @RabbitListener(queues = ["#{websocketQueue.name}"])
     fun deliverMessage(message: Message) {
-        logger.info("Delivering message: ${message.id} to WebSockets")
+        logger.info("Delivering message: \${message.id} to WebSockets")
         try {
             val jsonMessage = objectMapper.writeValueAsString(message)
             webSocketHandler.sendMessageToUser(message.receiverId, jsonMessage)

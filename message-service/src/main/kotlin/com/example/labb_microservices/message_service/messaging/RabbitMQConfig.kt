@@ -10,13 +10,19 @@ import org.springframework.context.annotation.Configuration
 class RabbitMQConfig {
 
     companion object {
-        const val EXCHANGE_NAME = "chat.exchange"
+        const val STORAGE_EXCHANGE_NAME = "chat.storage.exchange"
+        const val DELIVERY_EXCHANGE_NAME = "chat.delivery.exchange"
         const val STORAGE_QUEUE_NAME = "chat.storage.queue"
     }
 
     @Bean
-    fun exchange(): FanoutExchange {
-        return FanoutExchange(EXCHANGE_NAME)
+    fun storageExchange(): DirectExchange {
+        return DirectExchange(STORAGE_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun deliveryExchange(): FanoutExchange {
+        return FanoutExchange(DELIVERY_EXCHANGE_NAME)
     }
 
     @Bean
@@ -30,13 +36,13 @@ class RabbitMQConfig {
     }
 
     @Bean
-    fun storageBinding(storageQueue: Queue, exchange: FanoutExchange): Binding {
-        return BindingBuilder.bind(storageQueue).to(exchange)
+    fun storageBinding(storageQueue: Queue, storageExchange: DirectExchange): Binding {
+        return BindingBuilder.bind(storageQueue).to(storageExchange).with("")
     }
 
     @Bean
-    fun websocketBinding(websocketQueue: Queue, exchange: FanoutExchange): Binding {
-        return BindingBuilder.bind(websocketQueue).to(exchange)
+    fun websocketBinding(websocketQueue: Queue, deliveryExchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(websocketQueue).to(deliveryExchange)
     }
 
     @Bean

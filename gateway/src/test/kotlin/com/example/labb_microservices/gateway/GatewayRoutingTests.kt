@@ -63,4 +63,41 @@ class GatewayRoutingTests {
             // We expect 503 or 504 because the downstream service isn't there
             .expectStatus().is5xxServerError
     }
+
+    @Test
+    fun `should allow protected route with valid token in query param`() {
+        val token = Jwts.builder()
+            .subject("testuser")
+            .expiration(Date(System.currentTimeMillis() + 3600000))
+            .signWith(key)
+            .compact()
+
+        webTestClient.get()
+            .uri("/ws/messages?token=$token")
+            .exchange()
+            // We expect 503 or 504 because the downstream service isn't there
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    fun `should reject protected route with invalid token in query param`() {
+        webTestClient.get()
+            .uri("/ws/messages?token=invalid-token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `should reject query param token for non-ws routes`() {
+        val token = Jwts.builder()
+            .subject("testuser")
+            .expiration(Date(System.currentTimeMillis() + 3600000))
+            .signWith(key)
+            .compact()
+
+        webTestClient.get()
+            .uri("/users/me?token=$token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
 }

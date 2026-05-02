@@ -9,5 +9,6 @@ data class User(
     val id: String? = null,
     val username: String,
     val password: String,
-    val email: String? = null
+    val email: String? = null, // Stores encrypted email
+    val emailHash: String? = null // Stores hashed email for searching
 )

@@ -4,15 +4,16 @@ import { useChatStore, type Message } from '../store/useChatStore';
 
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
   const { token, isAuthenticated } = useAuthStore();
   const { addMessage } = useChatStore();
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || !token || socketRef.current) return;
+    if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
-    // Use absolute URL for WebSocket if needed, or relative if proxied
-    // Vite proxy handles /api, but we might need a separate one for /ws
-    const wsUrl = `ws://${window.location.host}/ws/messages?token=${token}`;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `\${protocol}://\${window.location.host}/ws/messages?token=\${token}`;
     
     const socket = new WebSocket(wsUrl);
 
@@ -32,8 +33,9 @@ export const useWebSocket = () => {
     socket.onclose = () => {
       console.log('WebSocket Disconnected');
       socketRef.current = null;
-      // Simple reconnect logic
-      setTimeout(connect, 3000);
+      if (mountedRef.current) {
+        reconnectTimerRef.current = setTimeout(connect, 3000);
+      }
     };
 
     socket.onerror = (error) => {
@@ -45,8 +47,13 @@ export const useWebSocket = () => {
   }, [token, isAuthenticated, addMessage]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
     return () => {
+      mountedRef.current = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;

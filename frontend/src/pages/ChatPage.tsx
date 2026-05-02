@@ -20,16 +20,24 @@ const ChatPage: React.FC = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim()) {
+    if (inputValue.trim() && userId) {
       try {
-        await api.post('/messages', {
-          receiverId: receiverId === 'all' ? userId : receiverId, // For testing, send to self if 'all'
-          content: inputValue
-        });
+        if (receiverId === 'all') {
+          await api.post('/messages/broadcast', {
+            content: inputValue
+          });
+        } else {
+          await api.post('/messages', {
+            receiverId: receiverId ?? userId,
+            content: inputValue
+          });
+        }
         setInputValue('');
       } catch (err) {
         console.error('Failed to send message', err);
       }
+    } else if (!userId) {
+      console.error('User is not authenticated');
     }
   };
 

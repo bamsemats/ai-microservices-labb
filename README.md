@@ -58,9 +58,11 @@ Even though the Gateway validates incoming tokens, every microservice in the clu
 ## 🏃 How to Run
 
 ### Prerequisites
-- Java 21+
+- Java 21 (Target Runtime)
 - Docker & Docker Compose (or Minikube for K8s)
 - Maven
+
+*Note: While the project runtime targets Java 21, the build configuration includes experimental Byte Buddy flags to allow running tests on Java 26 environments.*
 
 ### Local Development (Maven)
 1. **Install shared modules**:

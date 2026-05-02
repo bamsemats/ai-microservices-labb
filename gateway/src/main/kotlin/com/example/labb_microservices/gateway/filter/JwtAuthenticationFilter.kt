@@ -29,10 +29,15 @@ class JwtAuthenticationFilter : AbstractGatewayFilterFactory<JwtAuthenticationFi
             }
 
             val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
-            val token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            var token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 authHeader.substring(7)
             } else {
-                request.queryParams.getFirst("token")
+                null
+            }
+
+            // Fallback to query parameter only for WebSocket handshake
+            if (token == null && path.startsWith("/ws/")) {
+                token = request.queryParams.getFirst("token")
             }
 
             if (token == null) {
@@ -46,6 +51,18 @@ class JwtAuthenticationFilter : AbstractGatewayFilterFactory<JwtAuthenticationFi
                     .parseSignedClaims(token)
             } catch (e: Exception) {
                 return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
+            }
+
+            // If token was in query param, we should ideally strip it before forwarding
+            // In Spring Cloud Gateway, we can mutate the exchange to remove the param
+            if (request.queryParams.containsKey("token")) {
+                val newUri = org.springframework.web.util.UriComponentsBuilder.fromUri(request.uri)
+                    .replaceQueryParam("token", null)
+                    .build()
+                    .toUri()
+                
+                val mutatedRequest = request.mutate().uri(newUri).build()
+                return@GatewayFilter chain.filter(exchange.mutate().request(mutatedRequest).build())
             }
 
             chain.filter(exchange)
