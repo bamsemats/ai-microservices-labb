@@ -55,6 +55,29 @@ Even though the Gateway validates incoming tokens, every microservice in the clu
 
 ---
 
+## 🏛 Design Decisions & Trade-offs
+
+The architecture of this system involves several conscious trade-offs to balance speed, simplicity, and scalability.
+
+### Shared Security Library vs. Sidecar
+We use a shared module (`common-security`) for zero-trust validation. While this introduces a "distributed monolith" risk (binary coupling), it provides extreme simplicity and performance compared to a Service Mesh/Sidecar pattern. For details on how we manage this, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+### Synchronous vs. Asynchronous Communication
+The system uses gRPC for critical, low-latency lookups and RabbitMQ for everything else. This ensures that the user experience remains fast (async) while maintaining data integrity where it matters (sync).
+
+### Monorepo Structure
+A monorepo was chosen to simplify the management of shared `proto` definitions and the security library, allowing for atomic changes across service boundaries during development.
+
+---
+
+## ⚠️ Known Limitations
+
+- **Binary Coupling**: All microservices depend on the `common-security` and `proto` modules. A change in these modules requires a full rebuild of the stack.
+- **Coordinated Rollouts**: Breaking changes in shared modules require coordinated deployments of all affected services.
+- **JVM Dependency**: The shared library pattern locks the architecture into JVM-based services (Kotlin/Java) for those requiring the shared logic.
+
+---
+
 ## 🏃 How to Run
 
 ### Prerequisites
