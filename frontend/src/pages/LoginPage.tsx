@@ -14,12 +14,9 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await api.post('/login', { username, password });
-      const { token } = response.data;
+      const { token, userId, username: loggedInUsername } = response.data;
       
-      // We need userId as well, which might require a follow-up call 
-      // or the auth service should return it.
-      // For now, let's assume we extract it from JWT if needed or just use username.
-      setAuth(token, 'TODO', username);
+      setAuth(token, userId, loggedInUsername);
       navigate('/');
     } catch (err: any) {
       setError('Login failed. Check your credentials.');

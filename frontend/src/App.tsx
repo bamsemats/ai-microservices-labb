@@ -3,27 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/useAuthStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ChatPage from './pages/ChatPage';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
-};
-
-const Dashboard: React.FC = () => {
-  const logout = useAuthStore((state) => state.logout);
-  const username = useAuthStore((state) => state.username);
-  return (
-    <div className="dashboard">
-      <header>
-        <h1>Welcome, {username}!</h1>
-        <button onClick={logout}>Logout</button>
-      </header>
-      <main>
-        <p>Chat dashboard coming soon...</p>
-      </main>
-    </div>
-  );
 };
 
 function App() {
@@ -36,7 +21,7 @@ function App() {
           path="/" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <ChatPage />
             </ProtectedRoute>
           } 
         />

@@ -9,7 +9,11 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
+    "services.auth=http://localhost:12345",
+    "services.user=http://localhost:12346",
+    "services.message=http://localhost:12347"
+])
 class GatewayRoutingTests {
 
     @Autowired
@@ -23,15 +27,14 @@ class GatewayRoutingTests {
         webTestClient.post()
             .uri("/login")
             .exchange()
-            // We expect 404 or 500 because the downstream service isn't actually there,
-            // but NOT 401 from the filter.
+            // We expect 503 or 504 because the downstream service isn't there
             .expectStatus().is5xxServerError
     }
 
     @Test
     fun `should reject protected route without token`() {
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .exchange()
             .expectStatus().isUnauthorized
     }
@@ -39,7 +42,7 @@ class GatewayRoutingTests {
     @Test
     fun `should reject protected route with invalid token`() {
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
             .exchange()
             .expectStatus().isUnauthorized
@@ -54,10 +57,10 @@ class GatewayRoutingTests {
             .compact()
 
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
             .exchange()
-            // Again, 404/500 is fine as long as it's not 401.
+            // We expect 503 or 504 because the downstream service isn't there
             .expectStatus().is5xxServerError
     }
 }

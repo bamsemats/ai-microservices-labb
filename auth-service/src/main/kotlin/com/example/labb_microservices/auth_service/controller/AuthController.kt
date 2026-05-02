@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 
 data class LoginRequest(val username: String, val password: String)
-data class LoginResponse(val token: String)
+data class LoginResponse(val token: String, val userId: String, val username: String)
 
 @RestController
 @RequestMapping
@@ -25,7 +25,8 @@ class AuthController(
         return Mono.fromCallable {
             val response = userGrpcClient.validateCredentials(request.username, request.password)
             if (response.valid) {
-                ResponseEntity.ok(LoginResponse(jwtService.generateToken(response.username, response.userId)))
+                val token = jwtService.generateToken(response.username, response.userId)
+                ResponseEntity.ok(LoginResponse(token, response.userId, response.username))
             } else {
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
             }

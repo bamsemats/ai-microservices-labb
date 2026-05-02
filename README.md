@@ -37,7 +37,9 @@ Even though the Gateway validates incoming tokens, every microservice in the clu
 - [x] **#10 Resilience Review**: Verified architecture against scalability and isolation requirements.
 - [x] **#11 Infrastructure & CI**: Established Docker Compose orchestration and a GitHub Actions CI pipeline.
 - [x] **#12 Frontend: Auth Foundation**: Scaffolded React SPA with Zustand state management and Vanilla CSS authentication UI.
-- [ ] **#13 Frontend: Real-time Engine**: WebSocket integration and message event handling.
+- [x] **#13 Frontend: Real-time Engine**: WebSocket integration and message event handling.
+- [x] **#14 Frontend: Chat Dashboard**: Sidebar, message history, and reactive UI components.
+- [x] **#15 UI/UX Refinement**: Vanilla CSS styling, glassmorphism, and responsive design.
 
 ---
 
@@ -102,6 +104,27 @@ Once started:
 All manifests are located in the `k8s/` directory.
 1. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
 2. **Apply Services**: `kubectl apply -f k8s/services/`
+
+---
+
+## 🧪 Testing
+
+You can run the full test suite across all microservices using the Maven Wrapper.
+
+### Running all tests
+```bash
+./mvnw test -DskipTests=false
+```
+
+### Running specific modules
+To save time during development, you can run tests for a specific service:
+```bash
+./mvnw test -pl auth-service -DskipTests=false
+```
+
+### Requirements
+- **Docker Desktop**: The `user-service` uses Testcontainers and requires a running Docker engine for its integration tests.
+- **Java 26 Compatibility**: The project is pre-configured to handle Java 26 (Byte Buddy experimental flags are included in the parent POM).
 
 ---
 

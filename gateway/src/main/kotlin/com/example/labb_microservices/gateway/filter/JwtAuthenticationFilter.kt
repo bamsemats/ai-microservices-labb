@@ -29,11 +29,16 @@ class JwtAuthenticationFilter : AbstractGatewayFilterFactory<JwtAuthenticationFi
             }
 
             val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return@GatewayFilter onError(exchange, "Missing authorization header", HttpStatus.UNAUTHORIZED)
+            val token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                authHeader.substring(7)
+            } else {
+                request.queryParams.getFirst("token")
             }
 
-            val token = authHeader.substring(7)
+            if (token == null) {
+                return@GatewayFilter onError(exchange, "Missing authorization token", HttpStatus.UNAUTHORIZED)
+            }
+
             try {
                 Jwts.parser()
                     .verifyWith(key)
