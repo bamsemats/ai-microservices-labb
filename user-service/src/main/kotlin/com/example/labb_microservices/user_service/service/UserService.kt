@@ -83,6 +83,7 @@ class UserService(
             val decryptedEmail = encryptionUtils.decrypt(encryptedEmail)
             user.copy(email = decryptedEmail)
         } catch (e: Exception) {
+            logger.debug("New GCM decryption failed for user ${user.id}, attempting legacy fallback: ${e.message}")
             // Fallback to legacy decryption if new GCM decryption fails
             try {
                 val decryptedEmail = encryptionUtils.decryptLegacy(encryptedEmail)

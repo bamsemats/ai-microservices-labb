@@ -10,12 +10,18 @@ import { useUIAdaptation } from './hooks/useUIAdaptation';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const { isAuthenticated, token } = useAuthStore();
+  // We need both for a truly active session in this in-memory token setup
+  return (isAuthenticated && token) ? <>{children}</> : <Navigate to="/login" />;
 };
 
 function App() {
   useUIAdaptation();
+  const initialize = useAuthStore((state) => state.initialize);
+
+  React.useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <div className="app-container">

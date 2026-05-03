@@ -65,11 +65,12 @@ class AuthController(
         
         val claims = jwtService.getClaims(request.refreshToken)
         val username = claims?.subject ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+        val userId = claims["userId"] as? String ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
         
-        val newAccessToken = jwtService.generateAccessToken(username, request.userId)
-        val newRefreshToken = jwtService.generateRefreshToken(username, request.userId)
+        val newAccessToken = jwtService.generateAccessToken(username, userId)
+        val newRefreshToken = jwtService.generateRefreshToken(username, userId)
         
-        return refreshTokenService.rotateRefreshToken(request.userId, request.refreshToken, newRefreshToken)
+        return refreshTokenService.rotateRefreshToken(userId, request.refreshToken, newRefreshToken)
             .flatMap { success ->
                 if (success) {
                     Mono.just(ResponseEntity.ok(TokenResponse(newAccessToken, newRefreshToken)))

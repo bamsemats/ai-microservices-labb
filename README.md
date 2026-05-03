@@ -76,7 +76,7 @@ The system uses gRPC for critical, low-latency lookups and RabbitMQ for everythi
 
 ## ⚠️ Known Limitations
 - **Binary Coupling**: Services depend on `common-security` and `proto`.
-- **Coordinated Rollouts**: Shared library updates require full stack redeployment.
+- **Coordinated Rollouts**: Shared library updates require full-stack redeployment.
 
 ---
 

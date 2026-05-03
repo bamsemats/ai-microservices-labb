@@ -3,6 +3,8 @@ package com.example.labb_microservices.message_service.handler
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.controller.BroadcastRequest
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,6 +19,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
@@ -82,8 +85,8 @@ class ChannelPartitioningTests {
         val disposableB = sessionBMono.subscribe()
 
         try {
-            // Wait for connections to stabilize
-            Thread.sleep(3000)
+            // Wait for connections to stabilize using polling
+            awaitCondition(Duration.ofSeconds(5)) { disposableA.isDisposed.not() && disposableB.isDisposed.not() }
 
             // Send broadcast to Channel-A
             webTestClient.post()
@@ -93,22 +96,27 @@ class ChannelPartitioningTests {
                 .exchange()
                 .expectStatus().isOk
 
-            // Wait for message delivery
-            Thread.sleep(3000)
+            // Wait for message delivery using polling
+            awaitCondition(Duration.ofSeconds(5)) { receivedA.any { it.contains("Hello Channel A") } }
 
             // Verify
             val hasA = receivedA.any { it.contains("Hello Channel A") }
             val hasB = receivedB.any { it.contains("Hello Channel A") }
             
-            println("Received A: $receivedA")
-            println("Received B: $receivedB")
-
-            assert(hasA) { "User A should have received the message" }
-            assert(!hasB) { "User B should NOT have received the message" }
+            assertTrue(hasA, "User A should have received the message. Received: $receivedA")
+            assertFalse(hasB, "User B should NOT have received the message. Received: $receivedB")
 
         } finally {
             disposableA.dispose()
             disposableB.dispose()
+        }
+    }
+
+    private fun awaitCondition(timeout: Duration, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeout.toMillis()
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(100)
         }
     }
 

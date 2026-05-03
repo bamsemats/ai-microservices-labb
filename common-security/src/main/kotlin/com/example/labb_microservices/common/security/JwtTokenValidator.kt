@@ -12,6 +12,7 @@ class JwtTokenValidator(
     @Value("\${jwt.secret}")
     private val secret: String
 ) {
+    private val logger = org.slf4j.LoggerFactory.getLogger(JwtTokenValidator::class.java)
     private lateinit var key: SecretKey
 
     @PostConstruct
@@ -31,6 +32,7 @@ class JwtTokenValidator(
                 .payload
             claims["tokenType"] == "access"
         } catch (e: Exception) {
+            logger.debug("Token validation failed: {}", e.message)
             false
         }
     }

@@ -14,11 +14,30 @@ const USER_STATS = [
 const InsightsPage: React.FC = () => {
   const { username, logout } = useAuthStore();
   const [accentGlow, setAccentGlow] = useState(0.5);
+  const [displayName, setDisplayName] = useState(username || '');
+  const [bio, setBio] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const handleUpdateGlow = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setAccentGlow(val);
     document.documentElement.style.setProperty('--accent-glow-intensity', val.toString());
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setFeedback(null);
+    try {
+      // TODO: Implement persistent API call for user profile update
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setFeedback("Profile frequency updated successfully.");
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err) {
+      setFeedback("Failed to update profile. Static interference detected.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const navigate = useNavigate();
@@ -79,7 +98,12 @@ const InsightsPage: React.FC = () => {
                 <h3>Profile Settings</h3>
                 <div className="settings-group">
                   <label>Display Name</label>
-                  <input type="text" defaultValue={username || ''} className="lumina-input" />
+                  <input 
+                    type="text" 
+                    value={displayName} 
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="lumina-input" 
+                  />
                 </div>
                 <div className="settings-group">
                   <label>Bio (AI Context)</label>
@@ -87,9 +111,28 @@ const InsightsPage: React.FC = () => {
                     placeholder="Tell the AI about your interests..." 
                     className="lumina-input"
                     rows={4}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
                   ></textarea>
                 </div>
-                <button className="lumina-button">Save Changes</button>
+                <div className="button-row">
+                  <button 
+                    className="lumina-button" 
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Processing...' : 'Save Changes'}
+                  </button>
+                  {feedback && (
+                    <motion.span 
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`feedback-msg ${feedback.includes('fail') ? 'error' : 'success'}`}
+                    >
+                      {feedback}
+                    </motion.span>
+                  )}
+                </div>
               </motion.div>
 
               <motion.div 

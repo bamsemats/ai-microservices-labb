@@ -95,7 +95,11 @@ class MessageWebSocketHandler(
             .flatMap { response ->
                 userStatusCache[userId] = response
                 // Simple cache eviction after 1 minute
-                Mono.delay(Duration.ofMinutes(1)).doOnNext { userStatusCache.remove(userId) }.subscribe()
+                Mono.delay(Duration.ofMinutes(1))
+                    .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                    .doOnNext { userStatusCache.remove(userId) }
+                    .doOnError { e -> org.slf4j.LoggerFactory.getLogger(MessageWebSocketHandler::class.java).error("Cache eviction failed", e) }
+                    .subscribe()
                 
                 if (response.enabled == false) {
                     Mono.error<Void>(PolicyViolationException("User account is disabled"))

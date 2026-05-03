@@ -1,0 +1,41 @@
+package com.example.labb_microservices.user_service.service
+
+import com.example.labb_microservices.user_service.config.RabbitConfig
+import com.example.labb_microservices.user_service.model.PresenceStatus
+import com.example.labb_microservices.user_service.model.PresenceUpdateEvent
+import com.example.labb_microservices.user_service.repository.PresenceTracker
+import com.example.labb_microservices.user_service.repository.UserRepository
+import org.slf4j.LoggerFactory
+import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
+
+@Service
+class PresenceService(
+    private val presenceTracker: PresenceTracker,
+    private val userRepository: UserRepository,
+    private val rabbitTemplate: RabbitTemplate
+) {
+    private val logger = LoggerFactory.getLogger(PresenceService::class.java)
+
+    fun updateStatus(userId: String, status: PresenceStatus): Mono<Void> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(RuntimeException("User not found")))
+            .flatMap { user ->
+                presenceTracker.setStatus(userId, status)
+                    .then(Mono.fromRunnable<Void> {
+                        val event = PresenceUpdateEvent(
+                            userId = userId,
+                            username = user.username!!,
+                            status = status
+                        )
+                        rabbitTemplate.convertAndSend(RabbitConfig.PRESENCE_EXCHANGE, "", event)
+                        logger.info("Published presence update for user $userId: $status")
+                    })
+            }
+    }
+
+    fun getStatus(userId: String): Mono<PresenceStatus> {
+        return presenceTracker.getStatus(userId)
+    }
+}

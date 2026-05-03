@@ -15,7 +15,8 @@ type DisplayItem =
 
 const ChatPage: React.FC = () => {
   const [receiverId, setReceiverId] = useState('all');
-  const { username, userId, logout } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
+  const { username, userId, isAdmin, logout } = useAuthStore();
   const { messages, injectedContent } = useChatStore();
   useWebSocket();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -27,16 +28,22 @@ const ChatPage: React.FC = () => {
   }, [messages, injectedContent]);
 
   const handleSend = async (content: string) => {
+    setError(null);
     try {
       if (receiverId === 'all') {
+        if (!isAdmin) {
+          setError("Only admins can broadcast to #general.");
+          return;
+        }
         await api.post('/messages/broadcast', { content });
       } else {
         await api.post('/messages', {
-          receiverId: receiverId ?? userId,
+          receiverId,
           content
         });
       }
     } catch (err) {
+      setError("Failed to transmit frequency. Target may be offline.");
       console.error('Failed to send message', err);
     }
   };
@@ -116,11 +123,65 @@ const ChatPage: React.FC = () => {
           <MessageComposer 
             onSend={handleSend} 
             placeholder={`Message ${receiverId === 'all' ? '#general' : 'this frequency'}...`}
+            disabled={receiverId === 'all' && !isAdmin}
           />
         </section>
       </main>
 
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="error-toast glass-panel"
+          >
+            <span className="error-icon">⚠️</span>
+            <span className="error-message">{error}</span>
+            <button className="close-toast" onClick={() => setError(null)}>×</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
+        .error-toast {
+          position: fixed;
+          bottom: 2rem;
+          right: 2rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem 1.5rem;
+          background: rgba(244, 63, 94, 0.1) !important;
+          border-color: rgba(244, 63, 94, 0.3) !important;
+          color: var(--error);
+          z-index: 1000;
+          box-shadow: 0 10px 30px rgba(244, 63, 94, 0.2);
+        }
+
+        .error-icon {
+          font-size: 1.25rem;
+        }
+
+        .error-message {
+          font-weight: 600;
+          font-size: 0.9rem;
+        }
+
+        .close-toast {
+          background: none;
+          border: none;
+          color: var(--error);
+          font-size: 1.5rem;
+          cursor: pointer;
+          padding: 0 0.5rem;
+          opacity: 0.5;
+        }
+
+        .close-toast:hover {
+          opacity: 1;
+        }
+
         .chat-page-layout {
           display: flex;
           width: 100vw;

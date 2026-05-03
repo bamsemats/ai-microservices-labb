@@ -17,15 +17,6 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
 
     private val logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
 
-    @Bean
-    fun userDetailsService(): MapReactiveUserDetailsService {
-        // Dummy user details service to silence the generated password warning.
-        // We use custom JWT filter for actual authentication.
-        return MapReactiveUserDetailsService(
-            User.withUsername("dummy").password("{noop}dummy").roles("USER").build()
-        )
-    }
-
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request = exchange.request
         val path = request.uri.path
@@ -43,11 +34,12 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
 
         if (token != null && jwtTokenValidator.validateToken(token)) {
             val username = jwtTokenValidator.getAuthentication(token)
-            if (username != null) {
-                logger.debug("Setting security context for path: {}", path)
+            val userId = jwtTokenValidator.getUserIdFromToken(token)
+            if (userId != null) {
+                logger.debug("Setting security context for path: {} with userId: {}", path, userId)
                 val roles = jwtTokenValidator.getRolesFromToken(token)
                 val authorities = roles.map { org.springframework.security.core.authority.SimpleGrantedAuthority(it) }
-                val auth = UsernamePasswordAuthenticationToken(username, null, authorities)
+                val auth = UsernamePasswordAuthenticationToken(userId, null, authorities)
                 return chain.filter(exchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
             }

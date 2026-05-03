@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface MessageComposerProps {
   onSend: (content: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const AI_SUGGESTIONS = [
@@ -13,26 +14,28 @@ const AI_SUGGESTIONS = [
   "Help me with code"
 ];
 
-const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder }) => {
+const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, disabled }) => {
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim()) {
+    if (value.trim() && !disabled) {
       onSend(value);
       setValue('');
     }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setValue(suggestion);
+    if (!disabled) {
+      setValue(suggestion);
+    }
   };
 
   return (
     <div className="composer-container">
       <AnimatePresence>
-        {isFocused && (
+        {isFocused && !disabled && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -53,22 +56,23 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder }
       </AnimatePresence>
       
       <form 
-        className={`composer-form ${isFocused ? 'focused' : ''}`} 
+        className={`composer-form ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`} 
         onSubmit={handleSubmit}
       >
         <div className="input-wrapper glass-panel">
           <input
             type="text"
-            placeholder={placeholder || "Type a message..."}
+            placeholder={disabled ? "Broadcast disabled (Admin only)" : (placeholder || "Type a message...")}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            disabled={disabled}
           />
           <button 
             type="submit" 
             className="lumina-button"
-            disabled={!value.trim()}
+            disabled={!value.trim() || disabled}
             aria-label="Send message"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -143,7 +147,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder }
           flex: 1;
         }
 
-        .composer-form.focused .input-wrapper {
+        .composer-form.disabled .input-wrapper {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .composer-form.focused:not(.disabled) .input-wrapper {
           border-color: rgba(139, 92, 246, 0.4) !important;
           box-shadow: 0 0 30px rgba(139, 92, 246, 0.15), var(--accent-glow);
           background: rgba(11, 19, 38, 0.8);
