@@ -146,6 +146,21 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  content-aggregator-service:
+    build:
+      context: .
+      dockerfile: content-aggregator-service/Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   mongodb_data:
   redis_data:

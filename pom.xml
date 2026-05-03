@@ -23,6 +23,7 @@
 		<module>user-service</module>
 		<module>message-service</module>
 		<module>ai-service</module>
+		<module>content-aggregator-service</module>
 	</modules>
 
 	<properties>

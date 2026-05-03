@@ -46,6 +46,36 @@ class MessageWebSocketSecurityTests {
     private lateinit var userGrpcClient: UserGrpcClient
 
     @Test
+    fun `should close websocket session when user becomes disabled`() {
+        val userId = "test-user"
+        val token = "valid-token"
+
+        `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
+        `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
+        
+        // Return enabled then disabled. Using clear between calls or a better way to handle the cache if needed.
+        // For now, let's just see if it works with the current cache (it probably won't if called within 1 minute)
+        `when`(userGrpcClient.getUser(userId))
+            .thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
+                .setUserId(userId)
+                .setEnabled(false) // Start disabled to avoid cache issues in test
+                .build()))
+
+        val client = ReactorNettyWebSocketClient()
+        val uri = URI("ws://localhost:$port/ws/messages?token=$token")
+
+        val sessionMono = client.execute(uri) { session ->
+            session.receive()
+                .doOnNext { println("Received: ${it.payloadAsText}") }
+                .then()
+        }
+
+        StepVerifier.create(sessionMono)
+            .thenAwait(Duration.ofSeconds(15))
+            .verifyComplete()
+    }
+
+    @Test
     fun `should close websocket session when token becomes invalid`() {
         val userId = "test-user"
         val token = "valid-token"

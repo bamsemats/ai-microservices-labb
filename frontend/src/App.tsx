@@ -4,6 +4,9 @@ import { useAuthStore } from './store/useAuthStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChatPage from './pages/ChatPage';
+import DiscoveryPage from './pages/DiscoveryPage';
+import InsightsPage from './pages/InsightsPage';
+import { useUIAdaptation } from './hooks/useUIAdaptation';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -12,21 +15,41 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 function App() {
+  useUIAdaptation();
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <ChatPage />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
-    </Router>
+    <div className="app-container">
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/explore" 
+            element={
+              <ProtectedRoute>
+                <DiscoveryPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/insights" 
+            element={
+              <ProtectedRoute>
+                <InsightsPage />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </Router>
+    </div>
   );
 }
 

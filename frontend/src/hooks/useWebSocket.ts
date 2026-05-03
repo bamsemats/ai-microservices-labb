@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
+import { useUIStore } from '../store/useUIStore';
 
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
@@ -8,6 +9,8 @@ export const useWebSocket = () => {
   const mountedRef = useRef(true);
   const { token, isAuthenticated } = useAuthStore();
   const { addMessage } = useChatStore();
+
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
@@ -23,8 +26,22 @@ export const useWebSocket = () => {
 
     socket.onmessage = (event) => {
       try {
-        const message: Message = JSON.parse(event.data);
-        addMessage(message);
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'UI_ADAPTATION') {
+          console.log('Applying AI UI Adaptation:', data.theme);
+          useUIStore.getState().setTheme({
+            theme: data.theme,
+            intensity: data.intensity,
+            color: data.color
+          });
+        } else if (data.type === 'CONTENT_INJECTION') {
+          console.log('Received Content Injection:', data.contentType);
+          useChatStore.getState().addInjectedContent(data);
+        } else {
+          const message: Message = data;
+          addMessage(message);
+        }
       } catch (err) {
         console.error('Failed to parse WebSocket message', err);
       }
@@ -33,8 +50,8 @@ export const useWebSocket = () => {
     socket.onclose = () => {
       console.log('WebSocket Disconnected');
       socketRef.current = null;
-      if (mountedRef.current) {
-        reconnectTimerRef.current = setTimeout(connect, 3000);
+      if (mountedRef.current && connectRef.current) {
+        reconnectTimerRef.current = setTimeout(connectRef.current, 3000);
       }
     };
 
@@ -45,6 +62,10 @@ export const useWebSocket = () => {
 
     socketRef.current = socket;
   }, [token, isAuthenticated, addMessage]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     mountedRef.current = true;

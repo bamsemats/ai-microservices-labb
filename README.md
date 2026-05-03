@@ -1,4 +1,4 @@
-# Distributed Microservices Chat System (Labb 2)
+# AdaptaChat: Distributed Microservices Chat System (Labb 2)
 
 A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes. This project demonstrates advanced microservices patterns, including hybrid synchronous/asynchronous communication, zero-trust security, and real-time data streaming.
 
@@ -10,6 +10,8 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **Auth Service**: Manages user sessions and issues JWTs upon successful login.
 - **User Service**: Handles user registration and profile management. Provides gRPC endpoints for metadata lookups.
 - **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
+- **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
+- **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
 - **Proto**: Shared Protobuf definitions for type-safe gRPC communication.
 
@@ -31,7 +33,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#12 Frontend: Auth Foundation**: Scaffolded React SPA with Zustand.
 - [x] **#13 Frontend: Real-time Engine**: WebSocket integration and event handling.
 - [x] **#16 WebSocket Scalability**: Fixed multi-replica delivery bug.
-- [x] **#17 Zero-Trust WebSocket Security**: Handshake token validation.
+- [x] **#17 Zero-Trust WebSocket Security**: Periodic JWT and account status (lockout) re-validation.
 - [x] **#18 Reactive gRPC Resilience**: Migrated to non-blocking stubs.
 - [x] **#19 Architecture Documentation**: Finalized design trade-off docs.
 - [x] **#20 Redis Refresh Tokens**: Secure token rotation and persistence.
@@ -40,22 +42,21 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#23 Refresh Token Lifecycle**: Implemented rotate/revoke flows.
 - [x] **#24 PII Blind Indexing**: Searchable encrypted data implementation.
 - [x] **#25 Async AI Loop**: Message processing pipeline for AI features.
-- [x] **#26 mTLS Phase 1**: Certificate infrastructure for inter-service TLS.
-- [ ] **#27 UI Adaptation**: Real-time aesthetic shifts based on content.
-- [ ] **#28 Content Aggregator**: Multi-source message processing.
-- [ ] **#29 UI Foundation**: Style system and global theme definition.
-- [ ] **#30 Chat Hub**: Sidebar, channel navigation, and layout.
-- [ ] **#31 Messaging Interface**: AI-driven prompt assistance UI.
-- [ ] **#32 Discovery View**: Connection and peer discovery interface.
-- [ ] **#33 AI Insights**: Real-time analytics dashboard.
-- [ ] **#34 Fluid UI**: Advanced animations and glassmorphism refinement.
+- [x] **#26 mTLS Enforcement**: inter-service identity with certificates.
+- [x] **#27 UI Adaptation**: Real-time aesthetic shifts based on AI sentiment.
+- [x] **#28 Content Aggregator**: Contextual widget injection (Twitch, etc.).
+- [x] **#29 UI Foundation**: "Lumina Fluid" style system with glassmorphism.
+- [x] **#30 Chat Hub**: Sidebar and channel navigation architecture.
+- [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
+- [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
+- [x] **#33 AI Insights Dashboard**: Performance visualization and profile customization.
 
 ---
 
 ## 🛠 Technology Stack
 
-- **Backend**: Spring Boot 3.4.1, Spring WebFlux (Reactive)
-- **Frontend**: React 18, TypeScript, Vite, Zustand, Vanilla CSS
+- **Backend**: Spring Boot 3.4.1, Spring WebFlux (Reactive), Kotlin
+- **Frontend**: React 19, TypeScript, Vite, Zustand, Framer Motion, Vanilla CSS
 - **Messaging**: RabbitMQ, gRPC
 - **Persistence**: MongoDB, Redis
 - **Orchestration**: Docker Compose, Kubernetes
@@ -63,8 +64,6 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 ---
 
 ## 🏛 Design Decisions & Trade-offs
-
-The architecture of this system involves several conscious trade-offs to balance speed, simplicity, and scalability.
 
 ### Shared Security Library vs. Sidecar
 We use a shared module (`common-security`) for zero-trust validation. While this introduces a "distributed monolith" risk, it provides extreme simplicity and performance compared to a Service Mesh.

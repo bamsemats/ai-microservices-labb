@@ -81,11 +81,11 @@ class RabbitMQMessagingTests {
         fun testQueue2(): Queue = Queue("test.queue.2", false, true, true)
 
         @Bean
-        fun testBinding1(testQueue1: Queue, exchange: FanoutExchange): Binding =
+        fun testBinding1(testQueue1: Queue, @org.springframework.beans.factory.annotation.Qualifier("deliveryExchange") exchange: FanoutExchange): Binding =
             BindingBuilder.bind(testQueue1).to(exchange)
 
         @Bean
-        fun testBinding2(testQueue2: Queue, exchange: FanoutExchange): Binding =
+        fun testBinding2(testQueue2: Queue, @org.springframework.beans.factory.annotation.Qualifier("deliveryExchange") exchange: FanoutExchange): Binding =
             BindingBuilder.bind(testQueue2).to(exchange)
 
         @RabbitListener(queues = ["test.queue.1"])

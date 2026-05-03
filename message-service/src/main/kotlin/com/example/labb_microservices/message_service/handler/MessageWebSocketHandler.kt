@@ -80,11 +80,21 @@ class MessageWebSocketHandler(
             userGrpcClient.getUser(id)
                 .cache(Duration.ofMinutes(1))
         }
-        .onErrorResume {
-            userStatusCache.remove(userId)
-            Mono.error(PolicyViolationException("User status check failed"))
+        .flatMap { response ->
+            if (!response.enabled) {
+                Mono.error<Void>(PolicyViolationException("User account is disabled"))
+            } else {
+                Mono.empty<Void>()
+            }
         }
-        .then()
+        .onErrorResume { e ->
+            userStatusCache.remove(userId)
+            if (e is PolicyViolationException) {
+                Mono.error<Void>(e)
+            } else {
+                Mono.error<Void>(PolicyViolationException("User status check failed"))
+            }
+        }
     }
 
     private fun extractToken(session: WebSocketSession): String? {

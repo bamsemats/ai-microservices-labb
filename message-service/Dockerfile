@@ -11,6 +11,7 @@ COPY auth-service/pom.xml auth-service/
 COPY user-service/pom.xml user-service/
 COPY message-service/pom.xml message-service/
 COPY ai-service/pom.xml ai-service/
+COPY content-aggregator-service/pom.xml content-aggregator-service/
 
 # Install parent and shared modules
 RUN mvn install -N -B

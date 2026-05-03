@@ -1,6 +1,8 @@
 package com.example.labb_microservices.message_service.messaging
 
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
+import com.example.labb_microservices.message_service.model.AdaptationEvent
+import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.repository.MessageRepository
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -63,5 +65,27 @@ class MessageConsumer(
                 reactor.core.publisher.Mono.just(savedMessage)
             }
             .block()
+    }
+
+    @RabbitListener(queues = ["#{adaptationQueue.name}"])
+    fun consumeAdaptationEvent(event: AdaptationEvent) {
+        logger.info("Received Adaptation Event: ${event.theme}")
+        try {
+            val jsonEvent = objectMapper.writeValueAsString(event)
+            webSocketHandler.broadcastMessage(jsonEvent)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize adaptation event for WebSocket", e)
+        }
+    }
+
+    @RabbitListener(queues = ["#{contentInjectionQueue.name}"])
+    fun consumeContentInjectionEvent(event: ContentInjectionEvent) {
+        logger.info("Received Content Injection Event: ${event.contentType}")
+        try {
+            val jsonEvent = objectMapper.writeValueAsString(event)
+            webSocketHandler.broadcastMessage(jsonEvent)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize content injection event for WebSocket", e)
+        }
     }
 }

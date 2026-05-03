@@ -13,11 +13,30 @@ class RabbitMQConfig {
         const val AI_EXCHANGE_NAME = "chat.ai.exchange"
         const val AI_REQUEST_QUEUE_NAME = "chat.ai.request.queue"
         const val AI_RESPONSE_QUEUE_NAME = "chat.ai.response.queue"
+        const val STORAGE_EXCHANGE_NAME = "chat.storage.exchange"
+        const val SENTIMENT_QUEUE_NAME = "chat.sentiment.queue"
+        const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
+        const val ENTITY_EXCHANGE_NAME = "chat.entity.exchange"
+    }
+
+    @Bean
+    fun entityExchange(): DirectExchange {
+        return DirectExchange(ENTITY_EXCHANGE_NAME)
     }
 
     @Bean
     fun aiExchange(): DirectExchange {
         return DirectExchange(AI_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun storageExchange(): DirectExchange {
+        return DirectExchange(STORAGE_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun adaptationExchange(): FanoutExchange {
+        return FanoutExchange(ADAPTATION_EXCHANGE_NAME)
     }
 
     @Bean
@@ -31,6 +50,11 @@ class RabbitMQConfig {
     }
 
     @Bean
+    fun sentimentQueue(): Queue {
+        return Queue(SENTIMENT_QUEUE_NAME, true)
+    }
+
+    @Bean
     fun aiRequestBinding(aiRequestQueue: Queue, aiExchange: DirectExchange): Binding {
         return BindingBuilder.bind(aiRequestQueue).to(aiExchange).with("ai.request")
     }
@@ -38,6 +62,11 @@ class RabbitMQConfig {
     @Bean
     fun aiResponseBinding(aiResponseQueue: Queue, aiExchange: DirectExchange): Binding {
         return BindingBuilder.bind(aiResponseQueue).to(aiExchange).with("ai.response")
+    }
+
+    @Bean
+    fun sentimentBinding(sentimentQueue: Queue, storageExchange: DirectExchange): Binding {
+        return BindingBuilder.bind(sentimentQueue).to(storageExchange).with("")
     }
 
     @Bean

@@ -49,6 +49,7 @@ class UserGrpcService(
                     .setUserId(user.id ?: "")
                     .setUsername(user.username)
                     .setEmail(user.email ?: "")
+                    .setEnabled(user.enabled)
                     .build()
             }
             .subscribe({ response ->

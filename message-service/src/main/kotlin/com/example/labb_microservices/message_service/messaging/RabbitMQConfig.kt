@@ -16,6 +16,38 @@ class RabbitMQConfig {
         const val STORAGE_QUEUE_NAME = "chat.storage.queue"
         const val AI_REQUEST_QUEUE_NAME = "chat.ai.request.queue"
         const val AI_RESPONSE_QUEUE_NAME = "chat.ai.response.queue"
+        const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
+        const val CONTENT_INJECTION_EXCHANGE_NAME = "chat.content.injection.exchange"
+    }
+
+    @Bean
+    fun contentInjectionExchange(): FanoutExchange {
+        return FanoutExchange(CONTENT_INJECTION_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun contentInjectionQueue(): Queue {
+        return AnonymousQueue()
+    }
+
+    @Bean
+    fun contentInjectionBinding(contentInjectionQueue: Queue, contentInjectionExchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(contentInjectionQueue).to(contentInjectionExchange)
+    }
+
+    @Bean
+    fun adaptationExchange(): FanoutExchange {
+        return FanoutExchange(ADAPTATION_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun adaptationQueue(): Queue {
+        return AnonymousQueue()
+    }
+
+    @Bean
+    fun adaptationBinding(adaptationQueue: Queue, adaptationExchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(adaptationQueue).to(adaptationExchange)
     }
 
     @Bean
