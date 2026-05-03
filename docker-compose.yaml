@@ -39,6 +39,8 @@ services:
       - "9090:9090"
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
+      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
+      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
     depends_on:
       mongodb:
         condition: service_started
@@ -48,10 +50,12 @@ services:
       context: .
       dockerfile: auth-service/Dockerfile
     ports:
-      - "8081:8081"
+      - "8091:8081"
     environment:
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
       - SPRING_DATA_REDIS_HOST=redis
+      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
+      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
     depends_on:
       user-service:
         condition: service_started
@@ -68,6 +72,8 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
       - SPRING_RABBITMQ_HOST=rabbitmq
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
+      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
     depends_on:
       mongodb:
         condition: service_started
@@ -86,6 +92,7 @@ services:
       - SERVICES_AUTH=http://auth-service:8081
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
+      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
     depends_on:
       auth-service:
         condition: service_started
