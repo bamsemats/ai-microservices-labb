@@ -25,7 +25,8 @@ import java.time.LocalDateTime
 
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
-    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
+    "grpc.server.port=0"
 ])
 @Testcontainers
 @Import(RabbitMQMessagingTests.TestConsumerConfig::class)

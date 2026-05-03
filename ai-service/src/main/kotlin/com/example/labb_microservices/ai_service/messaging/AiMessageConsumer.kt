@@ -23,7 +23,7 @@ class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
         val aiMessage = Message(
             id = UUID.randomUUID().toString(),
             senderId = "ai-bot",
-            receiverId = message.receiverId, // Preserve original conversation/broadcast target
+            receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId,
             content = aiResponseContent,
             authorType = AuthorType.BOT
         )

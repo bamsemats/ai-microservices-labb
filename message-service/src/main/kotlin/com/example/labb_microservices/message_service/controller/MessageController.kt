@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono
 import java.util.*
 
 data class MessageRequest(val receiverId: String, val content: String)
+data class BroadcastRequest(val content: String)
 
 @RestController
 @RequestMapping("/messages")
@@ -18,11 +19,12 @@ class MessageController(
     private val messageProducer: MessageProducer
 ) {
 
+    private val logger = org.slf4j.LoggerFactory.getLogger(MessageController::class.java)
+
     @PostMapping
     fun sendMessage(@RequestBody request: MessageRequest): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
             .map { it.authentication.name }
-            .defaultIfEmpty("anonymous")
             .flatMap { senderId ->
                 Mono.fromCallable {
                     val message = Message(
@@ -32,21 +34,41 @@ class MessageController(
                         content = request.content,
                         authorType = AuthorType.USER
                     )
-                    messageProducer.sendMessage(message)
-
-                    if (request.content.contains("@ai", ignoreCase = true)) {
-                        try {
-                            messageProducer.sendAiRequest(message)
-                        } catch (e: Exception) {
-                            // Log error but don't fail the primary message flow
-                            org.slf4j.LoggerFactory.getLogger(MessageController::class.java)
-                                .error("Failed to trigger AI request for message \${message.id}", e)
-                        }
-                    }
-
-                    "Message sent to queue by \${senderId}"
+                    processMessage(message, request.content)
+                    "Message sent to queue by $senderId"
                 }
             }
+    }
+
+    @PostMapping("/broadcast")
+    fun broadcastMessage(@RequestBody request: BroadcastRequest): Mono<String> {
+        return ReactiveSecurityContextHolder.getContext()
+            .map { it.authentication.name }
+            .flatMap { senderId ->
+                Mono.fromCallable {
+                    val message = Message(
+                        id = UUID.randomUUID().toString(),
+                        senderId = senderId,
+                        receiverId = "all",
+                        content = request.content,
+                        authorType = AuthorType.USER
+                    )
+                    processMessage(message, request.content)
+                    "Broadcast message sent by $senderId"
+                }
+            }
+    }
+
+    private fun processMessage(message: Message, content: String) {
+        messageProducer.sendMessage(message)
+
+        if (content.contains("@ai", ignoreCase = true)) {
+            try {
+                messageProducer.sendAiRequest(message)
+            } catch (e: Exception) {
+                logger.error("Failed to trigger AI request for message ${message.id}", e)
+            }
+        }
     }
 
     @GetMapping("/user/{userId}")

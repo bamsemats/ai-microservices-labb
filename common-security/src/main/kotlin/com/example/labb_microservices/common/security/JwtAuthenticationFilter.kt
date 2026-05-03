@@ -15,6 +15,8 @@ import reactor.core.publisher.Mono
 @Component
 class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) : WebFilter {
 
+    private val logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
+
     @Bean
     fun userDetailsService(): MapReactiveUserDetailsService {
         // Dummy user details service to silence the generated password warning.
@@ -25,26 +27,30 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val request = exchange.request
+        val path = request.uri.path
+        val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+        val tokenParam = request.queryParams.getFirst("token")
 
-        val authHeader = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
-        var token: String? = null
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7)
+        val token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            authHeader.substring(7)
+        } else if (tokenParam != null) {
+            tokenParam
         } else {
-            token = exchange.request.queryParams.getFirst("token")
+            null
         }
 
-        if (token != null) {
+        if (token != null && jwtTokenValidator.validateToken(token)) {
             val username = jwtTokenValidator.getAuthentication(token)
-
             if (username != null) {
+                logger.debug("Setting security context for user: {} on path: {}", username, path)
                 val auth = UsernamePasswordAuthenticationToken(username, null, emptyList())
                 return chain.filter(exchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
             }
         }
 
+        logger.debug("No valid token found for path: {}", path)
         return chain.filter(exchange)
     }
 }

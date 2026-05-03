@@ -20,6 +20,7 @@ class JwtAuthenticationFilter(
 ) : AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config>(Config::class.java) {
 
     private lateinit var key: SecretKey
+    private val logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
 
     @PostConstruct
     fun init() {
@@ -38,7 +39,10 @@ class JwtAuthenticationFilter(
             val request = exchange.request
             val path = request.uri.path
 
+            logger.info("Gateway filtering path: {}", path)
+
             if (publicPaths.any { path == it || path.startsWith("$it/") }) {
+                logger.info("Path is public: {}", path)
                 return@GatewayFilter chain.filter(exchange)
             }
 
