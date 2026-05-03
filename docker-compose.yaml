@@ -53,6 +53,7 @@ services:
       - "8091:8081"
     environment:
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=plaintext
       - SPRING_DATA_REDIS_HOST=redis
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
       - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
@@ -72,6 +73,7 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
       - SPRING_RABBITMQ_HOST=rabbitmq
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=plaintext
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
       - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
     depends_on:

@@ -19,7 +19,9 @@ class UserService(
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
-            .flatMap { Mono.error<User>(RuntimeException("User already exists")) }
+            .flatMap { existingUser -> 
+                Mono.error<User>(RuntimeException("User already exists")) 
+            }
             .switchIfEmpty(
                 Mono.defer {
                     val rawPassword = user.password ?: throw RuntimeException("Password is required")

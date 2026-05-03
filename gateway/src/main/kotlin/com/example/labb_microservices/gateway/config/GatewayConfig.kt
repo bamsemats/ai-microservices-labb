@@ -19,11 +19,11 @@ class GatewayConfig(
     fun customRouteLocator(builder: RouteLocatorBuilder): RouteLocator {
         return builder.routes()
             .route("auth-service") { r ->
-                r.path("/login", "/register")
+                r.path("/login", "/refresh", "/logout")
                     .uri(authServiceUrl)
             }
             .route("user-service") { r ->
-                r.path("/users/**")
+                r.path("/register", "/users/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(userServiceUrl)
             }
