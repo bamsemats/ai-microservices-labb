@@ -1,6 +1,7 @@
 # scripts/generate-certs.ps1
 param (
-    [string]$Password = "password"
+    [Parameter(Mandatory=$true)]
+    [string]$Password
 )
 
 $ErrorActionPreference = "Stop"

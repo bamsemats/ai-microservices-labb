@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
 
 const USER_STATS = [
   { label: 'Messages Sent', value: '1,284', trend: '+12%', icon: '✉️' },
@@ -20,9 +21,15 @@ const InsightsPage: React.FC = () => {
     document.documentElement.style.setProperty('--accent-glow-intensity', val.toString());
   };
 
+  const navigate = useNavigate();
+
+  const handleSelectReceiver = (id: string) => {
+    navigate(`/?receiver=${id}`);
+  };
+
   return (
     <div className="chat-page-layout">
-      <Sidebar activeReceiver="insights" onSelectReceiver={() => {}} />
+      <Sidebar activeReceiver="insights" onSelectReceiver={handleSelectReceiver} />
 
       <main className="chat-main-content">
         <header className="chat-navbar glass-panel">

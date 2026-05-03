@@ -31,10 +31,11 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
         val path = request.uri.path
         val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         val tokenParam = request.queryParams.getFirst("token")
+        val isWebSocketHandshake = request.headers.getFirst("Upgrade")?.equals("websocket", ignoreCase = true) == true || path.contains("/ws")
 
         val token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
             authHeader.substring(7)
-        } else if (tokenParam != null) {
+        } else if (tokenParam != null && isWebSocketHandshake) {
             tokenParam
         } else {
             null
@@ -43,14 +44,16 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
         if (token != null && jwtTokenValidator.validateToken(token)) {
             val username = jwtTokenValidator.getAuthentication(token)
             if (username != null) {
-                logger.info("Setting security context for user: {} on path: {}", username, path)
-                val auth = UsernamePasswordAuthenticationToken(username, null, emptyList())
+                logger.debug("Setting security context for path: {}", path)
+                val roles = jwtTokenValidator.getRolesFromToken(token)
+                val authorities = roles.map { org.springframework.security.core.authority.SimpleGrantedAuthority(it) }
+                val auth = UsernamePasswordAuthenticationToken(username, null, authorities)
                 return chain.filter(exchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
             }
         }
 
-        logger.info("No valid token found for path: {}", path)
+        logger.debug("No valid token found for path: {}", path)
         return chain.filter(exchange)
     }
 }

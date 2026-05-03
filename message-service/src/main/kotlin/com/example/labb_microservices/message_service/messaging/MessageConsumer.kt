@@ -34,19 +34,19 @@ class MessageConsumer(
 
     @RabbitListener(queues = ["#{websocketQueue.name}"])
     fun deliverMessage(message: Message) {
-        logger.info("Delivering message: ${message.id} to WebSockets")
+        logger.info("Delivering message: ${message.id} to WebSockets in channel ${message.channelId}")
         try {
             val jsonMessage = objectMapper.writeValueAsString(message)
             
             if (message.receiverId == "all") {
-                webSocketHandler.broadcastMessage(jsonMessage)
+                webSocketHandler.broadcastToChannel(message.channelId, jsonMessage)
             } else {
                 val recipients = setOfNotNull(
                     message.receiverId.takeIf { it.isNotBlank() },
                     message.senderId.takeIf { it.isNotBlank() }
                 )
                 recipients.forEach { userId ->
-                    webSocketHandler.sendMessageToUser(userId, jsonMessage)
+                    webSocketHandler.sendMessageToUser(userId, message.channelId, jsonMessage)
                 }
             }
         } catch (e: Exception) {
@@ -75,6 +75,7 @@ class MessageConsumer(
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Failed to serialize adaptation event for WebSocket", e)
+            throw e
         }
     }
 
@@ -86,6 +87,7 @@ class MessageConsumer(
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Failed to serialize content injection event for WebSocket", e)
+            throw e
         }
     }
 }

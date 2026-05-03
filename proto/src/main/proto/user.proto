@@ -29,5 +29,5 @@ message UserResponse {
   string userId = 1;
   string username = 2;
   string email = 3;
-  bool enabled = 4;
+  optional bool enabled = 4;
 }

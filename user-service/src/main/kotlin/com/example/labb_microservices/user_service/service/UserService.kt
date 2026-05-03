@@ -88,7 +88,8 @@ class UserService(
                 val decryptedEmail = encryptionUtils.decryptLegacy(encryptedEmail)
                 user.copy(email = decryptedEmail)
             } catch (e2: Exception) {
-                user
+                logger.error("Failed to decrypt email for user ${user.id}: ${e2.message}", e2)
+                user.copy(email = null)
             }
         }
     }

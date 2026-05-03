@@ -19,7 +19,7 @@ class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
     fun processSentimentAnalysis(message: Message) {
         if (message.authorType == AuthorType.BOT) return // Don't analyze self
 
-        logger.info("Analyzing sentiment and entities for message: ${message.content}")
+        logger.info("Analyzing sentiment and entities for messageId: {}, senderId: {}", message.id, message.senderId)
         val content = message.content.lowercase()
         
         // Entity Extraction
@@ -75,10 +75,10 @@ class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing AI request from ${message.senderId}: ${message.content}")
+        logger.info("Processing AI request for messageId: {}, from senderId: {}", message.id, message.senderId)
         
         // Simulate AI processing
-        val aiResponseContent = "Hello ${message.senderId}, I received your message: '${message.content}'. This is an automated AI response."
+        val aiResponseContent = "Hello ${message.senderId}, I received your message. This is an automated AI response."
         
         val aiMessage = Message(
             id = UUID.randomUUID().toString(),

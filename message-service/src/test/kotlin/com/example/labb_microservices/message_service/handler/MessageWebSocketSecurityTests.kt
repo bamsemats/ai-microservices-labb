@@ -52,13 +52,17 @@ class MessageWebSocketSecurityTests {
 
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
+        `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
         
-        // Return enabled then disabled. Using clear between calls or a better way to handle the cache if needed.
-        // For now, let's just see if it works with the current cache (it probably won't if called within 1 minute)
+        // Return enabled then disabled on subsequent calls
         `when`(userGrpcClient.getUser(userId))
             .thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
                 .setUserId(userId)
-                .setEnabled(false) // Start disabled to avoid cache issues in test
+                .setEnabled(true)
+                .build()))
+            .thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
+                .setUserId(userId)
+                .setEnabled(false)
                 .build()))
 
         val client = ReactorNettyWebSocketClient()
@@ -71,8 +75,8 @@ class MessageWebSocketSecurityTests {
         }
 
         StepVerifier.create(sessionMono)
-            .thenAwait(Duration.ofSeconds(15))
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(25)) // Wait for interval check
     }
 
     @Test
@@ -82,7 +86,11 @@ class MessageWebSocketSecurityTests {
 
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
-        `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUserId(userId).build()))
+        `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
+        `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
+            .setUserId(userId)
+            .setEnabled(true)
+            .build()))
 
         val client = ReactorNettyWebSocketClient()
         val uri = URI("ws://localhost:$port/ws/messages?token=$token")
@@ -94,7 +102,7 @@ class MessageWebSocketSecurityTests {
         }
 
         StepVerifier.create(sessionMono)
-            .thenAwait(Duration.ofSeconds(15)) // Wait for periodic check (assuming 10s interval)
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(25)) // Wait for periodic check
     }
 }

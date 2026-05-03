@@ -27,24 +27,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
 
       <div className="sidebar-section">
         <h3>Main</h3>
-        <div 
+        <button 
           className={`channel-item ${activeReceiver !== 'explore' && activeReceiver !== 'insights' ? 'active' : ''}`}
           onClick={() => handleNav('/')}
         >
           <span className="icon">🏠</span> Home
-        </div>
-        <div 
+        </button>
+        <button 
           className={`channel-item ${activeReceiver === 'explore' ? 'active' : ''}`}
           onClick={() => handleNav('/explore')}
         >
           <span className="icon">✨</span> Discovery
-        </div>
-        <div 
+        </button>
+        <button 
           className={`channel-item ${activeReceiver === 'insights' ? 'active' : ''}`}
           onClick={() => handleNav('/insights')}
         >
           <span className="icon">📊</span> Insights
-        </div>
+        </button>
       </div>
       
       <div className="sidebar-section">
@@ -61,27 +61,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
 
       <div className="sidebar-section">
         <h3>Channels</h3>
-        <div 
+        <button 
           className={`channel-item ${activeReceiver === 'all' ? 'active' : ''}`}
           onClick={() => onSelectReceiver('all')}
         >
           <span className="hash">#</span> general
-        </div>
+        </button>
       </div>
 
       <div className="sidebar-section">
         <h3>Direct Messages</h3>
-        <div 
+        <button 
           className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
-          onClick={() => onSelectReceiver(userId || '')}
+          onClick={() => userId && onSelectReceiver(userId)}
+          disabled={!userId}
         >
           <span className="at">@</span> Me (Notes)
-        </div>
+        </button>
         {/* Placeholder for other users */}
-        <div className="channel-item disabled">
+        <button className="channel-item disabled" disabled>
           <span className="at">@</span> Bamsemats
           <span className="status-indicator online"></span>
-        </div>
+        </button>
       </div>
       
       <style>{`
@@ -157,6 +158,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           align-items: center;
           gap: 0.75rem;
           position: relative;
+          background: transparent;
+          border: none;
+          width: 100%;
+          text-align: left;
         }
 
         .channel-item:hover {

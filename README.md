@@ -50,6 +50,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
 - [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
 - [x] **#33 AI Insights Dashboard**: Performance visualization and profile customization.
+- [x] **#37 Persistent Channel Partitioning**: Strict channel-based message isolation.
 
 ---
 

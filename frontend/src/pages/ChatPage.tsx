@@ -27,19 +27,17 @@ const ChatPage: React.FC = () => {
   }, [messages, injectedContent]);
 
   const handleSend = async (content: string) => {
-    if (userId) {
-      try {
-        if (receiverId === 'all') {
-          await api.post('/messages/broadcast', { content });
-        } else {
-          await api.post('/messages', {
-            receiverId: receiverId ?? userId,
-            content
-          });
-        }
-      } catch (err) {
-        console.error('Failed to send message', err);
+    try {
+      if (receiverId === 'all') {
+        await api.post('/messages/broadcast', { content });
+      } else {
+        await api.post('/messages', {
+          receiverId: receiverId ?? userId,
+          content
+        });
       }
+    } catch (err) {
+      console.error('Failed to send message', err);
     }
   };
 
@@ -51,10 +49,12 @@ const ChatPage: React.FC = () => {
            (msg.senderId === receiverId && msg.receiverId === userId);
   });
 
+  const filteredInjectedContent = receiverId === 'all' ? injectedContent : [];
+
   // Combine messages and injected content for display
   const displayItems: DisplayItem[] = [
     ...filteredMessages.map(m => ({ type: 'msg' as const, data: m })),
-    ...injectedContent.map(c => ({ type: 'content' as const, data: c }))
+    ...filteredInjectedContent.map(c => ({ type: 'content' as const, data: c }))
   ].sort((a, b) => {
     const timeA = a.type === 'msg' ? new Date(a.data.timestamp).getTime() : a.data.timestamp;
     const timeB = b.type === 'msg' ? new Date(b.data.timestamp).getTime() : b.data.timestamp;

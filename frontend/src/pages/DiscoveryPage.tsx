@@ -23,9 +23,7 @@ const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSelectReceiver = (id: string) => {
-    // For now, navigating back to chat with the selected receiver
-    // In a real app, this might use a store or URL params
-    navigate(`/?receiver=${id}`);
+    navigate(`/?receiver=${encodeURIComponent(id)}`);
   };
 
   return (

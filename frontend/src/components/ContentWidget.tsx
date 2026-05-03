@@ -31,7 +31,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             {content.data.viewers} viewers
           </div>
         </div>
-        <button className="lumina-button small full-width">Watch Together</button>
+        <button className="lumina-button small full-width" disabled>Watch Together (Soon)</button>
 
         <style>{`
           .twitch-widget {
@@ -140,7 +140,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           <span>•</span>
           <span>{content.data.publishedAt}</span>
         </div>
-        <button className="lumina-button small full-width secondary">Open in Player</button>
+        <button className="lumina-button small full-width secondary" disabled>Open in Player (Soon)</button>
 
         <style>{`
           .youtube-widget {

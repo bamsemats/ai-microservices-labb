@@ -25,7 +25,10 @@ RUN mvn package -pl content-aggregator-service -DskipTests -B
 
 # Run stage
 FROM eclipse-temurin:21-jre
+RUN useradd -ms /bin/bash appuser
 WORKDIR /app
 COPY --from=build /app/content-aggregator-service/target/*.jar app.jar
+RUN chown appuser:appuser app.jar
+USER appuser
 EXPOSE 8086
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -36,24 +36,27 @@ class JwtTokenValidator(
     }
 
     fun getAuthentication(token: String): String? {
+        return getClaims(token)?.subject
+    }
+
+    fun getUserIdFromToken(token: String): String? {
+        return getClaims(token)?.get("userId", String::class.java)
+    }
+
+    fun getRolesFromToken(token: String): List<String> {
+        val claims = getClaims(token) ?: return emptyList()
+        @Suppress("UNCHECKED_CAST")
+        return claims.get("roles", List::class.java) as? List<String> ?: emptyList()
+    }
+
+    private fun getClaims(token: String): io.jsonwebtoken.Claims? {
         return try {
-            val claims = Jwts.parser()
+            Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .payload
-
-            val tokenType = claims["tokenType"]
-            if (tokenType == "access") {
-                claims.subject
-            } else {
-                org.slf4j.LoggerFactory.getLogger(JwtTokenValidator::class.java)
-                    .warn("Invalid token type: {}", tokenType)
-                null
-            }
         } catch (e: Exception) {
-            org.slf4j.LoggerFactory.getLogger(JwtTokenValidator::class.java)
-                .error("Token validation failed: {}", e.message)
             null
         }
     }

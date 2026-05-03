@@ -36,7 +36,17 @@ class AuthController(
                     refreshTokenService.saveRefreshToken(response.userId, refreshToken)
                         .flatMap { saved ->
                             if (saved) {
-                                Mono.just(ResponseEntity.ok(LoginResponse(accessToken, refreshToken, response.userId, response.username)))
+                                val cookie = org.springframework.http.ResponseCookie.from("accessToken", accessToken)
+                                    .httpOnly(true)
+                                    .secure(true) // Should be true in prod
+                                    .path("/")
+                                    .maxAge(3600)
+                                    .sameSite("Strict")
+                                    .build()
+                                
+                                Mono.just(ResponseEntity.ok()
+                                    .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
+                                    .body(LoginResponse(accessToken, refreshToken, response.userId, response.username)))
                             } else {
                                 Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
                             }

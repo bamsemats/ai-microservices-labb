@@ -33,7 +33,7 @@ class AiMessageConsumerIntegrationTest {
     class TestConfig {
         @org.springframework.context.annotation.Bean
         fun testAdaptationQueue(): org.springframework.amqp.core.Queue {
-            return org.springframework.amqp.core.Queue("test.adaptation.queue", false)
+            return org.springframework.amqp.core.Queue("test.adaptation.queue." + UUID.randomUUID().toString(), false, false, true)
         }
 
         @org.springframework.context.annotation.Bean
@@ -41,6 +41,9 @@ class AiMessageConsumerIntegrationTest {
             return org.springframework.amqp.core.BindingBuilder.bind(testAdaptationQueue).to(adaptationExchange)
         }
     }
+
+    @Autowired
+    private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
 
     @Test
     fun `should publish adaptation event when urgent sentiment is detected`() {
@@ -55,7 +58,7 @@ class AiMessageConsumerIntegrationTest {
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
         // Give it a moment to process
-        val event = rabbitTemplate.receiveAndConvert("test.adaptation.queue", 5000) as? AdaptationEvent
+        val event = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 5000) as? AdaptationEvent
 
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("emergency", event?.theme)
@@ -74,7 +77,7 @@ class AiMessageConsumerIntegrationTest {
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
-        val event = rabbitTemplate.receiveAndConvert("test.adaptation.queue", 5000) as? AdaptationEvent
+        val event = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 5000) as? AdaptationEvent
 
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("zen", event?.theme)

@@ -40,18 +40,23 @@ class RabbitMQMessagingTests {
         @Container
         @ServiceConnection
         val rabbitmq = RabbitMQContainer("rabbitmq:3.11-management")
-        
-        val latch1 = CountDownLatch(1)
-        val latch2 = CountDownLatch(1)
     }
+
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("latch1")
+    private lateinit var latch1: CountDownLatch
+
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("latch2")
+    private lateinit var latch2: CountDownLatch
 
     @Autowired
     private lateinit var messageProducer: MessageProducer
 
-    @MockitoBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
-    @MockitoBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var webSocketHandler: MessageWebSocketHandler
 
     @Test
@@ -75,6 +80,12 @@ class RabbitMQMessagingTests {
     @TestConfiguration
     class TestConsumerConfig {
         @Bean
+        fun latch1(): CountDownLatch = CountDownLatch(1)
+
+        @Bean
+        fun latch2(): CountDownLatch = CountDownLatch(1)
+
+        @Bean
         fun testQueue1(): Queue = Queue("test.queue.1", false, true, true)
 
         @Bean
@@ -89,12 +100,12 @@ class RabbitMQMessagingTests {
             BindingBuilder.bind(testQueue2).to(exchange)
 
         @RabbitListener(queues = ["test.queue.1"])
-        fun firstConsumer(message: Message) {
+        fun firstConsumer(message: Message, @org.springframework.beans.factory.annotation.Autowired @org.springframework.beans.factory.annotation.Qualifier("latch1") latch1: CountDownLatch) {
             latch1.countDown()
         }
 
         @RabbitListener(queues = ["test.queue.2"])
-        fun secondConsumer(message: Message) {
+        fun secondConsumer(message: Message, @org.springframework.beans.factory.annotation.Autowired @org.springframework.beans.factory.annotation.Qualifier("latch2") latch2: CountDownLatch) {
             latch2.countDown()
         }
     }

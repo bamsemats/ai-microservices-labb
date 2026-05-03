@@ -16,24 +16,20 @@ const getSafeStorageItem = (key: string) => {
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: getSafeStorageItem('token'),
+  token: null, // Keep only in memory
   userId: getSafeStorageItem('userId'),
   username: getSafeStorageItem('username'),
-  isAuthenticated: !!getSafeStorageItem('token'),
+  isAuthenticated: !!getSafeStorageItem('username'),
   setAuth: (token, userId, username) => {
     if (!token || !userId || !username) {
-      console.error('useAuthStore: Attempted to set auth with missing data', { token, userId, username });
       return;
     }
-    console.log('useAuthStore: Setting auth', { userId, username });
-    localStorage.setItem('token', token);
+    // We don't store token in localStorage anymore for security
     localStorage.setItem('userId', userId);
     localStorage.setItem('username', username);
     set({ token, userId, username, isAuthenticated: true });
   },
   logout: () => {
-    console.log('useAuthStore: Logging out');
-    localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
     set({ token: null, userId: null, username: null, isAuthenticated: false });

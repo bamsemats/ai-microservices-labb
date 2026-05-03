@@ -35,6 +35,6 @@ export const useChatStore = create<ChatState>((set) => ({
   addInjectedContent: (content) => set((state) => ({
     injectedContent: [...state.injectedContent, content]
   })),
-  setMessages: (messages) => set({ messages }),
+  setMessages: (messages) => set({ messages, injectedContent: [] }),
   clearMessages: () => set({ messages: [], injectedContent: [] }),
 }));

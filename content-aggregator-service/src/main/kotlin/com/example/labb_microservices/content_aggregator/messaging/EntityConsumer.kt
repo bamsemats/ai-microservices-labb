@@ -19,10 +19,10 @@ class EntityConsumer(
     private val logger = LoggerFactory.getLogger(EntityConsumer::class.java)
 
     @RabbitListener(queues = [RabbitMQConfig.ENTITY_QUEUE_NAME])
-    fun processEntityDetection(entityMessage: EntityMessage) {
+    fun processEntityDetection(entityMessage: EntityMessage): Mono<Void> {
         logger.info("Processing detected entity: ${entityMessage.entityType} = ${entityMessage.entityValue}")
         
-        if (entityMessage.entityType == "GAME") {
+        return if (entityMessage.entityType == "GAME") {
             val cacheKey = "content:game:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
             
             redisTemplate.opsForValue().get(cacheKey)
@@ -41,20 +41,22 @@ class EntityConsumer(
                             .thenReturn(twitchData)
                     }
                 )
-                .doOnNext { data ->
+                .flatMap { data ->
                     val event = ContentInjectionEvent(
                         contentType = "TWITCH_STREAM",
                         data = data as Map<String, String>
                     )
                     
                     logger.info("Publishing Content Injection Event for game: ${entityMessage.entityValue}")
-                    rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME,
-                        "",
-                        event
-                    )
+                    Mono.fromCallable {
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME,
+                            "",
+                            event
+                        )
+                    }
                 }
-                .subscribe()
+                .then()
         } else if (entityMessage.entityType == "VIDEO") {
             val cacheKey = "content:video:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
             
@@ -74,20 +76,24 @@ class EntityConsumer(
                             .thenReturn(youtubeData)
                     }
                 )
-                .doOnNext { data ->
+                .flatMap { data ->
                     val event = ContentInjectionEvent(
                         contentType = "YOUTUBE_VIDEO",
                         data = data as Map<String, String>
                     )
                     
                     logger.info("Publishing Content Injection Event for video: ${entityMessage.entityValue}")
-                    rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME,
-                        "",
-                        event
-                    )
+                    Mono.fromCallable {
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME,
+                            "",
+                            event
+                        )
+                    }
                 }
-                .subscribe()
+                .then()
+        } else {
+            Mono.empty()
         }
     }
 }

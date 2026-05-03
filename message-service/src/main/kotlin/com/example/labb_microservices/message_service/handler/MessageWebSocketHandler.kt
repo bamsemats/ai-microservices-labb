@@ -19,32 +19,37 @@ class MessageWebSocketHandler(
 ) : WebSocketHandler {
 
     private val userSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
-    private val userStatusCache = ConcurrentHashMap<String, Mono<com.example.labb_microservices.proto.UserResponse>>()
+    private val userChannels = ConcurrentHashMap<String, String>()
+    private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val token = extractToken(session)
+        val channelId = extractChannel(session) ?: "general"
 
-        return session.handshakeInfo.principal
-            .map { it.name }
-            .switchIfEmpty(
-                Mono.defer {
-                    if (token != null && jwtTokenValidator.validateToken(token)) {
-                        val auth = jwtTokenValidator.getAuthentication(token)
-                        if (auth != null) Mono.just(auth) else Mono.empty()
-                    } else {
-                        Mono.empty()
-                    }
+        return Mono.justOrEmpty(token)
+            .flatMap { t: String ->
+                if (jwtTokenValidator.validateToken(t)) {
+                    val userId = jwtTokenValidator.getUserIdFromToken(t)
+                    if (userId != null) Mono.just(userId) else Mono.empty<String>()
+                } else {
+                    Mono.empty<String>()
                 }
+            }
+            .switchIfEmpty(
+                session.handshakeInfo.principal
+                    .map { it.name }
             )
-            .flatMap { userId ->
+            .flatMap { userId: String ->
                 val sink = userSinks.computeIfAbsent(userId) {
                     Sinks.many().multicast().directBestEffort()
                 }
+                userChannels[userId] = channelId
 
                 val output = session.send(sink.asFlux().map { session.textMessage(it) })
                     .doFinally {
                         if (sink.currentSubscriberCount() == 0) {
                             userSinks.remove(userId, sink)
+                            userChannels.remove(userId)
                         }
                     }
                 
@@ -76,25 +81,35 @@ class MessageWebSocketHandler(
     }
 
     private fun checkUserStatus(userId: String): Mono<Void> {
-        return userStatusCache.computeIfAbsent(userId) { id ->
-            userGrpcClient.getUser(id)
-                .cache(Duration.ofMinutes(1))
-        }
-        .flatMap { response ->
-            if (!response.enabled) {
-                Mono.error<Void>(PolicyViolationException("User account is disabled"))
+        val cached = userStatusCache[userId]
+        if (cached != null) {
+            // Proto3 optional fields have hasField() methods in Java
+            return if (cached.enabled == false) {
+                Mono.error(PolicyViolationException("User account is disabled"))
             } else {
-                Mono.empty<Void>()
+                Mono.empty()
             }
         }
-        .onErrorResume { e ->
-            userStatusCache.remove(userId)
-            if (e is PolicyViolationException) {
-                Mono.error<Void>(e)
-            } else {
-                Mono.error<Void>(PolicyViolationException("User status check failed"))
+
+        return userGrpcClient.getUser(userId)
+            .flatMap { response ->
+                userStatusCache[userId] = response
+                // Simple cache eviction after 1 minute
+                Mono.delay(Duration.ofMinutes(1)).doOnNext { userStatusCache.remove(userId) }.subscribe()
+                
+                if (response.enabled == false) {
+                    Mono.error<Void>(PolicyViolationException("User account is disabled"))
+                } else {
+                    Mono.empty<Void>()
+                }
             }
-        }
+            .onErrorResume { e ->
+                if (e is PolicyViolationException) {
+                    Mono.error(e)
+                } else {
+                    Mono.error(PolicyViolationException("User status check failed"))
+                }
+            }
     }
 
     private fun extractToken(session: WebSocketSession): String? {
@@ -108,12 +123,29 @@ class MessageWebSocketHandler(
             ?.substringAfter("token=")
     }
 
+    private fun extractChannel(session: WebSocketSession): String? {
+        val query = session.handshakeInfo.uri.query ?: return null
+        return query.split("&")
+            .find { it.startsWith("channel=") }
+            ?.substringAfter("channel=")
+    }
+
     fun broadcastMessage(message: String) {
         userSinks.values.forEach { it.tryEmitNext(message) }
     }
 
-    fun sendMessageToUser(userId: String, message: String) {
-        userSinks[userId]?.tryEmitNext(message)
+    fun broadcastToChannel(channelId: String, message: String) {
+        userSinks.forEach { (userId, sink) ->
+            if (userChannels[userId] == channelId || channelId == "all") {
+                sink.tryEmitNext(message)
+            }
+        }
+    }
+
+    fun sendMessageToUser(userId: String, channelId: String, message: String) {
+        if (userChannels[userId] == channelId || channelId == "all") {
+            userSinks[userId]?.tryEmitNext(message)
+        }
     }
 
     private class PolicyViolationException(message: String) : RuntimeException(message)

@@ -41,14 +41,14 @@ services:
       - ./certs:/app/certs:ro
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
-      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
-      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - GRPC_SERVER_SECURITY_ENABLED=true
       - GRPC_SERVER_SECURITY_KEY_STORE=file:/app/certs/user-service.jks
-      - GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
-      - GRPC_SERVER_SECURITY_KEY_PASSWORD=password
+      - GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=${GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD}
+      - GRPC_SERVER_SECURITY_KEY_PASSWORD=${GRPC_SERVER_SECURITY_KEY_PASSWORD}
       - GRPC_SERVER_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
-      - GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
+      - GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=${GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD}
       - GRPC_SERVER_SECURITY_CLIENT_AUTH=REQUIRE
     depends_on:
       mongodb:

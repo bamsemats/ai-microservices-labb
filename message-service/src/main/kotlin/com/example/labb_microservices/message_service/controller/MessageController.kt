@@ -7,10 +7,11 @@ import com.example.labb_microservices.message_service.model.Message
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.util.*
 
-data class MessageRequest(val receiverId: String, val content: String)
-data class BroadcastRequest(val content: String)
+data class MessageRequest(val receiverId: String, val content: String, val channelId: String? = null)
+data class BroadcastRequest(val content: String, val channelId: String? = null)
 
 @RestController
 @RequestMapping("/messages")
@@ -31,30 +32,40 @@ class MessageController(
                         id = UUID.randomUUID().toString(),
                         senderId = senderId,
                         receiverId = request.receiverId,
+                        channelId = request.channelId ?: "general",
                         content = request.content,
                         authorType = AuthorType.USER
                     )
                     processMessage(message, request.content)
-                    "Message sent to queue by $senderId"
+                    "Message sent to queue by $senderId in channel ${message.channelId}"
                 }
+                .subscribeOn(Schedulers.boundedElastic())
             }
     }
 
     @PostMapping("/broadcast")
     fun broadcastMessage(@RequestBody request: BroadcastRequest): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
-            .map { it.authentication.name }
-            .flatMap { senderId ->
-                Mono.fromCallable {
-                    val message = Message(
-                        id = UUID.randomUUID().toString(),
-                        senderId = senderId,
-                        receiverId = "all",
-                        content = request.content,
-                        authorType = AuthorType.USER
-                    )
-                    processMessage(message, request.content)
-                    "Broadcast message sent by $senderId"
+            .flatMap { context ->
+                val auth = context.authentication
+                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                if (!isAdmin) {
+                    Mono.error<String>(org.springframework.security.access.AccessDeniedException("Only admins can broadcast"))
+                } else {
+                    val senderId = auth.name
+                    Mono.fromCallable {
+                        val message = Message(
+                            id = UUID.randomUUID().toString(),
+                            senderId = senderId,
+                            receiverId = "all",
+                            channelId = request.channelId ?: "all",
+                            content = request.content,
+                            authorType = AuthorType.USER
+                        )
+                        processMessage(message, request.content)
+                        "Broadcast message sent by $senderId in channel ${message.channelId}"
+                    }
+                    .subscribeOn(Schedulers.boundedElastic())
                 }
             }
     }
