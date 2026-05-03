@@ -6,9 +6,9 @@ import org.springframework.security.core.userdetails.MapReactiveUserDetailsServi
 import org.springframework.security.core.userdetails.User
 
 @Configuration
-class SecurityConfig {
+class CommonSecurityConfig {
 
-    @Bean
+    @Bean("commonUserDetailsService")
     fun userDetailsService(): MapReactiveUserDetailsService {
         // Dummy user details service to silence the generated password warning.
         // We use custom JWT filter for actual authentication.

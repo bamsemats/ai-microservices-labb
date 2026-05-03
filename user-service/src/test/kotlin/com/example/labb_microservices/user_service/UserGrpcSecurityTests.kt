@@ -20,7 +20,7 @@ import java.nio.file.Paths
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=9090"
 ])
 @Testcontainers
 @DirtiesContext
@@ -51,7 +51,7 @@ class UserGrpcSecurityTests {
             registry.add("grpc.server.security.client-auth") { "REQUIRE" }
 
             // Secure Client
-            registry.add("grpc.client.secure-client.address") { "static://localhost:\${local.grpc.server.port}" }
+            registry.add("grpc.client.secure-client.address") { "static://localhost:9090" }
             registry.add("grpc.client.secure-client.negotiation-type") { "TLS" }
             registry.add("grpc.client.secure-client.security.enabled") { "true" }
             registry.add("grpc.client.secure-client.security.client-auth-enabled") { "true" }
@@ -64,7 +64,7 @@ class UserGrpcSecurityTests {
             registry.add("grpc.client.secure-client.security.trust-store-password") { "password" }
 
             // Insecure Client
-            registry.add("grpc.client.insecure-client.address") { "static://localhost:\${local.grpc.server.port}" }
+            registry.add("grpc.client.insecure-client.address") { "static://localhost:9090" }
             registry.add("grpc.client.insecure-client.negotiation-type") { "TLS" }
             registry.add("grpc.client.insecure-client.security.enabled") { "true" }
             registry.add("grpc.client.insecure-client.security.client-auth-enabled") { "false" }

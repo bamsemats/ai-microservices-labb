@@ -29,7 +29,7 @@ import java.time.LocalDateTime
     "grpc.server.port=0"
 ])
 @Testcontainers
-@Import(RabbitMQMessagingTests.TestConsumerConfig::class)
+@Import(RabbitMQMessagingTests.LatchConfig::class, RabbitMQMessagingTests.ListenerConfig::class)
 class RabbitMQMessagingTests {
 
     companion object {
@@ -68,7 +68,7 @@ class RabbitMQMessagingTests {
             timestamp = LocalDateTime.now()
         )
 
-        messageProducer.sendMessage(message)
+        messageProducer.deliverMessage(message)
 
         val received1 = latch1.await(10, TimeUnit.SECONDS)
         val received2 = latch2.await(10, TimeUnit.SECONDS)
@@ -78,12 +78,21 @@ class RabbitMQMessagingTests {
     }
 
     @TestConfiguration
-    class TestConsumerConfig {
+    class LatchConfig {
         @Bean
         fun latch1(): CountDownLatch = CountDownLatch(1)
 
         @Bean
         fun latch2(): CountDownLatch = CountDownLatch(1)
+    }
+
+    @TestConfiguration
+    class ListenerConfig {
+        @Autowired
+        private lateinit var latch1: CountDownLatch
+
+        @Autowired
+        private lateinit var latch2: CountDownLatch
 
         @Bean
         fun testQueue1(): Queue = Queue("test.queue.1", false, true, true)
@@ -100,12 +109,12 @@ class RabbitMQMessagingTests {
             BindingBuilder.bind(testQueue2).to(exchange)
 
         @RabbitListener(queues = ["test.queue.1"])
-        fun firstConsumer(message: Message, @org.springframework.beans.factory.annotation.Autowired @org.springframework.beans.factory.annotation.Qualifier("latch1") latch1: CountDownLatch) {
+        fun firstConsumer(message: Message) {
             latch1.countDown()
         }
 
         @RabbitListener(queues = ["test.queue.2"])
-        fun secondConsumer(message: Message, @org.springframework.beans.factory.annotation.Autowired @org.springframework.beans.factory.annotation.Qualifier("latch2") latch2: CountDownLatch) {
+        fun secondConsumer(message: Message) {
             latch2.countDown()
         }
     }

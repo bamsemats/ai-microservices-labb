@@ -19,7 +19,11 @@ import java.util.*
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=0",
+    "grpc.server.security.enabled=false",
+    "grpc.server.security.key-store-password=ignored",
+    "grpc.server.security.key-password=ignored",
+    "grpc.server.security.trust-store-password=ignored"
 ])
 @Testcontainers
 class UserControllerTests {
@@ -73,6 +77,7 @@ class UserControllerTests {
     fun `should accept request to protected endpoint with valid token`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("userId", "test-user-id")
             .claim("tokenType", "access")
             .issuedAt(Date())
             .expiration(Date(System.currentTimeMillis() + 3600000))

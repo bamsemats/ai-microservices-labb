@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useUIStore } from '../store/useUIStore';
-import { animate } from 'framer-motion';
+import { animate, type AnimationPlaybackControls } from 'framer-motion';
 
 export const useUIAdaptation = () => {
   const { currentTheme } = useUIStore();
-  const controlsRef = useRef<any[]>([]);
+  const controlsRef = useRef<AnimationPlaybackControls[]>([]);
 
   useEffect(() => {
     const root = document.documentElement;

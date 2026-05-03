@@ -21,7 +21,8 @@ import java.time.Duration
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=0",
+    "auth.cache.ttl=0"
 ])
 @Testcontainers
 class MessageWebSocketSecurityTests {

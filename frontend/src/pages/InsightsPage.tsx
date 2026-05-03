@@ -33,7 +33,7 @@ const InsightsPage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 800));
       setFeedback("Profile frequency updated successfully.");
       setTimeout(() => setFeedback(null), 3000);
-    } catch (err) {
+    } catch {
       setFeedback("Failed to update profile. Static interference detected.");
     } finally {
       setIsSaving(false);

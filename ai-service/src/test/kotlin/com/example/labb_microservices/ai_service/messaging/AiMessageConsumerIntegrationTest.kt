@@ -13,11 +13,13 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.springframework.context.annotation.Import
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 @SpringBootTest
 @Testcontainers
+@Import(AiMessageConsumerIntegrationTest.TestConfig::class)
 class AiMessageConsumerIntegrationTest {
 
     companion object {
@@ -33,7 +35,7 @@ class AiMessageConsumerIntegrationTest {
     class TestConfig {
         @org.springframework.context.annotation.Bean
         fun testAdaptationQueue(): org.springframework.amqp.core.Queue {
-            return org.springframework.amqp.core.Queue("test.adaptation.queue." + UUID.randomUUID().toString(), false, false, true)
+            return org.springframework.amqp.core.Queue("test.adaptation.queue." + UUID.randomUUID().toString(), true, false, false)
         }
 
         @org.springframework.context.annotation.Bean

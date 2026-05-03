@@ -12,7 +12,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 @Configuration
 @EnableWebFluxSecurity
 @ComponentScan("com.example.labb_microservices.common.security")
-class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
+class AuthServiceSecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
 
     @Bean
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {

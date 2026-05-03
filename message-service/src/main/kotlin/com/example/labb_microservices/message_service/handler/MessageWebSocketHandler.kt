@@ -18,11 +18,16 @@ class MessageWebSocketHandler(
     private val userGrpcClient: UserGrpcClient
 ) : WebSocketHandler {
 
+    @org.springframework.beans.factory.annotation.Value("\${auth.cache.ttl:60}")
+    private var cacheTtlSeconds: Long = 60
+
     private val userSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
     private val userChannels = ConcurrentHashMap<String, String>()
     private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
+        // ... (rest of the method unchanged)
+
         val token = extractToken(session)
         val channelId = extractChannel(session) ?: "general"
 
@@ -94,12 +99,16 @@ class MessageWebSocketHandler(
         return userGrpcClient.getUser(userId)
             .flatMap { response ->
                 userStatusCache[userId] = response
-                // Simple cache eviction after 1 minute
-                Mono.delay(Duration.ofMinutes(1))
-                    .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
-                    .doOnNext { userStatusCache.remove(userId) }
-                    .doOnError { e -> org.slf4j.LoggerFactory.getLogger(MessageWebSocketHandler::class.java).error("Cache eviction failed", e) }
-                    .subscribe()
+                // Simple cache eviction
+                if (cacheTtlSeconds > 0) {
+                    Mono.delay(Duration.ofSeconds(cacheTtlSeconds))
+                        .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                        .doOnNext { userStatusCache.remove(userId) }
+                        .doOnError { e -> org.slf4j.LoggerFactory.getLogger(MessageWebSocketHandler::class.java).error("Cache eviction failed", e) }
+                        .subscribe()
+                } else {
+                    userStatusCache.remove(userId)
+                }
                 
                 if (response.enabled == false) {
                     Mono.error<Void>(PolicyViolationException("User account is disabled"))
