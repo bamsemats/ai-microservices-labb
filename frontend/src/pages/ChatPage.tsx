@@ -55,14 +55,14 @@ const ChatPage: React.FC = () => {
         <aside className="sidebar">
           <h2>Channels</h2>
           <div 
-            className={`channel-item \${receiverId === 'all' ? 'active' : ''}`}
+            className={`channel-item ${receiverId === 'all' ? 'active' : ''}`}
             onClick={() => setReceiverId('all')}
           >
             # general
           </div>
           <h2 style={{ marginTop: '2rem' }}>Direct Messages</h2>
           <div 
-            className={`channel-item \${receiverId === userId ? 'active' : ''}`}
+            className={`channel-item ${receiverId === userId ? 'active' : ''}`}
             onClick={() => setReceiverId(userId || '')}
           >
             @ Me (Notes)
@@ -92,7 +92,7 @@ const ChatPage: React.FC = () => {
               }).map((msg, idx) => (
                 <div 
                   key={msg.id || idx} 
-                  className={`message-item \${msg.senderId === userId ? 'own' : ''}`}
+                  className={`message-item ${msg.senderId === userId ? 'own' : ''}`}
                 >
                   <div className="sender">
                     {msg.senderName || msg.senderId}

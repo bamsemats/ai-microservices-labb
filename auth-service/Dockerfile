@@ -14,6 +14,7 @@ COPY ai-service/pom.xml ai-service/
 
 # Install parent and shared modules
 RUN mvn install -N -B
+
 COPY proto/src proto/src
 COPY common-security/src common-security/src
 RUN mvn install -pl proto,common-security -DskipTests -B

@@ -20,10 +20,10 @@ class MessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.STORAGE_QUEUE_NAME])
     fun storeMessage(message: Message) {
-        logger.info("Storing message: \${message.id}")
+        logger.info("Storing message: ${message.id}")
         messageRepository.save(message)
             .flatMap { savedMessage ->
-                logger.info("Saved message to MongoDB: \${savedMessage.id}")
+                logger.info("Saved message to MongoDB: ${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
                 reactor.core.publisher.Mono.just(savedMessage)
             }
@@ -32,7 +32,7 @@ class MessageConsumer(
 
     @RabbitListener(queues = ["#{websocketQueue.name}"])
     fun deliverMessage(message: Message) {
-        logger.info("Delivering message: \${message.id} to WebSockets")
+        logger.info("Delivering message: ${message.id} to WebSockets")
         try {
             val jsonMessage = objectMapper.writeValueAsString(message)
             
@@ -55,10 +55,10 @@ class MessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
     fun consumeAiResponse(message: Message) {
-        logger.info("Received AI response: \${message.id}")
+        logger.info("Received AI response: ${message.id}")
         messageRepository.save(message)
             .flatMap { savedMessage ->
-                logger.info("Saved AI message to MongoDB: \${savedMessage.id}")
+                logger.info("Saved AI message to MongoDB: ${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
                 reactor.core.publisher.Mono.just(savedMessage)
             }

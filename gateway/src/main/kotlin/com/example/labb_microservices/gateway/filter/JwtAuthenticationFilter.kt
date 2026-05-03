@@ -95,6 +95,7 @@ class JwtAuthenticationFilter(
     }
 
     private fun onError(exchange: ServerWebExchange, err: String, httpStatus: HttpStatus): Mono<Void> {
+        logger.error("Authentication failed for path {}: {}", exchange.request.uri.path, err)
         val response = exchange.response
         response.statusCode = httpStatus
         return response.setComplete()

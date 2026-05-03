@@ -14,9 +14,9 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await api.post('/login', { username, password });
-      const { token, userId, username: loggedInUsername } = response.data;
+      const { accessToken, userId, username: loggedInUsername } = response.data;
       
-      setAuth(token, userId, loggedInUsername);
+      setAuth(accessToken, userId, loggedInUsername);
       navigate('/');
     } catch (err: any) {
       setError('Login failed. Check your credentials.');
