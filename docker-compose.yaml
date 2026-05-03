@@ -37,10 +37,19 @@ services:
     ports:
       - "8082:8082"
       - "9090:9090"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
       - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - GRPC_SERVER_SECURITY_ENABLED=true
+      - GRPC_SERVER_SECURITY_KEY_STORE=file:/app/certs/user-service.jks
+      - GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
+      - GRPC_SERVER_SECURITY_KEY_PASSWORD=password
+      - GRPC_SERVER_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
+      - GRPC_SERVER_SECURITY_CLIENT_AUTH=REQUIRE
     depends_on:
       mongodb:
         condition: service_started
@@ -51,12 +60,19 @@ services:
       dockerfile: auth-service/Dockerfile
     ports:
       - "8091:8081"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
-      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
-      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=plaintext
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
       - SPRING_DATA_REDIS_HOST=redis
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
       - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/auth-service.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=password
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=password
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=password
     depends_on:
       user-service:
         condition: service_started
@@ -69,13 +85,20 @@ services:
       dockerfile: message-service/Dockerfile
     ports:
       - "8083:8083"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
       - SPRING_RABBITMQ_HOST=rabbitmq
-      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
-      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=plaintext
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
       - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/message-service.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=password
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=password
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=password
     depends_on:
       mongodb:
         condition: service_started

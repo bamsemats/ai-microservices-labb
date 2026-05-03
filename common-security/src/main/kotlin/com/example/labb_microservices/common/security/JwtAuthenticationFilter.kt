@@ -43,14 +43,14 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
         if (token != null && jwtTokenValidator.validateToken(token)) {
             val username = jwtTokenValidator.getAuthentication(token)
             if (username != null) {
-                logger.debug("Setting security context for user: {} on path: {}", username, path)
+                logger.info("Setting security context for user: {} on path: {}", username, path)
                 val auth = UsernamePasswordAuthenticationToken(username, null, emptyList())
                 return chain.filter(exchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
             }
         }
 
-        logger.debug("No valid token found for path: {}", path)
+        logger.info("No valid token found for path: {}", path)
         return chain.filter(exchange)
     }
 }

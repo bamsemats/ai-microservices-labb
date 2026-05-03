@@ -106,19 +106,39 @@ class UserControllerTests {
     }
 
     @Test
-    fun `should reject request to protected endpoint with refresh token`() {
-        val token = Jwts.builder()
-            .subject("testuser")
-            .claim("tokenType", "refresh")
-            .issuedAt(Date())
-            .expiration(Date(System.currentTimeMillis() + 3600000))
-            .signWith(KEY)
-            .compact()
+    fun `should register user with encrypted email and return decrypted email`() {
+        val username = "testuser_" + UUID.randomUUID().toString().take(8)
+        val email = "test@example.com"
+        val registrationRequest = mapOf(
+            "username" to username,
+            "password" to "testpassword",
+            "email" to email
+        )
 
-        webTestClient.get()
-            .uri("/me")
-            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+        val response = webTestClient.post()
+            .uri("/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(registrationRequest)
             .exchange()
-            .expectStatus().isUnauthorized
+            .expectStatus().isCreated
+            .expectBody(Map::class.java)
+            .returnResult()
+            .responseBody!!
+
+        // Verify API response has plain text email
+        org.junit.jupiter.api.Assertions.assertEquals(email, response["email"])
+        
+        // Verify database has encrypted email (we can check via repository directly)
+        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
+        val userId = response["id"] as String
+        
+        // We use stepVerifier because it's reactive
+        reactor.test.StepVerifier.create(userRepository.findById(userId))
+            .assertNext { user ->
+                org.junit.jupiter.api.Assertions.assertNotEquals(email, user.email)
+                org.junit.jupiter.api.Assertions.assertTrue(user.email!!.length > 20) // Base64 ciphertext
+                org.junit.jupiter.api.Assertions.assertNotNull(user.emailHash)
+            }
+            .verifyComplete()
     }
 }

@@ -16,6 +16,7 @@ class UserService(
     private val encryptionUtils: EncryptionUtils
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
+
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
@@ -37,6 +38,7 @@ class UserService(
                             emailHash = emailHash
                         )
                     )
+                    .map { decryptUser(it) }
                     .onErrorResume { e ->
                         if (e is org.springframework.dao.DuplicateKeyException) {
                             Mono.error(RuntimeException("Email already exists"))
@@ -46,6 +48,16 @@ class UserService(
                     }
                 }
             )
+    }
+
+    fun findById(userId: String): Mono<User> {
+        return userRepository.findById(userId)
+            .map { decryptUser(it) }
+    }
+
+    fun findByUsername(username: String): Mono<User> {
+        return userRepository.findByUsername(username)
+            .map { decryptUser(it) }
     }
 
     fun findByEmail(email: String): Mono<User> {
@@ -62,5 +74,22 @@ class UserService(
                         }
                 }
             )
+            .map { decryptUser(it) }
+    }
+
+    private fun decryptUser(user: User): User {
+        val encryptedEmail = user.email ?: return user
+        return try {
+            val decryptedEmail = encryptionUtils.decrypt(encryptedEmail)
+            user.copy(email = decryptedEmail)
+        } catch (e: Exception) {
+            // Fallback to legacy decryption if new GCM decryption fails
+            try {
+                val decryptedEmail = encryptionUtils.decryptLegacy(encryptedEmail)
+                user.copy(email = decryptedEmail)
+            } catch (e2: Exception) {
+                user
+            }
+        }
     }
 }

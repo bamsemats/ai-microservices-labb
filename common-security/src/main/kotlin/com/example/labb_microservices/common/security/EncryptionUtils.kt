@@ -100,4 +100,13 @@ class EncryptionUtils(
         val encryptedBytes = cipher.doFinal(data.toByteArray())
         return Base64.getEncoder().encodeToString(encryptedBytes)
     }
+
+    fun decryptLegacy(encryptedData: String): String {
+        val key = SecretKeySpec(secret.toByteArray().copyOf(32), "AES")
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.DECRYPT_MODE, key)
+        val decodedBytes = Base64.getDecoder().decode(encryptedData)
+        val decryptedBytes = cipher.doFinal(decodedBytes)
+        return String(decryptedBytes)
+    }
 }
