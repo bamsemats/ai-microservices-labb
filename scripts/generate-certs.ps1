@@ -14,15 +14,18 @@ if (!(Test-Path $CertsDir)) {
 
 Push-Location $CertsDir
 
-# Convert SecureString to plain string for the temp file (securely handled in cleanup)
-$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
-$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-[System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
-
-$PassFile = [System.IO.Path]::GetTempFileName()
-$PlainPassword | Out-File -FilePath $PassFile -Encoding ASCII -NoNewline
+$BSTR = [System.IntPtr]::Zero
+$PassFile = $null
 
 try {
+    # Convert SecureString to plain string for the temp file (securely handled in cleanup)
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+    $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    
+    $PassFile = [System.IO.Path]::GetTempFileName()
+    # Use UTF8 to preserve non-ASCII characters if any
+    $PlainPassword | Set-Content -Path $PassFile -Encoding UTF8 -NoNewline
+
     $DnameBase = "OU=Education, O=Example, L=Stockholm, S=SE, C=SE"
 
     # 1. Generate Root CA
@@ -72,6 +75,9 @@ try {
 }
 finally {
     Pop-Location
+    if ($BSTR -ne [System.IntPtr]::Zero) {
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    }
     if (Test-Path $PassFile) {
         Remove-Item $PassFile -Force
     }

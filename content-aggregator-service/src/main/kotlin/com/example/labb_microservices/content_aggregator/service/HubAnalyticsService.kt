@@ -13,11 +13,16 @@ data class UserStats(val messagesSent: Long, val aiTokens: Long, val connectionI
 @Service
 class HubAnalyticsService(private val redisTemplate: ReactiveRedisTemplate<String, Any>) {
 
+    companion object {
+        private const val MAX_TRENDING_CHANNELS = 100L
+    }
+
     fun getTrendingChannels(limit: Long = 10): Flux<TrendingChannel> {
+        val cappedLimit = limit.coerceIn(1, MAX_TRENDING_CHANNELS)
         val key = "trending:channels"
         
         return redisTemplate.opsForZSet()
-            .reverseRangeWithScores(key, Range.closed(0L, limit - 1))
+            .reverseRangeWithScores(key, Range.closed(0L, cappedLimit - 1))
             .map { tuple ->
                 TrendingChannel(
                     channelId = tuple.value as String,
@@ -30,9 +35,17 @@ class HubAnalyticsService(private val redisTemplate: ReactiveRedisTemplate<Strin
         val messagesKey = "stats:user:$userId:messages"
         val aiTokensKey = "stats:user:$userId:ai_tokens"
         
+        fun safeToLong(value: Any?): Long {
+            return when (value) {
+                is Number -> value.toLong()
+                is String -> value.toLongOrNull() ?: 0L
+                else -> 0L
+            }
+        }
+
         return Mono.zip(
-            redisTemplate.opsForValue().get(messagesKey).map { (it as Number).toLong() }.defaultIfEmpty(0L),
-            redisTemplate.opsForValue().get(aiTokensKey).map { (it as Number).toLong() }.defaultIfEmpty(0L)
+            redisTemplate.opsForValue().get(messagesKey).map { safeToLong(it) }.defaultIfEmpty(0L),
+            redisTemplate.opsForValue().get(aiTokensKey).map { safeToLong(it) }.defaultIfEmpty(0L)
         ).map { tuple: Tuple2<Long, Long> ->
             // Calculate a dummy connection index
             val connectionIndex = (tuple.t1 * 0.5 + tuple.t2 * 0.01).coerceAtMost(100.0).toInt()

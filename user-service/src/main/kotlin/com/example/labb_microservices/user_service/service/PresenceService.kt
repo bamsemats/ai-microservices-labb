@@ -5,6 +5,7 @@ import com.example.labb_microservices.user_service.model.PresenceStatus
 import com.example.labb_microservices.user_service.model.PresenceUpdateEvent
 import com.example.labb_microservices.user_service.repository.PresenceTracker
 import com.example.labb_microservices.user_service.repository.UserRepository
+import com.example.labb_microservices.user_service.exception.UserNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.stereotype.Service
@@ -23,7 +24,7 @@ class PresenceService(
 
     fun updateStatus(userId: String, status: PresenceStatus): Mono<Void> {
         return userRepository.findById(userId)
-            .switchIfEmpty(Mono.error(RuntimeException("User not found")))
+            .switchIfEmpty(Mono.error(UserNotFoundException("User not found")))
             .flatMap { user ->
                 val username = user.username ?: "unknown"
                 presenceTracker.setStatus(userId, status)

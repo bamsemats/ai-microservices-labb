@@ -33,15 +33,15 @@ class JwtTokenValidator(
     }
 
     fun getAuthentication(token: String): String? {
-        return getClaims(token)?.subject
+        return getValidatedClaims(token)?.subject
     }
 
     fun getUserIdFromToken(token: String): String? {
-        return getClaims(token)?.get("userId", String::class.java)
+        return getValidatedClaims(token)?.get("userId", String::class.java)
     }
 
     fun getRolesFromToken(token: String): List<String> {
-        val claims = getClaims(token) ?: return emptyList()
+        val claims = getValidatedClaims(token) ?: return emptyList()
         @Suppress("UNCHECKED_CAST")
         return claims.get("roles", List::class.java) as? List<String> ?: emptyList()
     }

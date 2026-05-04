@@ -1,5 +1,6 @@
 package com.example.labb_microservices.user_service.controller
 
+import com.example.labb_microservices.user_service.exception.UserNotFoundException
 import com.example.labb_microservices.user_service.model.PresenceStatus
 import com.example.labb_microservices.user_service.model.PresenceUpdateEvent
 import com.example.labb_microservices.user_service.service.PresenceService
@@ -7,7 +8,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.security.Principal
 
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
@@ -19,12 +19,12 @@ class PresenceController(private val presenceService: PresenceService) {
     @PutMapping("/status")
     fun updateStatus(
         @RequestBody status: PresenceStatus,
-        @AuthenticationPrincipal principal: Principal
+        @AuthenticationPrincipal principal: String
     ): Mono<Void> {
-        return presenceService.updateStatus(principal.name, status)
+        return presenceService.updateStatus(principal, status)
             .onErrorMap { e ->
-                if (e is RuntimeException && e.message == "User not found") {
-                    ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")
+                if (e is UserNotFoundException) {
+                    ResponseStatusException(HttpStatus.NOT_FOUND, e.message)
                 } else {
                     e
                 }

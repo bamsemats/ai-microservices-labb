@@ -8,6 +8,11 @@ interface ContentWidgetProps {
 
 const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
   if (content.contentType === 'TWITCH_STREAM') {
+    const streamer = content.data.streamer || "Unknown streamer";
+    const gameName = content.data.gameName || "Unknown game";
+    const thumbnail = content.data.thumbnail;
+    const viewers = content.data.viewers || "—";
+
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -17,18 +22,22 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         <div className="widget-badge">LIVE STREAM</div>
         <div className="twitch-header">
           <div className="streamer-avatar">
-            {content.data.streamer?.charAt(0)}
+            {streamer.charAt(0)}
           </div>
           <div className="stream-info">
-            <h4>{content.data.streamer}</h4>
-            <p>Playing {content.data.gameName}</p>
+            <h4>{streamer}</h4>
+            <p>Playing {gameName}</p>
           </div>
         </div>
         <div className="twitch-preview">
-          <img src={content.data.thumbnail} alt="Stream Preview" />
+          {thumbnail ? (
+            <img src={thumbnail} alt="Stream Preview" onError={(e) => (e.currentTarget.style.display = 'none')} />
+          ) : (
+            <div className="thumbnail-placeholder" />
+          )}
           <div className="viewer-count">
             <span className="live-dot"></span>
-            {content.data.viewers} viewers
+            {viewers} viewers
           </div>
         </div>
         <button className="lumina-button small full-width" disabled>Watch Together (Soon)</button>
@@ -85,6 +94,11 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             object-fit: cover;
             opacity: 0.8;
           }
+          .thumbnail-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+          }
           .viewer-count {
             position: absolute;
             bottom: 0.5rem;
@@ -113,6 +127,13 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
   }
 
   if (content.contentType === 'YOUTUBE_VIDEO') {
+    const title = content.data.title || "Unknown video";
+    const channel = content.data.channel || "Unknown channel";
+    const thumbnail = content.data.thumbnail;
+    const duration = content.data.duration || "—";
+    const views = content.data.views || "—";
+    const publishedAt = content.data.publishedAt || "Recently";
+
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -122,13 +143,17 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         <div className="widget-badge youtube">YOUTUBE VIDEO</div>
         <div className="youtube-header">
           <div className="video-info">
-            <h4>{content.data.title}</h4>
-            <p>Channel: {content.data.channel}</p>
+            <h4>{title}</h4>
+            <p>Channel: {channel}</p>
           </div>
         </div>
         <div className="youtube-preview">
-          <img src={content.data.thumbnail} alt="Video Preview" />
-          <div className="duration-tag">{content.data.duration}</div>
+          {thumbnail ? (
+            <img src={thumbnail} alt="Video Preview" onError={(e) => (e.currentTarget.style.display = 'none')} />
+          ) : (
+            <div className="thumbnail-placeholder" />
+          )}
+          <div className="duration-tag">{duration}</div>
           <div className="play-overlay">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -136,9 +161,9 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           </div>
         </div>
         <div className="video-stats">
-          <span>{content.data.views} views</span>
+          <span>{views} views</span>
           <span>•</span>
-          <span>{content.data.publishedAt}</span>
+          <span>{publishedAt}</span>
         </div>
         <button className="lumina-button small full-width secondary" disabled>Open in Player (Soon)</button>
 

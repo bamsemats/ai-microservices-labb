@@ -22,7 +22,7 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
         val path = request.uri.path
         val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         val tokenParam = request.queryParams.getFirst("token")
-        val isWebSocketHandshake = request.headers.getFirst("Upgrade")?.equals("websocket", ignoreCase = true) == true || path.contains("/ws")
+        val isWebSocketHandshake = request.headers.getFirst("Upgrade")?.equals("websocket", ignoreCase = true) == true || path.startsWith("/ws")
 
         val token = if (authHeader != null && authHeader.startsWith("Bearer ")) {
             authHeader.substring(7)
@@ -37,7 +37,7 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
             if (claims != null) {
                 val userId = claims.get("userId", String::class.java)
                 if (userId != null) {
-                    logger.debug("Setting security context for path: {} with userId: {}", path, userId)
+                    logger.debug("Setting security context for path: {} with userId: {}", path, maskIdentifier(userId))
                     @Suppress("UNCHECKED_CAST")
                     val roles = claims.get("roles", List::class.java) as? List<String> ?: emptyList()
                     val authorities = roles.map { org.springframework.security.core.authority.SimpleGrantedAuthority(it) }
@@ -50,5 +50,9 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
 
         logger.debug("No valid token found for path: {}", path)
         return chain.filter(exchange)
+    }
+
+    private fun maskIdentifier(id: String): String {
+        return if (id.length <= 4) "****" else id.substring(0, 2) + "****" + id.substring(id.length - 2)
     }
 }

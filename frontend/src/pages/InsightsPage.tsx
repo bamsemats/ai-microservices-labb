@@ -207,10 +207,11 @@ const InsightsPage: React.FC = () => {
                 <h3>Adapta Theme Preferences</h3>
                 <div className="settings-group">
                   <div className="label-row">
-                    <label>Accent Glow Intensity</label>
+                    <label htmlFor="accent-glow-range">Accent Glow Intensity</label>
                     <span className="value-tag">{(accentGlow * 100).toFixed(0)}%</span>
                   </div>
                   <input 
+                    id="accent-glow-range"
                     type="range" 
                     min="0" 
                     max="1" 

@@ -16,27 +16,42 @@ class MessageConsumer(
 
     @RabbitListener(queues = ["#{deliveryQueue.name}"])
     fun processDeliveredMessage(message: Message): Mono<Void> {
+        val messageId = message.id
         val channelId = message.channelId
         val senderId = message.senderId
 
+        if (messageId.isNullOrBlank()) {
+            return Mono.empty()
+        }
+
+        val processedKey = "processed:message:$messageId"
         val trendingKey = "trending:channels"
         val userStatsKey = "stats:user:$senderId:messages"
 
-        val trendingUpdate = if (channelId.isNotBlank() && channelId != "null") {
-            redisTemplate.opsForZSet().incrementScore(trendingKey, channelId, 1.0)
-        } else {
-            Mono.just(0.0)
-        }
+        return redisTemplate.opsForValue()
+            .setIfAbsent(processedKey, "true", java.time.Duration.ofHours(24))
+            .flatMap { isNew ->
+                if (isNew == true) {
+                    val trendingUpdate = if (channelId.isNotBlank() && channelId != "null") {
+                        redisTemplate.opsForZSet().incrementScore(trendingKey, channelId, 1.0)
+                    } else {
+                        Mono.just(0.0)
+                    }
 
-        val userUpdate = if (senderId.isNotBlank()) {
-            redisTemplate.opsForValue().increment(userStatsKey)
-        } else {
-            Mono.just(0L)
-        }
+                    val userUpdate = if (senderId.isNotBlank()) {
+                        redisTemplate.opsForValue().increment(userStatsKey)
+                    } else {
+                        Mono.just(0L)
+                    }
 
-        return Mono.zip(trendingUpdate, userUpdate)
-            .doOnNext { logger.info("Updated stats for user $senderId and channel $channelId") }
-            .then()
+                    Mono.zip(trendingUpdate, userUpdate)
+                        .doOnNext { logger.info("Updated stats for user $senderId and channel $channelId (Message ID: $messageId)") }
+                        .then()
+                } else {
+                    logger.debug("Skipping duplicate message: $messageId")
+                    Mono.empty()
+                }
+            }
     }
 
     @RabbitListener(queues = ["#{aiResponseQueue.name}"])

@@ -97,25 +97,29 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           <span className="status-indicator online"></span>
         </button>
         
-        {Object.values(presences)
-          .filter(p => p.userId !== userId)
-          .map((presence) => (
-            <button 
-              key={presence.userId}
-              className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
-              onClick={() => onSelectReceiver(presence.userId)}
-            >
-              <span className="at">@</span> {presence.username}
-              <span className={`status-indicator ${getStatusClass(presence.status)}`}></span>
-            </button>
-          ))
-        }
-
-        {Object.keys(presences).length === 0 && (
-          <button className="channel-item disabled" disabled>
-            <span className="at">@</span> No users online
-          </button>
-        )}
+        {(() => {
+          const filteredPeers = Object.values(presences).filter(p => p.userId !== userId);
+          return (
+            <>
+              {filteredPeers.map((presence) => (
+                <button 
+                  key={presence.userId}
+                  className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
+                  onClick={() => onSelectReceiver(presence.userId)}
+                >
+                  <span className="at">@</span> {presence.username}
+                  <span className={`status-indicator ${getStatusClass(presence.status)}`}></span>
+                </button>
+              ))}
+              
+              {filteredPeers.length === 0 && (
+                <button className="channel-item disabled" disabled>
+                  <span className="at">@</span> No users online
+                </button>
+              )}
+            </>
+          );
+        })()}
       </div>
       
       <style>{`
