@@ -32,16 +32,19 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
             null
         }
 
-        if (token != null && jwtTokenValidator.validateToken(token)) {
-            val username = jwtTokenValidator.getAuthentication(token)
-            val userId = jwtTokenValidator.getUserIdFromToken(token)
-            if (userId != null) {
-                logger.debug("Setting security context for path: {} with userId: {}", path, userId)
-                val roles = jwtTokenValidator.getRolesFromToken(token)
-                val authorities = roles.map { org.springframework.security.core.authority.SimpleGrantedAuthority(it) }
-                val auth = UsernamePasswordAuthenticationToken(userId, null, authorities)
-                return chain.filter(exchange)
-                    .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
+        if (token != null) {
+            val claims = jwtTokenValidator.getValidatedClaims(token)
+            if (claims != null) {
+                val userId = claims.get("userId", String::class.java)
+                if (userId != null) {
+                    logger.debug("Setting security context for path: {} with userId: {}", path, userId)
+                    @Suppress("UNCHECKED_CAST")
+                    val roles = claims.get("roles", List::class.java) as? List<String> ?: emptyList()
+                    val authorities = roles.map { org.springframework.security.core.authority.SimpleGrantedAuthority(it) }
+                    val auth = UsernamePasswordAuthenticationToken(userId, null, authorities)
+                    return chain.filter(exchange)
+                        .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
+                }
             }
         }
 

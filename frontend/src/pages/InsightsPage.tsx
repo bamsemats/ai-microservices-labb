@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
 
 const USER_STATS = [
   { label: 'Messages Sent', value: '1,284', trend: '+12%', icon: '✉️' },
@@ -18,6 +19,14 @@ const InsightsPage: React.FC = () => {
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    };
+  }, []);
 
   const handleUpdateGlow = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -28,13 +37,24 @@ const InsightsPage: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     setFeedback(null);
+    setFeedbackType(null);
+    
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+
     try {
-      // TODO: Implement persistent API call for user profile update
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await api.put('/users/profile', { displayName, bio });
       setFeedback("Profile frequency updated successfully.");
-      setTimeout(() => setFeedback(null), 3000);
-    } catch {
+      setFeedbackType('success');
+      feedbackTimeoutRef.current = setTimeout(() => {
+        setFeedback(null);
+        setFeedbackType(null);
+      }, 3000);
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
       setFeedback("Failed to update profile. Static interference detected.");
+      setFeedbackType('error');
     } finally {
       setIsSaving(false);
     }
@@ -97,8 +117,9 @@ const InsightsPage: React.FC = () => {
               >
                 <h3>Profile Settings</h3>
                 <div className="settings-group">
-                  <label>Display Name</label>
+                  <label htmlFor="displayName">Display Name</label>
                   <input 
+                    id="displayName"
                     type="text" 
                     value={displayName} 
                     onChange={(e) => setDisplayName(e.target.value)}
@@ -106,8 +127,9 @@ const InsightsPage: React.FC = () => {
                   />
                 </div>
                 <div className="settings-group">
-                  <label>Bio (AI Context)</label>
+                  <label htmlFor="bio">Bio (AI Context)</label>
                   <textarea 
+                    id="bio"
                     placeholder="Tell the AI about your interests..." 
                     className="lumina-input"
                     rows={4}
@@ -127,7 +149,7 @@ const InsightsPage: React.FC = () => {
                     <motion.span 
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className={`feedback-msg ${feedback.includes('fail') ? 'error' : 'success'}`}
+                      className={`feedback-msg ${feedbackType}`}
                     >
                       {feedback}
                     </motion.span>

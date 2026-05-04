@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message, type InjectedContent } from '../store/useChatStore';
 import { useWebSocket } from '../hooks/useWebSocket';

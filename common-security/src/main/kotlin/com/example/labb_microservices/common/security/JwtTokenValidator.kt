@@ -24,17 +24,12 @@ class JwtTokenValidator(
     }
 
     fun validateToken(token: String): Boolean {
-        return try {
-            val claims = Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .payload
-            claims["tokenType"] == "access"
-        } catch (e: Exception) {
-            logger.debug("Token validation failed: {}", e.message)
-            false
-        }
+        return getValidatedClaims(token) != null
+    }
+
+    fun getValidatedClaims(token: String): io.jsonwebtoken.Claims? {
+        val claims = getClaims(token) ?: return null
+        return if (claims["tokenType"] == "access") claims else null
     }
 
     fun getAuthentication(token: String): String? {
@@ -59,8 +54,10 @@ class JwtTokenValidator(
                 .parseSignedClaims(token)
                 .payload
         } catch (e: Exception) {
+            logger.debug("Token parsing failed: {}", e.message)
             null
         }
     }
+
 
 }

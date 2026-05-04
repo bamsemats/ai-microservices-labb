@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface MessageComposerProps {
   onSend: (content: string) => void;
@@ -20,8 +20,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim() && !disabled) {
-      onSend(value);
+    const trimmed = value.trim();
+    if (trimmed && !disabled) {
+      onSend(trimmed);
       setValue('');
     }
   };

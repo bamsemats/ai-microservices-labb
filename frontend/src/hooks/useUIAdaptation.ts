@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useUIStore } from '../store/useUIStore';
-import { animate, type AnimationPlaybackControls } from 'framer-motion';
+import { animate, type AnimationPlaybackControls } from 'motion/react';
+
+const isValidColor = (color: string) => {
+  if (typeof window === 'undefined') return false;
+  const s = new Option().style;
+  s.color = color;
+  return s.color !== '';
+};
 
 export const useUIAdaptation = () => {
   const { currentTheme } = useUIStore();
@@ -27,16 +34,21 @@ export const useUIAdaptation = () => {
 
     // Animate Color if present
     if (currentTheme.color) {
-      const colorAnim = animate(
-        getComputedStyle(root).getPropertyValue('--accent-primary').trim() || "#8b5cf6",
-        currentTheme.color,
-        {
-          duration: 1.2,
-          ease: "easeInOut",
-          onUpdate: (latest) => root.style.setProperty('--accent-primary', latest)
-        }
-      );
-      controlsRef.current.push(colorAnim);
+      const sourceColor = getComputedStyle(root).getPropertyValue('--accent-primary').trim() || "#8b5cf6";
+      const targetColor = currentTheme.color;
+
+      if (isValidColor(sourceColor) && isValidColor(targetColor)) {
+        const colorAnim = animate(
+          sourceColor,
+          targetColor,
+          {
+            duration: 1.2,
+            ease: "easeInOut",
+            onUpdate: (latest) => root.style.setProperty('--accent-primary', latest)
+          }
+        );
+        controlsRef.current.push(colorAnim);
+      }
     }
     
     // Theme-specific logic for blur and opacity

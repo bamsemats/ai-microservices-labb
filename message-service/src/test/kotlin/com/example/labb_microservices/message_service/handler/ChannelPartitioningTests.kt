@@ -13,6 +13,7 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
@@ -46,10 +47,10 @@ class ChannelPartitioningTests {
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    @MockitoBean
     private lateinit var jwtTokenValidator: JwtTokenValidator
 
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    @MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
     @Test
@@ -85,8 +86,8 @@ class ChannelPartitioningTests {
         val disposableB = sessionBMono.subscribe()
 
         try {
-            // Wait for connections to stabilize using polling
-            awaitCondition(Duration.ofSeconds(5)) { disposableA.isDisposed.not() && disposableB.isDisposed.not() }
+            // Deterministic wait for connections to stabilize and be registered in MessageWebSocketHandler
+            Thread.sleep(2000)
 
             // Send broadcast to Channel-A
             webTestClient.post()

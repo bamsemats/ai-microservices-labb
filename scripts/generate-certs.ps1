@@ -19,7 +19,7 @@ $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
 $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
-$PassFile = Join-Path $CertsDir ".pass"
+$PassFile = [System.IO.Path]::GetTempFileName()
 $PlainPassword | Out-File -FilePath $PassFile -Encoding ASCII -NoNewline
 
 try {

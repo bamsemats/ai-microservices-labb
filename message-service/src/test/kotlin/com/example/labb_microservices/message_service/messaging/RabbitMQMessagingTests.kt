@@ -53,10 +53,10 @@ class RabbitMQMessagingTests {
     @Autowired
     private lateinit var messageProducer: MessageProducer
 
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    @MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    @MockitoBean
     private lateinit var webSocketHandler: MessageWebSocketHandler
 
     @Test

@@ -20,6 +20,7 @@ class PresenceTracker(private val redisTemplate: ReactiveRedisTemplate<String, S
         return redisTemplate.opsForValue()
             .get(presenceKey(userId))
             .map { PresenceStatus.valueOf(it) }
+            .onErrorResume(IllegalArgumentException::class.java) { Mono.just(PresenceStatus.OFFLINE) }
             .defaultIfEmpty(PresenceStatus.OFFLINE)
     }
 

@@ -104,6 +104,8 @@ class PresenceControllerTests {
             .subject("someuser")
             .claim("userId", "someid")
             .claim("tokenType", "access")
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(KEY)
             .compact()
 

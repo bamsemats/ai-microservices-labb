@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.security.Principal
 
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
+
 @RestController
 @RequestMapping("/users")
 class PresenceController(private val presenceService: PresenceService) {
@@ -17,6 +20,13 @@ class PresenceController(private val presenceService: PresenceService) {
         @AuthenticationPrincipal principal: Principal
     ): Mono<Void> {
         return presenceService.updateStatus(principal.name, status)
+            .onErrorMap { e ->
+                if (e is RuntimeException && e.message == "User not found") {
+                    ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")
+                } else {
+                    e
+                }
+            }
     }
 
     @GetMapping("/{userId}/status")
