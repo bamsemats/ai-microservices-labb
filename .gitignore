@@ -17,6 +17,7 @@ ralph/
 .springBeans
 .sts4-cache
 .geminiignore
+.env
 
 ### IntelliJ IDEA ###
 .idea
