@@ -2,25 +2,66 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
-const USER_STATS = [
-  { label: 'Messages Sent', value: '1,284', trend: '+12%', icon: '✉️' },
-  { label: 'AI Tokens Generated', value: '45.2k', trend: '+5%', icon: '✨' },
-  { label: 'Connection Index', value: '89', trend: '+2', icon: '🔗' },
-  { label: 'Luminous Status', value: 'Radiant', trend: 'Peak', icon: '🌟' },
-];
-
 const InsightsPage: React.FC = () => {
-  const { username, logout } = useAuthStore();
-  const [accentGlow, setAccentGlow] = useState(0.5);
+  const { username, token, logout } = useAuthStore();
+  const { currentTheme, setTheme } = useUIStore();
+  const [accentGlow, setAccentGlow] = useState(currentTheme.intensity);
   const [displayName, setDisplayName] = useState(username || '');
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [userStats, setUserStats] = useState([
+    { label: 'Messages Sent', value: '0', trend: 'Initial', icon: '✉️' },
+    { label: 'AI Tokens Generated', value: '0', trend: 'Initial', icon: '✨' },
+    { label: 'Connection Index', value: '0', trend: 'Initial', icon: '🔗' },
+    { label: 'Luminous Status', value: 'Dormant', trend: 'Floor', icon: '🌟' },
+  ]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/users/me');
+        const user = response.data;
+        if (user.displayName) setDisplayName(user.displayName);
+        if (user.bio) setBio(user.bio);
+      } catch (error) {
+        console.error('Failed to fetch profile', error);
+      }
+    };
+
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/analytics/user-stats');
+        const data = response.data;
+        setUserStats([
+          { label: 'Messages Sent', value: data.messagesSent.toLocaleString(), trend: 'Live', icon: '✉️' },
+          { label: 'AI Tokens Generated', value: (data.aiTokens / 1000).toFixed(1) + 'k', trend: 'Live', icon: '✨' },
+          { label: 'Connection Index', value: data.connectionIndex.toString(), trend: 'Live', icon: '🔗' },
+          { 
+            label: 'Luminous Status', 
+            value: data.connectionIndex > 80 ? 'Radiant' : data.connectionIndex > 40 ? 'Active' : 'Dormant', 
+            trend: 'Peak', 
+            icon: '🌟' 
+          },
+        ]);
+      } catch (error) {
+        console.error('Failed to fetch user stats', error);
+      }
+    };
+
+    if (token) {
+      fetchProfile();
+      fetchStats();
+      const interval = setInterval(fetchStats, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [token]);
 
   useEffect(() => {
     return () => {
@@ -31,7 +72,7 @@ const InsightsPage: React.FC = () => {
   const handleUpdateGlow = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setAccentGlow(val);
-    document.documentElement.style.setProperty('--accent-glow-intensity', val.toString());
+    setTheme({ intensity: val });
   };
 
   const handleSave = async () => {
@@ -88,7 +129,7 @@ const InsightsPage: React.FC = () => {
         <section className="insights-content">
           <div className="insights-grid">
             <div className="stats-row">
-              {USER_STATS.map((stat, index) => (
+              {userStats.map((stat, index) => (
                 <motion.div 
                   key={index}
                   initial={{ opacity: 0, scale: 0.9 }}

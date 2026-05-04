@@ -18,6 +18,22 @@ class RabbitMQConfig {
         const val AI_RESPONSE_QUEUE_NAME = "chat.ai.response.queue"
         const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
         const val CONTENT_INJECTION_EXCHANGE_NAME = "chat.content.injection.exchange"
+        const val PRESENCE_EXCHANGE_NAME = "chat.presence.exchange"
+    }
+
+    @Bean
+    fun presenceExchange(): FanoutExchange {
+        return FanoutExchange(PRESENCE_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun presenceQueue(): Queue {
+        return AnonymousQueue()
+    }
+
+    @Bean
+    fun presenceBinding(presenceQueue: Queue, presenceExchange: FanoutExchange): Binding {
+        return BindingBuilder.bind(presenceQueue).to(presenceExchange)
     }
 
     @Bean

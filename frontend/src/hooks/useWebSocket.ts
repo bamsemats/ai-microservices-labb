@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
 import { useUIStore } from '../store/useUIStore';
+import { usePresenceStore } from '../store/usePresenceStore';
 
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
@@ -9,6 +10,7 @@ export const useWebSocket = () => {
   const mountedRef = useRef(true);
   const { token, isAuthenticated } = useAuthStore();
   const { addMessage } = useChatStore();
+  const { setPresence } = usePresenceStore();
 
   const connectRef = useRef<(() => void) | null>(null);
 
@@ -38,6 +40,9 @@ export const useWebSocket = () => {
         } else if (data.type === 'CONTENT_INJECTION') {
           console.log('Received Content Injection:', data.contentType);
           useChatStore.getState().addInjectedContent(data);
+        } else if (data.type === 'PRESENCE_UPDATE') {
+          console.log('Received Presence Update:', data.userId, data.status);
+          setPresence(data.userId, data.username, data.status);
         } else {
           const message: Message = data;
           addMessage(message);

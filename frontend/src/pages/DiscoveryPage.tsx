@@ -1,15 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
-const TRENDING_TOPICS = [
-  { id: 1, name: 'AdaptaLabs', activity: 'High', color: 'var(--accent-primary)' },
-  { id: 2, name: 'AdaptaDesign', activity: 'Medium', color: 'var(--accent-secondary)' },
-  { id: 3, name: 'QuantumChat', activity: 'Trending', color: 'var(--accent-tertiary)' },
-  { id: 4, name: 'FluidSystems', activity: 'New', color: '#10b981' },
-];
+interface TrendingChannel {
+  channelId: string;
+  score: number;
+}
 
 const FEATURED_CREATORS = [
   { id: 1, name: 'NexusPrime', role: 'Architect', avatar: 'N' },
@@ -19,11 +17,40 @@ const FEATURED_CREATORS = [
 ];
 
 const DiscoveryPage: React.FC = () => {
-  const { username, logout } = useAuthStore();
+  const { username, token, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [trendingChannels, setTrendingChannels] = useState<TrendingChannel[]>([]);
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const response = await fetch('/api/analytics/trending-channels?limit=5', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTrendingChannels(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch trending channels', error);
+      }
+    };
+    if (token) {
+      fetchTrending();
+      const interval = setInterval(fetchTrending, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [token]);
 
   const handleSelectReceiver = (id: string) => {
     navigate(`/?receiver=${encodeURIComponent(id)}`);
+  };
+
+  const getColor = (index: number) => {
+    const colors = ['var(--accent-primary)', 'var(--accent-secondary)', 'var(--accent-tertiary)', '#10b981', '#f59e0b'];
+    return colors[index % colors.length];
   };
 
   return (
@@ -54,25 +81,34 @@ const DiscoveryPage: React.FC = () => {
             >
               <h3>Trending Now <span className="badge">#AdaptaLabs</span></h3>
               <div className="horizontal-scroll">
-                {TRENDING_TOPICS.map((topic) => (
-                  <motion.div 
-                    key={topic.id}
-                    whileHover={{ scale: 1.05 }}
-                    className="glass-card topic-card"
-                    style={{ '--topic-color': topic.color } as React.CSSProperties}
-                  >
-                    <div className="topic-glow"></div>
-                    <div className="topic-header">
-                      <span className="topic-hash">#</span>
-                      <h4>{topic.name}</h4>
-                    </div>
-                    <div className="topic-meta">
-                      <span className="activity-indicator"></span>
-                      {topic.activity} Activity
-                    </div>
-                    <button className="lumina-button small">Join Frequency</button>
-                  </motion.div>
-                ))}
+                {trendingChannels.length === 0 ? (
+                  <p className="text-muted">No trending channels yet. Start chatting!</p>
+                ) : (
+                  trendingChannels.map((topic, index) => (
+                    <motion.div 
+                      key={topic.channelId}
+                      whileHover={{ scale: 1.05 }}
+                      className="glass-card topic-card"
+                      style={{ '--topic-color': getColor(index) } as React.CSSProperties}
+                    >
+                      <div className="topic-glow"></div>
+                      <div className="topic-header">
+                        <span className="topic-hash">#</span>
+                        <h4>{topic.channelId}</h4>
+                      </div>
+                      <div className="topic-meta">
+                        <span className="activity-indicator"></span>
+                        {topic.score} msgs
+                      </div>
+                      <button 
+                        className="lumina-button small"
+                        onClick={() => handleSelectReceiver(topic.channelId)}
+                      >
+                        Join Frequency
+                      </button>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </motion.div>
 

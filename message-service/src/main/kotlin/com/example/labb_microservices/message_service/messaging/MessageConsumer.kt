@@ -4,6 +4,7 @@ import com.example.labb_microservices.message_service.handler.MessageWebSocketHa
 import com.example.labb_microservices.message_service.model.AdaptationEvent
 import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
+import com.example.labb_microservices.message_service.model.PresenceUpdateEvent
 import com.example.labb_microservices.message_service.repository.MessageRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -87,6 +88,19 @@ class MessageConsumer(
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Failed to serialize content injection event for WebSocket", e)
+            throw e
+        }
+    }
+
+    @RabbitListener(queues = ["#{presenceQueue.name}"])
+    fun consumePresenceUpdate(event: PresenceUpdateEvent) {
+        logger.info("Received Presence Update: ${event.userId} is ${event.status}")
+        try {
+            val jsonEvent = objectMapper.writeValueAsString(event)
+            // Broadcast presence to all users as it affects the sidebar
+            webSocketHandler.broadcastMessage(jsonEvent)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize presence update for WebSocket", e)
             throw e
         }
     }

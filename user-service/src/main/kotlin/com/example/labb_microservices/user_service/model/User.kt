@@ -13,5 +13,7 @@ data class User(
     val email: String? = null, // Stores encrypted email
     @Indexed(unique = true, sparse = true)
     val emailHash: String? = null, // Stores hashed email for searching
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    val displayName: String? = null,
+    val bio: String? = null
 )

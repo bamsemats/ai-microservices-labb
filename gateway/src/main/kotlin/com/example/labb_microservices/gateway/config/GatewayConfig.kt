@@ -12,7 +12,8 @@ class GatewayConfig(
     private val jwtFilter: JwtAuthenticationFilter,
     @Value("\${services.auth:http://localhost:8081}") private val authServiceUrl: String,
     @Value("\${services.user:http://localhost:8082}") private val userServiceUrl: String,
-    @Value("\${services.message:http://localhost:8083}") private val messageServiceUrl: String
+    @Value("\${services.message:http://localhost:8083}") private val messageServiceUrl: String,
+    @Value("\${services.aggregator:http://localhost:8086}") private val aggregatorServiceUrl: String
 ) {
 
     @Bean
@@ -31,6 +32,11 @@ class GatewayConfig(
                 r.path("/messages/**", "/ws/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(messageServiceUrl)
+            }
+            .route("content-aggregator-service") { r ->
+                r.path("/analytics/**")
+                    .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
+                    .uri(aggregatorServiceUrl)
             }
             .build()
     }

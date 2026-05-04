@@ -68,16 +68,27 @@ class UserControllerTests {
     @Test
     fun `should reject request to protected endpoint without token`() {
         webTestClient.get()
-            .uri("/me")
+            .uri("/users/me")
             .exchange()
             .expectStatus().isUnauthorized
     }
 
     @Test
     fun `should accept request to protected endpoint with valid token`() {
+        val username = "testuser"
+        val userId = "test-user-id"
+        
+        // Register user first so they exist in DB
+        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
+        userRepository.save(com.example.labb_microservices.user_service.model.User(
+            id = userId,
+            username = username,
+            password = "pw"
+        )).block()
+
         val token = Jwts.builder()
-            .subject("testuser")
-            .claim("userId", "test-user-id")
+            .subject(userId)
+            .claim("userId", userId)
             .claim("tokenType", "access")
             .issuedAt(Date())
             .expiration(Date(System.currentTimeMillis() + 3600000))
@@ -85,11 +96,52 @@ class UserControllerTests {
             .compact()
 
         webTestClient.get()
-            .uri("/me")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
             .exchange()
             .expectStatus().isOk
-            .expectBody(String::class.java).isEqualTo("authenticated")
+            .expectBody()
+            .jsonPath("$.id").isEqualTo(userId)
+            .jsonPath("$.username").isEqualTo(username)
+    }
+
+    @Test
+    fun `should update user profile`() {
+        val userId = "test-profile-user"
+        val username = "profileuser"
+        
+        // Register user first
+        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
+        userRepository.save(com.example.labb_microservices.user_service.model.User(
+            id = userId,
+            username = username,
+            password = "pw"
+        )).block()
+
+        val token = Jwts.builder()
+            .subject(userId)
+            .claim("userId", userId)
+            .claim("tokenType", "access")
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + 3600000))
+            .signWith(KEY)
+            .compact()
+
+        val profileRequest = mapOf(
+            "displayName" to "My Display Name",
+            "bio" to "My Bio"
+        )
+
+        webTestClient.put()
+            .uri("/users/profile")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(profileRequest)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.displayName").isEqualTo("My Display Name")
+            .jsonPath("$.bio").isEqualTo("My Bio")
     }
 
     @Test
@@ -104,7 +156,7 @@ class UserControllerTests {
             .compact()
 
         webTestClient.get()
-            .uri("/me")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
             .exchange()
             .expectStatus().isUnauthorized

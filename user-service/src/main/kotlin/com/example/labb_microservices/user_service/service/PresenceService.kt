@@ -8,6 +8,7 @@ import com.example.labb_microservices.user_service.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 import reactor.core.scheduler.Schedulers
@@ -48,5 +49,16 @@ class PresenceService(
 
     fun getStatus(userId: String): Mono<PresenceStatus> {
         return presenceTracker.getStatus(userId)
+    }
+
+    fun getAllPresences(): Flux<PresenceUpdateEvent> {
+        return presenceTracker.getAllPresences()
+            .flatMap { (userId, status) ->
+                userRepository.findById(userId)
+                    .map { user ->
+                        PresenceUpdateEvent(userId, user.username ?: "unknown", status)
+                    }
+                    .defaultIfEmpty(PresenceUpdateEvent(userId, "unknown", status))
+            }
     }
 }

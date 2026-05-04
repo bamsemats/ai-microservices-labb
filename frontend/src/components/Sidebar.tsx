@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
 import logoWithName from '../assets/logo-with-name.png';
 
 interface SidebarProps {
@@ -9,13 +10,29 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) => {
-  const { userId } = useAuthStore();
+  const { userId, token } = useAuthStore();
+  const { presences, fetchPresences } = usePresenceStore();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (token) {
+      fetchPresences(token);
+    }
+  }, [token, fetchPresences]);
 
   const handleNav = (path: string, receiverId?: string) => {
     navigate(path);
     if (receiverId) {
       onSelectReceiver(receiverId);
+    }
+  };
+
+  const getStatusClass = (status: PresenceStatus) => {
+    switch (status) {
+      case 'ONLINE': return 'online';
+      case 'AWAY': return 'away';
+      case 'DND': return 'dnd';
+      default: return 'offline';
     }
   };
 
@@ -77,12 +94,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           disabled={!userId}
         >
           <span className="at">@</span> Me (Notes)
-        </button>
-        {/* Placeholder for other users */}
-        <button className="channel-item disabled" disabled>
-          <span className="at">@</span> Bamsemats
           <span className="status-indicator online"></span>
         </button>
+        
+        {Object.values(presences)
+          .filter(p => p.userId !== userId)
+          .map((presence) => (
+            <button 
+              key={presence.userId}
+              className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
+              onClick={() => onSelectReceiver(presence.userId)}
+            >
+              <span className="at">@</span> {presence.username}
+              <span className={`status-indicator ${getStatusClass(presence.status)}`}></span>
+            </button>
+          ))
+        }
+
+        {Object.keys(presences).length === 0 && (
+          <button className="channel-item disabled" disabled>
+            <span className="at">@</span> No users online
+          </button>
+        )}
       </div>
       
       <style>{`
@@ -96,6 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           border-radius: 1.5rem;
           background: rgba(11, 19, 38, 0.4);
           flex-shrink: 0;
+          overflow-y: auto;
         }
 
         .sidebar-header {
@@ -199,11 +233,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           border-radius: 50%;
           position: absolute;
           right: 1rem;
+          transition: all 0.3s ease;
         }
 
         .status-indicator.online {
           background: var(--success);
           box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-indicator.away {
+          background: #ffb74d;
+          box-shadow: 0 0 8px #ffb74d;
+        }
+
+        .status-indicator.dnd {
+          background: #ef5350;
+          box-shadow: 0 0 8px #ef5350;
+        }
+
+        .status-indicator.offline {
+          background: #78909c;
+          box-shadow: none;
         }
       `}</style>
     </aside>

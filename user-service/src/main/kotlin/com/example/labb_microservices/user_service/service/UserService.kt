@@ -60,6 +60,14 @@ class UserService(
             .map { decryptUser(it) }
     }
 
+    fun updateProfile(userId: String, displayName: String?, bio: String?): Mono<User> {
+        return userRepository.findById(userId)
+            .flatMap { user ->
+                userRepository.save(user.copy(displayName = displayName, bio = bio))
+            }
+            .map { decryptUser(it) }
+    }
+
     fun findByEmail(email: String): Mono<User> {
         val emailHash = encryptionUtils.hash(email)
         return userRepository.findByEmailHash(emailHash)
