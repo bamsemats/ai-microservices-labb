@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
-class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
+class AiMessageConsumer(
+    private val rabbitTemplate: RabbitTemplate,
+    private val responseGenerator: com.example.labb_microservices.ai_service.logic.ResponseGenerator
+) {
 
     private val logger = LoggerFactory.getLogger(AiMessageConsumer::class.java)
 
@@ -77,22 +80,24 @@ class AiMessageConsumer(private val rabbitTemplate: RabbitTemplate) {
     fun processAiRequest(message: Message) {
         logger.info("Processing AI request for messageId: {}, from senderId: {}", message.id, message.senderId)
         
-        // Simulate AI processing
-        val aiResponseContent = "Hello ${message.senderId}, I received your message. This is an automated AI response."
-        
-        val aiMessage = Message(
-            id = UUID.randomUUID().toString(),
-            senderId = "ai-bot",
-            receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId,
-            content = aiResponseContent,
-            authorType = AuthorType.BOT
-        )
+        responseGenerator.generateResponse(message)
+            .doOnNext { responseContent ->
+                val aiMessage = Message(
+                    id = UUID.randomUUID().toString(),
+                    senderId = "ai-bot",
+                    receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId,
+                    channelId = message.channelId,
+                    content = responseContent,
+                    authorType = AuthorType.BOT
+                )
 
-        logger.info("Sending AI response back to chat")
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.AI_EXCHANGE_NAME,
-            "ai.response",
-            aiMessage
-        )
+                logger.info("Sending AI response back to chat")
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.AI_EXCHANGE_NAME,
+                    "ai.response",
+                    aiMessage
+                )
+            }
+            .subscribe()
     }
 }

@@ -9,6 +9,7 @@ data class Message(
     val id: String? = null,
     val senderId: String,
     val receiverId: String,
+    val channelId: String = "general",
     val content: String,
     val authorType: AuthorType = AuthorType.USER,
     val timestamp: LocalDateTime = LocalDateTime.now()

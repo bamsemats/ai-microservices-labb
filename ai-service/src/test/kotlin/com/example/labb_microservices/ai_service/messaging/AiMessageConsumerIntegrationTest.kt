@@ -47,6 +47,9 @@ class AiMessageConsumerIntegrationTest {
     @Autowired
     private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
 
+    @Autowired
+    private lateinit var aiResponseQueue: org.springframework.amqp.core.Queue
+
     @Test
     fun `should publish adaptation event when urgent sentiment is detected`() {
         val message = Message(
@@ -84,5 +87,27 @@ class AiMessageConsumerIntegrationTest {
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("zen", event?.theme)
         assertEquals(0.2, event?.intensity)
+    }
+
+    @Test
+    fun `should process AI request and return response with simulated latency`() {
+        val message = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = "user-test",
+            receiverId = "ai-bot",
+            content = "What is the meaning of microservices?",
+            authorType = AuthorType.USER
+        )
+
+        rabbitTemplate.convertAndSend(RabbitMQConfig.AI_EXCHANGE_NAME, "ai.request", message)
+
+        // Give it more time (up to 10s) because of the simulated 1-3s latency + startup/processing overhead
+        val response = rabbitTemplate.receiveAndConvert(RabbitMQConfig.AI_RESPONSE_QUEUE_NAME, 10000) as? Message
+
+        assertNotNull(response, "AI response should not be null")
+        assertEquals("ai-bot", response?.senderId)
+        assertEquals("user-test", response?.receiverId)
+        assertEquals(AuthorType.BOT, response?.authorType)
+        assertNotNull(response?.content)
     }
 }
