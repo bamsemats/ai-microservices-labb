@@ -51,6 +51,10 @@ class MessageWebSocketSecurityTests {
         val userId = "test-user"
         val token = "valid-token"
 
+        val claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims::class.java)
+        org.mockito.Mockito.`when`(claims.get("userId", String::class.java)).thenReturn(userId)
+        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(token)).thenReturn(claims)
+
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
         `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
@@ -84,6 +88,10 @@ class MessageWebSocketSecurityTests {
     fun `should close websocket session when token becomes invalid`() {
         val userId = "test-user"
         val token = "valid-token"
+
+        val claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims::class.java)
+        org.mockito.Mockito.`when`(claims.get("userId", String::class.java)).thenReturn(userId)
+        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(token)).thenReturn(claims).thenReturn(null)
 
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)

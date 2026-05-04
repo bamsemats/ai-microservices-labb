@@ -16,7 +16,10 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.util.*
 
-@SpringBootTest
+@SpringBootTest(properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 @Testcontainers
 class EntityConsumerIntegrationTest {
 

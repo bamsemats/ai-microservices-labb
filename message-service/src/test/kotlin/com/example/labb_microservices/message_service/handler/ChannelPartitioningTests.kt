@@ -122,11 +122,16 @@ class ChannelPartitioningTests {
     }
 
     private fun setupMock(userId: String, token: String, isAdmin: Boolean = false) {
+        val roles = if (isAdmin) listOf("ROLE_ADMIN", "ROLE_USER") else listOf("ROLE_USER")
+        
+        val claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims::class.java)
+        org.mockito.Mockito.`when`(claims.get("userId", String::class.java)).thenReturn(userId)
+        org.mockito.Mockito.`when`(claims.get("roles", List::class.java)).thenReturn(roles)
+        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(token)).thenReturn(claims)
+
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
         `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
-        
-        val roles = if (isAdmin) listOf("ROLE_ADMIN", "ROLE_USER") else listOf("ROLE_USER")
         `when`(jwtTokenValidator.getRolesFromToken(token)).thenReturn(roles)
 
         `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(
