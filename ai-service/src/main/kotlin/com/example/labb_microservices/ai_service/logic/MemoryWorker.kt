@@ -10,6 +10,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Instant
 import kotlin.math.max
 
@@ -34,11 +35,13 @@ class MemoryWorker(
                             timestamp = Instant.now(),
                             sourceMessageId = message.id ?: "unknown"
                         )
-                        logger.info("Updating existing memory for user {}: {} -> {}", message.senderId, fact.category, fact.value)
+                        logger.info("Updating existing memory for user: category={}, confidence={}", fact.category, updated.confidence)
                         memoryFragmentRepository.save(updated)
-                            .doOnNext {
-                                if (it.confidence > 0.9) {
-                                    publishPersonaUpdate(it)
+                            .flatMap { saved ->
+                                if (saved.confidence > 0.9) {
+                                    publishPersonaUpdate(saved)
+                                } else {
+                                    Mono.empty()
                                 }
                             }
                     }
@@ -51,11 +54,13 @@ class MemoryWorker(
                                 confidence = fact.confidence,
                                 sourceMessageId = message.id ?: "unknown"
                             )
-                            logger.info("Extracting new memory for user {}: {} -> {}", message.senderId, fact.category, fact.value)
+                            logger.info("Extracting new memory: category={}, confidence={}", fact.category, fact.confidence)
                             memoryFragmentRepository.save(fragment)
-                                .doOnNext {
-                                    if (it.confidence > 0.9) {
-                                        publishPersonaUpdate(it)
+                                .flatMap { saved ->
+                                    if (saved.confidence > 0.9) {
+                                        publishPersonaUpdate(saved)
+                                    } else {
+                                        Mono.empty()
                                     }
                                 }
                         }
@@ -69,17 +74,19 @@ class MemoryWorker(
             .then()
     }
 
-    private fun publishPersonaUpdate(fragment: MemoryFragment) {
-        logger.info("Publishing high-confidence persona update for user {}: {} -> {}", fragment.userId, fragment.category, fragment.value)
-        val event = PersonaUpdateEvent(
-            userId = fragment.userId,
-            category = fragment.category,
-            value = fragment.value
-        )
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.PERSONA_EXCHANGE_NAME,
-            "persona.update",
-            event
-        )
+    private fun publishPersonaUpdate(fragment: MemoryFragment): Mono<Void> {
+        return Mono.fromRunnable<Void> {
+            logger.info("Publishing high-confidence persona update for user (ID redacted): category={}", fragment.category)
+            val event = PersonaUpdateEvent(
+                userId = fragment.userId,
+                category = fragment.category,
+                value = fragment.value
+            )
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.PERSONA_EXCHANGE_NAME,
+                "persona.update",
+                event
+            )
+        }.subscribeOn(Schedulers.boundedElastic())
     }
 }

@@ -4,6 +4,8 @@ import { useChatStore, type Message } from '../store/useChatStore';
 import { useUIStore } from '../store/useUIStore';
 import { usePresenceStore } from '../store/usePresenceStore';
 
+type AiStatus = 'IDLE' | 'THINKING' | 'ERROR';
+
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -20,10 +22,6 @@ export const useWebSocket = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${protocol}://${window.location.host}/ws/messages`;
     
-    // Authorization is now handled via headers/cookies or one-time ticket.
-    // Since WebSocket doesn't support custom headers in the browser,
-    // we would typically use a cookie or a ticket.
-    // For now, we follow the directive to remove it from the URI.
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
@@ -35,23 +33,31 @@ export const useWebSocket = () => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'UI_ADAPTATION') {
-          console.log('Applying AI UI Adaptation:', data.theme);
-          useUIStore.getState().setTheme({
-            theme: data.theme,
-            intensity: data.intensity,
-            color: data.color
-          });
+          const { theme, intensity, color } = data;
+          if (typeof theme === 'string' && typeof intensity === 'number' && typeof color === 'string') {
+            console.log('Applying AI UI Adaptation:', theme);
+            useUIStore.getState().setTheme({ theme, intensity, color });
+          }
         } else if (data.type === 'CONTENT_INJECTION') {
-          console.log('Received Content Injection:', data.contentType);
-          useChatStore.getState().addInjectedContent(data);
+          if (data.contentType && data.data) {
+            console.log('Received Content Injection:', data.contentType);
+            useChatStore.getState().addInjectedContent(data);
+          }
         } else if (data.type === 'AI_STATUS') {
-          console.log('Received AI Status:', data.status);
-          const mappedStatus = data.status === 'COMPLETED' ? 'IDLE' : data.status;
-          useChatStore.getState().setAiStatus(mappedStatus as any);
+          const status = data.status;
+          const allowedStatuses = ['IDLE', 'THINKING', 'ERROR', 'COMPLETED'];
+          if (allowedStatuses.includes(status)) {
+            console.log('Received AI Status:', status);
+            const mappedStatus: AiStatus = status === 'COMPLETED' ? 'IDLE' : status;
+            useChatStore.getState().setAiStatus(mappedStatus);
+          }
         } else if (data.type === 'PRESENCE_UPDATE') {
-          console.log('Received Presence Update:', data.userId, data.status);
-          setPresence(data.userId, data.username, data.status);
-        } else {
+          const { userId, username, status } = data;
+          if (typeof userId === 'string' && typeof username === 'string' && typeof status === 'string') {
+            console.log('Received Presence Update:', userId, status);
+            setPresence(userId, username, status as any);
+          }
+        } else if (data.id && data.senderId && data.content) {
           const message: Message = data;
           addMessage(message);
         }

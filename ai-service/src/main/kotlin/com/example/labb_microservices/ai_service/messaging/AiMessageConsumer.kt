@@ -29,25 +29,29 @@ class AiMessageConsumer(
     fun processSentimentAnalysis(message: Message) {
         if (message.authorType == AuthorType.BOT) return // Don't analyze self
 
-        logger.info("Analyzing sentiment and entities for messageId: {}, senderId: {}", message.id, message.senderId)
+        logger.info("Analyzing sentiment and entities for messageId: {}", message.id)
         
-        // Memory Extraction
+        // Memory Extraction - Blocking to ensure completion and proper ack
         memoryWorker.processMessageForMemory(message)
             .doOnError { e -> logger.error("Failed to extract memory from message: ${message.id}", e) }
-            .subscribe()
+            .block()
 
         val content = message.content.lowercase()
         
         // Entity Extraction
-        if (content.contains("playing") || content.contains("stream") || content.contains("watch") || 
-            content.contains("video") || content.contains("youtube") || content.contains("tutorial")) {
+        val entityTriggerMatch = Regex("(?:playing|stream|watch|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
+        if (entityTriggerMatch != null) {
+            val subject = entityTriggerMatch.groupValues[1].trim()
             
             val (type, value) = when {
-                content.contains("elden ring") -> "GAME" to "Elden Ring"
-                content.contains("valorant") -> "GAME" to "Valorant"
-                content.contains("minecraft") -> "GAME" to "Minecraft"
-                content.contains("react") || content.contains("tutorial") -> "VIDEO" to "React Tutorial"
-                content.contains("music") || content.contains("youtube") -> "VIDEO" to "Lofi Hip Hop"
+                content.contains("elden ring") || subject.contains("elden ring") -> "GAME" to "Elden Ring"
+                content.contains("valorant") || subject.contains("valorant") -> "GAME" to "Valorant"
+                content.contains("minecraft") || subject.contains("minecraft") -> "GAME" to "Minecraft"
+                content.contains("react") -> "VIDEO" to "React Tutorial"
+                content.contains("python") -> "VIDEO" to "Python Tutorial"
+                content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
+                content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
+                subject.length > 2 -> "VIDEO" to subject.replaceFirstChar { it.titlecase() }
                 else -> null to null
             }
             
@@ -91,7 +95,7 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing streaming AI request for messageId: {}, from senderId: {}", message.id, message.senderId)
+        logger.info("Processing streaming AI request for messageId: {}", message.id)
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()
@@ -153,6 +157,7 @@ class AiMessageConsumer(
                     )
                 )
             }
-            .subscribe()
+            .then()
+            .block()
     }
 }

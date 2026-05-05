@@ -97,8 +97,9 @@ class MessageWebSocketHandler(
 
                 // Global Presence Heartbeat - stop when disconnectSink completes
                 val presenceHeartbeat = presenceService.setUserOnline(userId)
+                    .onErrorResume { Mono.empty() }
                     .thenMany(Flux.interval(Duration.ofMinutes(1)))
-                    .flatMap { presenceService.setUserOnline(userId) }
+                    .flatMap { presenceService.setUserOnline(userId).onErrorResume { Mono.empty() } }
                     .takeUntilOther(disconnectSink.asMono())
                     .then()
 
@@ -150,7 +151,8 @@ class MessageWebSocketHandler(
                 if (e is PolicyViolationException) {
                     Mono.error(e)
                 } else {
-                    Mono.error(PolicyViolationException("User status check failed"))
+                    logger.warn("Transient failure checking user status for {}, bypassing check: {}", userId, e.message)
+                    Mono.empty()
                 }
             }
     }

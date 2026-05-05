@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Primary
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
@@ -78,12 +80,12 @@ class OpenRouterResponseGenerator(
                     .header("Authorization", "Bearer $apiKey")
                     .header("HTTP-Referer", "https://github.com/adapta-chat")
                     .header("X-Title", "AdaptaChat")
+                    .accept(MediaType.TEXT_EVENT_STREAM)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToFlux(String::class.java)
-                    .filter { it.startsWith("data: ") }
-                    .map { it.substring(6) } // Remove "data: "
+                    .bodyToFlux(object : ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                    .mapNotNull { it.data() }
                     .filter { it != "[DONE]" }
                     .map { json ->
                         try {
@@ -97,7 +99,7 @@ class OpenRouterResponseGenerator(
                     .filter { it.isNotEmpty() }
                     .onErrorResume { e ->
                         logger.error("Error calling OpenRouter: {}", e.message)
-                        Flux.just(" I'm having trouble connecting to my brain right now.")
+                        Flux.just("I'm having trouble connecting to my brain right now.")
                     }
             }
     }

@@ -71,7 +71,7 @@ class MessageConsumer(
 
         // Atomic update in MongoDB using $concat
         val query = Query(Criteria.where("id").`is`(messageId))
-        val update = Update().set("id", messageId)
+        val update = Update().setOnInsert("id", messageId)
             .setOnInsert("senderId", message.senderId)
             .setOnInsert("receiverId", message.receiverId)
             .setOnInsert("channelId", message.channelId)

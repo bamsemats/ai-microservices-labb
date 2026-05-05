@@ -24,6 +24,8 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         ports:
         - containerPort: 8080
         resources:
@@ -52,3 +54,47 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-ingress
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /login
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /register
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /messages
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080

@@ -61,8 +61,8 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
 - [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
 - [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
-- [x] **#48 Infrastructure: Service Connectivity Fix**: Corrected Redis, RabbitMQ, and MongoDB hosts for containerized environments.
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
+- [x] **#48 Infrastructure: Service Connectivity Fix**: Corrected Redis, RabbitMQ, and MongoDB hosts for containerized environments.
 - [x] **#49 Production Hardening**: Redis SCAN migration, same-length masking, and PKCS12 certs.
 
 ---

@@ -29,6 +29,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
 
   user-service:
     build:
@@ -181,6 +182,8 @@ services:
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_DATA_REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true

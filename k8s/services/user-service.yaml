@@ -12,10 +12,18 @@ spec:
       labels:
         app: user-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
       - name: user-service
         image: user-service:latest
         imagePullPolicy: Never
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
         ports:
         - containerPort: 8082
         - containerPort: 9090
@@ -26,6 +34,22 @@ spec:
           limits:
             cpu: "300m"
             memory: "768Mi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         env:
         - name: JWT_SECRET
           valueFrom:
@@ -39,6 +63,12 @@ spec:
               key: encryption-secret
         - name: SPRING_DATA_MONGODB_URI
           value: mongodb://mongodb:27017/userdb
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

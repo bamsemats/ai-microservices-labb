@@ -20,10 +20,10 @@ class PersonaUpdateConsumer(
         try {
             userService.updateBioWithFact(event.userId, event.category, event.value)
                 .doOnSuccess { logger.info("Successfully updated bio for user {}", event.userId) }
-                .doOnError { e -> logger.error("Failed to update bio for user {}: {}", event.userId, e.message) }
+                .doOnError { e -> logger.error("Failed to update bio for user {}:", event.userId, e) }
                 .block()
         } catch (e: Exception) {
-            logger.error("Error processing persona update for user {}: {}", event.userId, e.message)
+            logger.error("Error processing persona update for user {}:", event.userId, e)
             throw e // Rethrow to trigger AMQP retry if configured
         }
     }

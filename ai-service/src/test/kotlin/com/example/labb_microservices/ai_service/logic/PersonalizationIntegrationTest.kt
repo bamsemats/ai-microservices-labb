@@ -5,6 +5,7 @@ import com.example.labb_microservices.ai_service.model.MemoryCategory
 import com.example.labb_microservices.ai_service.model.MemoryFragment
 import com.example.labb_microservices.ai_service.model.Message
 import com.example.labb_microservices.ai_service.repository.MemoryFragmentRepository
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,6 +24,7 @@ class PersonalizationIntegrationTest {
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val mongoDBContainer = MongoDBContainer("mongo:7.0")
     }
 
@@ -59,7 +61,7 @@ class PersonalizationIntegrationTest {
         StepVerifier.create(responseGenerator.generateResponse(message))
             .assertNext { response ->
                 println("AI Response: $response")
-                assert(response.contains("React")) { "Response should have mentioned React" }
+                assertTrue(response.contains("React"), "Response should have mentioned React")
             }
             .expectComplete()
             .verify(Duration.ofSeconds(10))

@@ -25,6 +25,8 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         ports:
         - containerPort: 8081
         resources:
@@ -34,6 +36,23 @@ spec:
           limits:
             cpu: "300m"
             memory: "768Mi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
         env:
         - name: JWT_SECRET
           valueFrom:
@@ -49,6 +68,13 @@ spec:
           value: static://user-service:9090
         - name: SPRING_DATA_REDIS_HOST
           value: redis
+        - name: SPRING_DATA_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: redis-password
+        - name: SPRING_DATA_REDIS_SSL
+          value: "true"
         volumeMounts:
         - name: tmp-volume
           mountPath: /tmp

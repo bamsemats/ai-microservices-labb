@@ -29,10 +29,12 @@ class EntityConsumerIntegrationTest {
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
 
         @Container
-        @ServiceConnection
+        @ServiceConnection(name = "redis")
+        @JvmStatic
         val redis = GenericContainer("redis:7.2-alpine").withExposedPorts(6379)
     }
 
@@ -79,17 +81,15 @@ class EntityConsumerIntegrationTest {
         assertEquals("TWITCH_STREAM", event?.contentType)
         assertEquals(gameName, event?.data?.get("gameName"))
 
-        // Wait for async Redis write and verify content
-        await.atMost(Duration.ofSeconds(5)).untilAsserted {
-            StepVerifier.create(redisTemplate.opsForValue().get(cacheKey))
-                .assertNext { cachedData ->
-                    val data = cachedData as? Map<*, *>
-                    assertNotNull(data, "Cached data should be a Map but was ${cachedData?.let { it::class.simpleName } ?: "null"}")
-                    assertEquals(gameName, data!!["gameName"])
-                    assertEquals("NexusPrime", data["streamer"])
-                }
-                .expectComplete()
-                .verify(Duration.ofSeconds(5))
-        }
+        // Verify async Redis write and verify content
+        StepVerifier.create(redisTemplate.opsForValue().get(cacheKey))
+            .assertNext { cachedData ->
+                val data = cachedData as? Map<*, *>
+                assertNotNull(data, "Cached data should be a Map but was ${cachedData?.let { it::class.simpleName } ?: "null"}")
+                assertEquals(gameName, data!!["gameName"])
+                assertEquals("NexusPrime", data["streamer"])
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
     }
 }

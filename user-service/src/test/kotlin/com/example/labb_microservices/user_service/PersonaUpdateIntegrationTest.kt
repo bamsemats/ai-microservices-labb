@@ -23,7 +23,10 @@ import java.time.Duration
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0",
-    "grpc.server.security.enabled=false"
+    "grpc.server.security.enabled=false",
+    "grpc.server.security.key-store-password=password",
+    "grpc.server.security.key-password=password",
+    "grpc.server.security.trust-store-password=password"
 ])
 @Testcontainers
 class PersonaUpdateIntegrationTest {
@@ -31,10 +34,12 @@ class PersonaUpdateIntegrationTest {
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val mongo = MongoDBContainer("mongo:7.0")
 
         @Container
         @ServiceConnection
+        @JvmStatic
         val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
     }
 
@@ -60,7 +65,7 @@ class PersonaUpdateIntegrationTest {
             value = "Kotlin"
         )
 
-        rabbitTemplate.convertAndSend(RabbitConfig.PERSONA_UPDATE_QUEUE, event)
+        rabbitTemplate.convertAndSend("chat.persona.exchange", "persona.update", event)
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
             val updatedUser = userRepository.findById("user-persona-123").block()

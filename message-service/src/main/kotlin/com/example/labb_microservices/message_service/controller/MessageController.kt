@@ -80,10 +80,14 @@ class MessageController(
             }
     }
 
+    companion object {
+        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@ai(?:\\W|$)")
+    }
+
     private fun processMessage(message: Message, content: String) {
         messageProducer.sendMessage(message)
 
-        if (content.contains("@ai", ignoreCase = true)) {
+        if (AI_MENTION_REGEX.containsMatchIn(content)) {
             try {
                 messageProducer.sendAiRequest(message)
             } catch (e: Exception) {

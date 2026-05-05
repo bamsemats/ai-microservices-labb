@@ -23,7 +23,7 @@ class PiiRedactorTest {
 
     @Test
     fun `should redact phone numbers`() {
-        val content = "Call me at +46 70 123 45 67 tomorrow."
+        val content = "Call me at +46 70 000 00 00 tomorrow."
         val result = redactor.redact(content)
         assertEquals("Call me at [PHONE_REDACTED] tomorrow.", result)
     }
@@ -37,7 +37,7 @@ class PiiRedactorTest {
 
     @Test
     fun `should redact both email and phone in same content`() {
-        val content = "Email mats@example.com or call 070-1234567"
+        val content = "Email mats@example.com or call +1 555 0100 99"
         val result = redactor.redact(content)
         assertEquals("Email [EMAIL_REDACTED] or call [PHONE_REDACTED]", result)
     }
