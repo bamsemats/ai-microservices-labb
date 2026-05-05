@@ -11,11 +11,17 @@ class RabbitConfig {
 
     companion object {
         const val PRESENCE_EXCHANGE = "chat.presence.exchange"
+        const val PERSONA_UPDATE_QUEUE = "chat.persona.update.queue"
     }
 
     @Bean
     fun presenceExchange(): FanoutExchange {
         return FanoutExchange(PRESENCE_EXCHANGE)
+    }
+
+    @Bean
+    fun personaUpdateQueue(): org.springframework.amqp.core.Queue {
+        return org.springframework.amqp.core.Queue(PERSONA_UPDATE_QUEUE, true)
     }
 
     @Bean

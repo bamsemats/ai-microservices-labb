@@ -6,6 +6,7 @@ import com.example.labb_microservices.message_service.controller.BroadcastReques
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -53,6 +54,15 @@ class ChannelPartitioningTests {
     @MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
+    @MockitoBean
+    private lateinit var presenceService: com.example.labb_microservices.message_service.service.PresenceService
+
+    private fun <T> anySafe(type: Class<T>): T {
+        any(type)
+        @Suppress("UNCHECKED_CAST")
+        return null as T
+    }
+
     @Test
     fun `messages sent to Channel-A should not leak to Channel-B`() {
         val userA = "user-a"
@@ -62,6 +72,9 @@ class ChannelPartitioningTests {
 
         setupMock(userA, tokenA)
         setupMock(userB, tokenB)
+
+        `when`(presenceService.setUserOnline(anySafe(String::class.java))).thenReturn(Mono.just(true))
+        `when`(presenceService.setUserOffline(anySafe(String::class.java))).thenReturn(Mono.just(1L))
 
         val receivedA = CopyOnWriteArrayList<String>()
         val receivedB = CopyOnWriteArrayList<String>()

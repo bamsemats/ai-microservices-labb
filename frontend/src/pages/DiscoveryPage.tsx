@@ -316,10 +316,6 @@ const DiscoveryPage: React.FC = () => {
         .pulse-bar:nth-child(2) { animation-delay: 0.2s; }
         .pulse-bar:nth-child(3) { animation-delay: 0.4s; }
         .pulse-bar:nth-child(4) { animation-delay: 0.6s; }
-
-        .chat-navbar {
-          flex-shrink: 0;
-        }
       `}</style>
     </div>
   );

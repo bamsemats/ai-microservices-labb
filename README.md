@@ -50,10 +50,17 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
 - [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
 - [x] **#33 AI Insights Dashboard**: Performance visualization and profile customization.
-- [x] **#36 Stabilization & Quality Sweep**: All backend tests passing, frontend build verified.
 - [x] **#37 Persistent Channel Partitioning**: Strict channel-based message isolation.
+- [x] **#38 Real-time Presence Backend**: Redis-backed status tracking for all users.
+- [x] **#39 Presence UI Integration**: Live status indicators in the global sidebar.
+- [x] **#40 Real-time Trending Topics**: Activity tracking for discoverable channels.
+- [x] **#41 Personal Interaction Stats**: User analytics dashboard implementation.
 - [x] **#42 Real AI Loop Closure**: Intelligent response generation with simulated LLM latency.
+- [x] **#43 Adapta-Memory: Fact Extraction**: Persistent preference storage in MongoDB.
+- [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
+- [x] **#45 Quality & Security Stabilization**: Masking, DTOs, Idempotency, and Accessibility.
 - [x] **#46 Infrastructure & Test Hardening**: Bounded timeouts, BOM-less certs, and container static discovery.
+- [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
 
 ---
 
@@ -61,13 +68,21 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 - **Backend**: Spring Boot 3.4.1, Spring WebFlux (Reactive), Kotlin
 - **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS
-- **Messaging**: RabbitMQ, gRPC
+- **Messaging**: RabbitMQ, gRPC, WebSockets
 - **Persistence**: MongoDB, Redis
 - **Orchestration**: Docker Compose, Kubernetes
+- **Security**: Zero-Trust JWT, AES-256 PII Encryption, mTLS
 
 ---
 
 ## 🏛 Design Decisions & Trade-offs
+
+### Adapta-Memory & Personalization
+The system now includes an "Adapta-Memory" worker that asynchronously extracts user interests and preferences from chat streams. This uses a deduplicated MongoDB store to build a long-term "Knowledge Base" for each user.
+
+Key enhancements in Phase 3:
+- **Hybrid Context Injection**: The AI response generator retrieves these facts and injects them into the prompt, enabling hyper-personalized responses that reference past user facts.
+- **Persona Sync**: High-confidence facts (confidence > 0.9) trigger a `PersonaUpdateEvent` via RabbitMQ, which the `user-service` consumes to automatically update the user's public bio.
 
 ### Shared Security Library vs. Sidecar
 We use a shared module (`common-security`) for zero-trust validation. While this introduces a "distributed monolith" risk, it provides extreme simplicity and performance compared to a Service Mesh.

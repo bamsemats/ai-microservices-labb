@@ -40,7 +40,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         const presences: Record<string, UserPresence> = {};
-        data.forEach((item: any) => {
+        data.forEach((item: { userId: string; username: string; status: PresenceStatus }) => {
           presences[item.userId] = {
             userId: item.userId,
             username: item.username,

@@ -68,6 +68,35 @@ class UserService(
             .map { decryptUser(it) }
     }
 
+    fun updateBioWithFact(userId: String, category: String, value: String): Mono<User> {
+        return userRepository.findById(userId)
+            .flatMap { user ->
+                val factLabel = when (category) {
+                    "TECH_STACK" -> "Skills"
+                    "INTEREST" -> "Interests"
+                    "GOAL" -> "Goals"
+                    "PERSONALITY_TRAIT" -> "Traits"
+                    else -> category.lowercase().replaceFirstChar { it.uppercase() }
+                }
+                
+                val factString = "$factLabel: $value"
+                val currentBio = user.bio ?: ""
+                
+                if (currentBio.contains(factString)) {
+                    Mono.just(user)
+                } else {
+                    val newBio = if (currentBio.isBlank()) {
+                        factString
+                    } else {
+                        "$currentBio | $factString"
+                    }
+                    logger.info("Updating bio for user {} with new fact: {}", userId, factString)
+                    userRepository.save(user.copy(bio = newBio))
+                }
+            }
+            .map { decryptUser(it) }
+    }
+
     fun findByEmail(email: String): Mono<User> {
         val emailHash = encryptionUtils.hash(email)
         return userRepository.findByEmailHash(emailHash)

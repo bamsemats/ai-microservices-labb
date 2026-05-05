@@ -17,7 +17,13 @@ import org.springframework.context.annotation.Import
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-@SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.mockito.Mockito.`when`
+import org.mockito.ArgumentMatchers.any
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+
+@SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Testcontainers
 @Import(AiMessageConsumerIntegrationTest.TestConfig::class)
 class AiMessageConsumerIntegrationTest {
@@ -26,10 +32,17 @@ class AiMessageConsumerIntegrationTest {
         @Container
         @ServiceConnection
         val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
+
+        @Container
+        @ServiceConnection
+        val mongo = org.testcontainers.containers.MongoDBContainer("mongo:7.0")
     }
 
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate
+
+    @MockBean
+    private lateinit var responseGenerator: com.example.labb_microservices.ai_service.logic.ResponseGenerator
 
     @org.springframework.boot.test.context.TestConfiguration
     class TestConfig {
@@ -50,6 +63,12 @@ class AiMessageConsumerIntegrationTest {
     @Autowired
     private lateinit var aiResponseQueue: org.springframework.amqp.core.Queue
 
+    private fun <T> anySafe(type: Class<T>): T {
+        any(type)
+        @Suppress("UNCHECKED_CAST")
+        return null as T
+    }
+
     @Test
     fun `should publish adaptation event when urgent sentiment is detected`() {
         val message = Message(
@@ -62,8 +81,15 @@ class AiMessageConsumerIntegrationTest {
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
-        // Give it a moment to process
-        val event = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 5000) as? AdaptationEvent
+        // Polling to handle multiple event types in fanout
+        var event: AdaptationEvent? = null
+        for (i in 1..10) {
+            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 1000)
+            if (received is AdaptationEvent) {
+                event = received
+                break
+            }
+        }
 
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("emergency", event?.theme)
@@ -82,7 +108,14 @@ class AiMessageConsumerIntegrationTest {
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
-        val event = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 5000) as? AdaptationEvent
+        var event: AdaptationEvent? = null
+        for (i in 1..10) {
+            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 1000)
+            if (received is AdaptationEvent) {
+                event = received
+                break
+            }
+        }
 
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("zen", event?.theme)
@@ -91,6 +124,8 @@ class AiMessageConsumerIntegrationTest {
 
     @Test
     fun `should process AI request and return response with simulated latency`() {
+        `when`(responseGenerator.generateResponse(anySafe(Message::class.java))).thenReturn(Flux.just("Mock AI Response"))
+
         val message = Message(
             id = UUID.randomUUID().toString(),
             senderId = "user-test",

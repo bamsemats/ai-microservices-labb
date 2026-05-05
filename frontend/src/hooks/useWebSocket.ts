@@ -40,6 +40,9 @@ export const useWebSocket = () => {
         } else if (data.type === 'CONTENT_INJECTION') {
           console.log('Received Content Injection:', data.contentType);
           useChatStore.getState().addInjectedContent(data);
+        } else if (data.type === 'AI_STATUS') {
+          console.log('Received AI Status:', data.status);
+          useChatStore.getState().setAiStatus(data.status);
         } else if (data.type === 'PRESENCE_UPDATE') {
           console.log('Received Presence Update:', data.userId, data.status);
           setPresence(data.userId, data.username, data.status);
@@ -66,7 +69,7 @@ export const useWebSocket = () => {
     };
 
     socketRef.current = socket;
-  }, [token, isAuthenticated, addMessage]);
+  }, [token, isAuthenticated, addMessage, setPresence]);
 
   useEffect(() => {
     connectRef.current = connect;

@@ -4,8 +4,12 @@ import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.messaging.MessageProducer
 import com.example.labb_microservices.message_service.model.AuthorType
 import com.example.labb_microservices.message_service.model.Message
+import com.example.labb_microservices.message_service.service.PresenceService
+import org.slf4j.LoggerFactory
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
@@ -17,19 +21,24 @@ data class BroadcastRequest(val content: String, val channelId: String? = null)
 @RequestMapping("/messages")
 class MessageController(
     private val userGrpcClient: UserGrpcClient,
-    private val messageProducer: MessageProducer
+    private val messageProducer: MessageProducer,
+    private val presenceService: PresenceService
 ) {
 
-    private val logger = org.slf4j.LoggerFactory.getLogger(MessageController::class.java)
+    private val logger = LoggerFactory.getLogger(MessageController::class.java)
 
     @PostMapping
-    fun sendMessage(@RequestBody request: MessageRequest): Mono<String> {
+    fun sendMessage(
+        @RequestBody request: MessageRequest,
+        @RequestHeader("X-Adapta-Test-Mode", required = false) testMode: String?
+    ): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
             .map { it.authentication.name }
             .flatMap { senderId ->
                 Mono.fromCallable {
+                    val idPrefix = if (testMode != null) "test-" else ""
                     val message = Message(
-                        id = UUID.randomUUID().toString(),
+                        id = idPrefix + UUID.randomUUID().toString(),
                         senderId = senderId,
                         receiverId = request.receiverId,
                         channelId = request.channelId ?: "general",
@@ -50,7 +59,7 @@ class MessageController(
                 val auth = context.authentication
                 val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
                 if (!isAdmin) {
-                    Mono.error<String>(org.springframework.security.access.AccessDeniedException("Only admins can broadcast"))
+                    Mono.error<String>(AccessDeniedException("Only admins can broadcast"))
                 } else {
                     val senderId = auth.name
                     Mono.fromCallable {
@@ -91,5 +100,10 @@ class MessageController(
     @GetMapping
     fun getMessages(): Mono<String> {
         return Mono.just("messages")
+    }
+
+    @GetMapping("/presence")
+    fun getOnlineUsers(): Flux<String> {
+        return presenceService.getAllOnlineUsers()
     }
 }

@@ -50,6 +50,9 @@ services:
       - GRPC_SERVER_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
       - GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=${GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD}
       - GRPC_SERVER_SECURITY_CLIENT_AUTH=REQUIRE
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       mongodb:
         condition: service_started
@@ -73,6 +76,9 @@ services:
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=password
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=password
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       user-service:
         condition: service_started
@@ -99,6 +105,9 @@ services:
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=password
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=password
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       mongodb:
         condition: service_started
@@ -118,6 +127,9 @@ services:
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
       - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       auth-service:
         condition: service_started
@@ -142,6 +154,9 @@ services:
       - "8084:8084"
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -155,11 +170,23 @@ services:
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_DATA_REDIS_HOST=redis
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
 
 volumes:
   mongodb_data:

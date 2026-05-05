@@ -92,8 +92,9 @@ const InsightsPage: React.FC = () => {
         setFeedback(null);
         setFeedbackType(null);
       }, 3000);
-    } catch (error: any) {
-      console.error("Failed to update profile:", error);
+    } catch (error) {
+      const err = error as Error;
+      console.error("Failed to update profile:", err);
       setFeedback("Failed to update profile. Static interference detected.");
       setFeedbackType('error');
     } finally {
@@ -349,24 +350,6 @@ const InsightsPage: React.FC = () => {
           margin-top: 0.75rem;
         }
 
-        .lumina-input {
-          width: 100%;
-          background: rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 0.75rem;
-          padding: 0.875rem 1rem;
-          color: white;
-          font-size: 0.9375rem;
-          transition: all 0.2s ease;
-        }
-
-        .lumina-input:focus {
-          outline: none;
-          border-color: var(--accent-primary);
-          background: rgba(0, 0, 0, 0.3);
-          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
-        }
-
         .lumina-range {
           width: 100%;
           accent-color: var(--accent-primary);
@@ -396,6 +379,33 @@ const InsightsPage: React.FC = () => {
           background: var(--accent-gradient);
           color: white;
           box-shadow: var(--accent-glow);
+        }
+
+        .feedback-msg {
+          font-size: 0.875rem;
+          font-weight: 600;
+        }
+
+        .feedback-msg.success {
+          color: var(--success);
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .feedback-msg.error {
+          color: var(--error);
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .button-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
         }
       `}</style>
     </div>

@@ -17,6 +17,23 @@ class RabbitMQConfig {
         const val SENTIMENT_QUEUE_NAME = "chat.sentiment.queue"
         const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
         const val ENTITY_EXCHANGE_NAME = "chat.entity.exchange"
+        const val PERSONA_EXCHANGE_NAME = "chat.persona.exchange"
+        const val PERSONA_UPDATE_QUEUE_NAME = "chat.persona.update.queue"
+    }
+
+    @Bean
+    fun personaExchange(): DirectExchange {
+        return DirectExchange(PERSONA_EXCHANGE_NAME)
+    }
+
+    @Bean
+    fun personaUpdateQueue(): Queue {
+        return Queue(PERSONA_UPDATE_QUEUE_NAME, true)
+    }
+
+    @Bean
+    fun personaUpdateBinding(personaUpdateQueue: Queue, personaExchange: DirectExchange): Binding {
+        return BindingBuilder.bind(personaUpdateQueue).to(personaExchange).with("persona.update")
     }
 
     @Bean

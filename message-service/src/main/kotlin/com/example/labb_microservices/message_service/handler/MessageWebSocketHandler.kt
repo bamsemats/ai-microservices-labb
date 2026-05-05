@@ -2,6 +2,8 @@ package com.example.labb_microservices.message_service.handler
 
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
+import com.example.labb_microservices.message_service.service.PresenceService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.WebSocketHandler
@@ -15,8 +17,11 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class MessageWebSocketHandler(
     private val jwtTokenValidator: JwtTokenValidator,
-    private val userGrpcClient: UserGrpcClient
+    private val userGrpcClient: UserGrpcClient,
+    private val presenceService: PresenceService
 ) : WebSocketHandler {
+
+    private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
 
     @org.springframework.beans.factory.annotation.Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
@@ -26,38 +31,51 @@ class MessageWebSocketHandler(
     private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // ... (rest of the method unchanged)
-
         val token = extractToken(session)
         val channelId = extractChannel(session) ?: "general"
 
-        return Mono.justOrEmpty(token)
-            .flatMap { t: String ->
-                if (jwtTokenValidator.validateToken(t)) {
-                    val userId = jwtTokenValidator.getUserIdFromToken(t)
-                    if (userId != null) Mono.just(userId) else Mono.empty<String>()
-                } else {
-                    Mono.empty<String>()
-                }
+        val principalMono = if (token != null) {
+            if (jwtTokenValidator.validateToken(token)) {
+                val userId = jwtTokenValidator.getUserIdFromToken(token)
+                if (userId != null) Mono.just(userId) else Mono.empty<String>()
+            } else {
+                Mono.empty<String>()
             }
-            .switchIfEmpty(
-                session.handshakeInfo.principal
-                    .map { it.name }
-            )
+        } else {
+            session.handshakeInfo.principal.map { it.name }
+        }
+
+        return principalMono
             .flatMap { userId: String ->
+                logger.info("New WebSocket connection for user: {} in channel: {}", userId, channelId)
+                
                 val sink = userSinks.computeIfAbsent(userId) {
                     Sinks.many().multicast().directBestEffort()
                 }
                 userChannels[userId] = channelId
 
-                val output = session.send(sink.asFlux().map { session.textMessage(it) })
-                    .doFinally {
-                        if (sink.currentSubscriberCount() == 0) {
-                            userSinks.remove(userId, sink)
-                            userChannels.remove(userId)
-                        }
+                // Use a single completion sink to coordinate termination
+                val disconnectSink = Sinks.empty<Void>()
+
+                // Input stream - triggers disconnectSink on completion
+                val input = session.receive()
+                    .doOnTerminate {
+                        logger.info("WebSocket input stream terminated for user: {}", userId)
+                        disconnectSink.tryEmitEmpty()
+                        userSinks.remove(userId, sink)
+                        userChannels.remove(userId)
+                        presenceService.setUserOffline(userId).subscribe()
                     }
-                
+                    .then()
+
+                // Output stream - stop when disconnectSink completes
+                val output = session.send(
+                    sink.asFlux()
+                        .takeUntilOther(disconnectSink.asMono())
+                        .map { session.textMessage(it) }
+                )
+
+                // Periodic validation - stop when disconnectSink completes
                 val validation = Flux.interval(Duration.ofSeconds(10))
                     .flatMap {
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
@@ -66,16 +84,24 @@ class MessageWebSocketHandler(
                             checkUserStatus(userId)
                         }
                     }
+                    .takeUntilOther(disconnectSink.asMono())
                     .then()
 
-                val input = session.receive().then()
-
-                Mono.zip(input, output, validation)
+                // Global Presence Heartbeat - stop when disconnectSink completes
+                val presenceHeartbeat = presenceService.setUserOnline(userId)
+                    .thenMany(Flux.interval(Duration.ofMinutes(1)))
+                    .flatMap { presenceService.setUserOnline(userId) }
+                    .takeUntilOther(disconnectSink.asMono())
                     .then()
+
+                // Execute all tasks concurrently
+                Mono.`when`(input, output, validation, presenceHeartbeat)
                     .onErrorResume { e ->
                         if (e is PolicyViolationException) {
+                            logger.warn("Closing session due to policy violation: {}", e.message)
                             session.close(CloseStatus(1008, e.message))
                         } else {
+                            logger.error("WebSocket error for user $userId", e)
                             session.close(CloseStatus.SERVER_ERROR)
                         }
                     }
@@ -88,7 +114,6 @@ class MessageWebSocketHandler(
     private fun checkUserStatus(userId: String): Mono<Void> {
         val cached = userStatusCache[userId]
         if (cached != null) {
-            // Proto3 optional fields have hasField() methods in Java
             return if (cached.enabled == false) {
                 Mono.error(PolicyViolationException("User account is disabled"))
             } else {
@@ -99,15 +124,12 @@ class MessageWebSocketHandler(
         return userGrpcClient.getUser(userId)
             .flatMap { response ->
                 userStatusCache[userId] = response
-                // Simple cache eviction
                 if (cacheTtlSeconds > 0) {
                     Mono.delay(Duration.ofSeconds(cacheTtlSeconds))
                         .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
                         .doOnNext { userStatusCache.remove(userId) }
-                        .doOnError { e -> org.slf4j.LoggerFactory.getLogger(MessageWebSocketHandler::class.java).error("Cache eviction failed", e) }
+                        .doOnError { e -> logger.error("Cache eviction failed", e) }
                         .subscribe()
-                } else {
-                    userStatusCache.remove(userId)
                 }
                 
                 if (response.enabled == false) {

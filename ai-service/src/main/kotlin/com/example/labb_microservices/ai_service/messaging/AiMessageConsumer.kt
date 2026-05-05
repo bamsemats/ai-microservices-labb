@@ -4,6 +4,9 @@ import com.example.labb_microservices.ai_service.model.AdaptationEvent
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.EntityMessage
 import com.example.labb_microservices.ai_service.model.Message
+import com.example.labb_microservices.ai_service.logic.AiReadinessIndicator
+import com.example.labb_microservices.ai_service.logic.ResponseGenerator
+import com.example.labb_microservices.ai_service.logic.MemoryWorker
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -13,7 +16,9 @@ import java.util.*
 @Service
 class AiMessageConsumer(
     private val rabbitTemplate: RabbitTemplate,
-    private val responseGenerator: com.example.labb_microservices.ai_service.logic.ResponseGenerator
+    private val responseGenerator: ResponseGenerator,
+    private val memoryWorker: MemoryWorker,
+    private val readinessIndicator: AiReadinessIndicator
 ) {
 
     private val logger = LoggerFactory.getLogger(AiMessageConsumer::class.java)
@@ -23,6 +28,10 @@ class AiMessageConsumer(
         if (message.authorType == AuthorType.BOT) return // Don't analyze self
 
         logger.info("Analyzing sentiment and entities for messageId: {}, senderId: {}", message.id, message.senderId)
+        
+        // Memory Extraction
+        memoryWorker.processMessageForMemory(message).subscribe()
+
         val content = message.content.lowercase()
         
         // Entity Extraction
@@ -78,24 +87,66 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing AI request for messageId: {}, from senderId: {}", message.id, message.senderId)
+        logger.info("Processing streaming AI request for messageId: {}, from senderId: {}", message.id, message.senderId)
         
+        readinessIndicator.incrementActiveRequests()
+        val responseId = UUID.randomUUID().toString()
+        val receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId
+
+        // Notify UI that AI is thinking
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+            "",
+            com.example.labb_microservices.ai_service.model.AiStatusEvent(
+                status = "THINKING",
+                channelId = message.channelId,
+                userId = message.senderId
+            )
+        )
+
         responseGenerator.generateResponse(message)
-            .doOnNext { responseContent ->
-                val aiMessage = Message(
-                    id = UUID.randomUUID().toString(),
+            .doOnNext { chunk ->
+                val aiChunk = Message(
+                    id = responseId,
                     senderId = "ai-bot",
-                    receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId,
+                    receiverId = receiverId,
                     channelId = message.channelId,
-                    content = responseContent,
+                    content = chunk,
                     authorType = AuthorType.BOT
                 )
 
-                logger.info("Sending AI response back to chat")
                 rabbitTemplate.convertAndSend(
                     RabbitMQConfig.AI_EXCHANGE_NAME,
                     "ai.response",
-                    aiMessage
+                    aiChunk
+                )
+            }
+            .doOnTerminate {
+                readinessIndicator.decrementActiveRequests()
+            }
+            .doOnComplete {
+                logger.info("AI streaming complete for responseId: {}", responseId)
+                // Notify UI that AI is done
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                    "",
+                    com.example.labb_microservices.ai_service.model.AiStatusEvent(
+                        status = "COMPLETED",
+                        channelId = message.channelId,
+                        userId = message.senderId
+                    )
+                )
+            }
+            .doOnError { e ->
+                logger.error("AI processing failed", e)
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                    "",
+                    com.example.labb_microservices.ai_service.model.AiStatusEvent(
+                        status = "ERROR",
+                        channelId = message.channelId,
+                        userId = message.senderId
+                    )
                 )
             }
             .subscribe()

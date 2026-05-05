@@ -8,6 +8,7 @@ import Sidebar from '../components/Sidebar';
 import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
 import ContentWidget from '../components/ContentWidget';
+import ThinkingBubble from '../components/ThinkingBubble';
 
 type DisplayItem = 
   | { type: 'msg'; data: Message }
@@ -17,7 +18,7 @@ const ChatPage: React.FC = () => {
   const [receiverId, setReceiverId] = useState('home');
   const [error, setError] = useState<string | null>(null);
   const { username, userId, isAdmin, logout } = useAuthStore();
-  const { messages, injectedContent } = useChatStore();
+  const { messages, injectedContent, aiStatus } = useChatStore();
   useWebSocket();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +26,7 @@ const ChatPage: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, injectedContent]);
+  }, [messages, injectedContent, aiStatus]);
 
   const handleSend = async (content: string) => {
     setError(null);
@@ -132,6 +133,16 @@ const ChatPage: React.FC = () => {
                   )
                 ))
               )}
+              {aiStatus === 'THINKING' && (
+                <motion.div
+                  key="thinking"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <ThinkingBubble />
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
@@ -195,96 +206,6 @@ const ChatPage: React.FC = () => {
 
         .close-toast:hover {
           opacity: 1;
-        }
-
-        .chat-page-layout {
-          display: flex;
-          width: 100vw;
-          height: 100vh;
-          background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
-                      radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
-        }
-
-        .chat-main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          padding: 1rem 1rem 1rem 0;
-          overflow: hidden;
-        }
-
-        .chat-navbar {
-          height: 4.5rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 2rem;
-          margin-bottom: 1rem;
-          flex-shrink: 0;
-        }
-
-        .active-context {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .context-prefix {
-          font-weight: 700;
-          color: var(--accent-primary);
-          font-size: 1.25rem;
-        }
-
-        .context-name {
-          font-weight: 700;
-          font-size: 1.1rem;
-          letter-spacing: -0.01em;
-        }
-
-        .user-controls {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .user-badge {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.5rem 0.75rem 0.5rem 1rem !important;
-          border-radius: 2rem !important;
-        }
-
-        .username {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .user-avatar {
-          width: 2rem;
-          height: 2rem;
-          background: var(--accent-gradient);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 800;
-          font-size: 0.875rem;
-          color: white;
-          box-shadow: var(--accent-glow);
-        }
-
-        .logout-btn {
-          padding: 0.5rem 1rem !important;
-          font-size: 0.8125rem !important;
-          border-color: rgba(244, 63, 94, 0.2) !important;
-          color: var(--error) !important;
-        }
-
-        .logout-btn:hover {
-          background: rgba(244, 63, 94, 0.1) !important;
-          border-color: var(--error) !important;
         }
 
         .message-stream {

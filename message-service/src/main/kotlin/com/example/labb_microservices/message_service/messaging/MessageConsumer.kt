@@ -58,25 +58,33 @@ class MessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
     fun consumeAiResponse(message: Message) {
-        logger.info("Received AI response: ${message.id}")
-        messageRepository.save(message)
-            .flatMap { savedMessage ->
-                logger.info("Saved AI message to MongoDB: ${savedMessage.id}")
-                messageProducer.deliverMessage(savedMessage)
-                reactor.core.publisher.Mono.just(savedMessage)
+        logger.debug("Received AI chunk: ${message.id}")
+        
+        // Immediately deliver to WebSockets for low perceived latency
+        messageProducer.deliverMessage(message)
+
+        // Asynchronously update/save in MongoDB
+        messageRepository.findById(message.id!!)
+            .flatMap { existing ->
+                val updatedMessage = existing.copy(
+                    content = existing.content + message.content
+                )
+                messageRepository.save(updatedMessage)
             }
-            .block()
+            .switchIfEmpty(messageRepository.save(message))
+            .doOnError { e -> logger.error("Failed to save AI chunk", e) }
+            .subscribe()
     }
 
     @RabbitListener(queues = ["#{adaptationQueue.name}"])
-    fun consumeAdaptationEvent(event: AdaptationEvent) {
-        logger.info("Received Adaptation Event: ${event.theme}")
+    fun consumeGenericEvent(eventData: Map<String, Any>) {
+        val type = eventData["type"] as? String ?: "UI_ADAPTATION"
+        logger.info("Received real-time event: $type")
         try {
-            val jsonEvent = objectMapper.writeValueAsString(event)
+            val jsonEvent = objectMapper.writeValueAsString(eventData)
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
-            logger.error("Failed to serialize adaptation event for WebSocket", e)
-            throw e
+            logger.error("Failed to serialize generic event for WebSocket", e)
         }
     }
 
