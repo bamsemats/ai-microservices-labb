@@ -22,7 +22,8 @@ data class BroadcastRequest(val content: String, val channelId: String? = null)
 class MessageController(
     private val userGrpcClient: UserGrpcClient,
     private val messageProducer: MessageProducer,
-    private val presenceService: PresenceService
+    private val presenceService: PresenceService,
+    @org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
 ) {
 
     private val logger = LoggerFactory.getLogger(MessageController::class.java)
@@ -36,7 +37,7 @@ class MessageController(
             .map { it.authentication.name }
             .flatMap { senderId ->
                 Mono.fromCallable {
-                    val idPrefix = if (testMode != null) "test-" else ""
+                    val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
                     val message = Message(
                         id = idPrefix + UUID.randomUUID().toString(),
                         senderId = senderId,

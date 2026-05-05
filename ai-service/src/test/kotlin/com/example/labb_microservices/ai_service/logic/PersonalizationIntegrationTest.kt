@@ -13,6 +13,7 @@ import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
+import java.time.Duration
 import java.util.*
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
@@ -60,6 +61,7 @@ class PersonalizationIntegrationTest {
                 println("AI Response: $response")
                 assert(response.contains("React")) { "Response should have mentioned React" }
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
     }
 }

@@ -9,8 +9,9 @@ class PiiRedactor {
 
     // Basic regex for email
     private val emailRegex = Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
-    // More aggressive phone regex that handles spaces, dashes, and international prefixes
-    private val phoneRegex = Regex("(\\+?\\d[\\d-.\\s]{7,20}\\d)")
+    // Tightened phone regex: requires at least 10 digits, allow internal spaces, don't consume surrounding spaces, 
+    // and exclude purely numeric sequences of 13+ digits (likely IDs).
+    private val phoneRegex = Regex("(?<=\\s|^)(?=(?:.*\\d){10,})(?!\\d{13,})[\\d-.()\\+]+(?:\\s[\\d-.()\\+]+)*(?=\\s|$)")
 
     fun redact(content: String): String {
         var redacted = content

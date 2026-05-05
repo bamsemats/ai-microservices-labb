@@ -4,6 +4,8 @@ import com.example.labb_microservices.user_service.config.RabbitConfig
 import com.example.labb_microservices.user_service.dto.PersonaUpdateEvent
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -15,7 +17,7 @@ import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.util.concurrent.TimeUnit
+import java.time.Duration
 
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
@@ -55,21 +57,15 @@ class PersonaUpdateIntegrationTest {
         val event = PersonaUpdateEvent(
             userId = "user-persona-123",
             category = "TECH_STACK",
-            value = "Kotlin",
-            confidence = 0.99
+            value = "Kotlin"
         )
 
         rabbitTemplate.convertAndSend(RabbitConfig.PERSONA_UPDATE_QUEUE, event)
 
-        // Poll for update (max 10s)
-        var updatedUser: User? = null
-        for (i in 1..100) {
-            updatedUser = userRepository.findById("user-persona-123").block()
-            if (updatedUser?.bio?.contains("Skills: Kotlin") == true) break
-            TimeUnit.MILLISECONDS.sleep(100)
+        await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            val updatedUser = userRepository.findById("user-persona-123").block()
+            assertTrue(updatedUser?.bio?.contains("Skills: Kotlin") == true, "Bio should have been updated with Skills: Kotlin")
+            assertTrue(updatedUser?.bio?.contains("Initial bio") == true, "Original bio should be preserved")
         }
-
-        assertTrue(updatedUser?.bio?.contains("Skills: Kotlin") == true, "Bio should have been updated with Skills: Kotlin")
-        assertTrue(updatedUser?.bio?.contains("Initial bio") == true, "Original bio should be preserved")
     }
 }

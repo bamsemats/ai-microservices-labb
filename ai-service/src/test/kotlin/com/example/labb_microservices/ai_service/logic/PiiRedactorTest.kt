@@ -41,4 +41,13 @@ class PiiRedactorTest {
         val result = redactor.redact(content)
         assertEquals("Email [EMAIL_REDACTED] or call [PHONE_REDACTED]", result)
     }
+
+    @Test
+    fun `should not redact dates or long IDs`() {
+        val content1 = "Event on 2026-05-01"
+        assertEquals(content1, redactor.redact(content1))
+
+        val content2 = "Order ID 1234567890123"
+        assertEquals(content2, redactor.redact(content2))
+    }
 }

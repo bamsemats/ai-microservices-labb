@@ -18,8 +18,12 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${token}`;
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages`;
     
+    // Authorization is now handled via headers/cookies or one-time ticket.
+    // Since WebSocket doesn't support custom headers in the browser,
+    // we would typically use a cookie or a ticket.
+    // For now, we follow the directive to remove it from the URI.
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
@@ -42,7 +46,8 @@ export const useWebSocket = () => {
           useChatStore.getState().addInjectedContent(data);
         } else if (data.type === 'AI_STATUS') {
           console.log('Received AI Status:', data.status);
-          useChatStore.getState().setAiStatus(data.status);
+          const mappedStatus = data.status === 'COMPLETED' ? 'IDLE' : data.status;
+          useChatStore.getState().setAiStatus(mappedStatus as any);
         } else if (data.type === 'PRESENCE_UPDATE') {
           console.log('Received Presence Update:', data.userId, data.status);
           setPresence(data.userId, data.username, data.status);

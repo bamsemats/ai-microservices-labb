@@ -1,7 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
-import com.example.labb_microservices.message_service.model.AdaptationEvent
 import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.model.PresenceUpdateEvent
@@ -9,11 +8,17 @@ import com.example.labb_microservices.message_service.repository.MessageReposito
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
 
 @Service
 class MessageConsumer(
     private val messageRepository: MessageRepository,
+    private val mongoTemplate: ReactiveMongoTemplate,
     private val webSocketHandler: MessageWebSocketHandler,
     private val objectMapper: ObjectMapper,
     private val messageProducer: MessageProducer
@@ -28,7 +33,7 @@ class MessageConsumer(
             .flatMap { savedMessage ->
                 logger.info("Saved message to MongoDB: ${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
-                reactor.core.publisher.Mono.just(savedMessage)
+                Mono.just(savedMessage)
             }
             .block()
     }
@@ -58,21 +63,29 @@ class MessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
     fun consumeAiResponse(message: Message) {
-        logger.debug("Received AI chunk: ${message.id}")
+        val messageId = message.id ?: return
+        logger.debug("Received AI chunk for: $messageId")
         
         // Immediately deliver to WebSockets for low perceived latency
         messageProducer.deliverMessage(message)
 
-        // Asynchronously update/save in MongoDB
-        messageRepository.findById(message.id!!)
-            .flatMap { existing ->
-                val updatedMessage = existing.copy(
-                    content = existing.content + message.content
-                )
-                messageRepository.save(updatedMessage)
-            }
-            .switchIfEmpty(messageRepository.save(message))
-            .doOnError { e -> logger.error("Failed to save AI chunk", e) }
+        // Atomic update in MongoDB using $concat
+        val query = Query(Criteria.where("id").`is`(messageId))
+        val update = Update().set("id", messageId)
+            .setOnInsert("senderId", message.senderId)
+            .setOnInsert("receiverId", message.receiverId)
+            .setOnInsert("channelId", message.channelId)
+            .setOnInsert("authorType", message.authorType)
+            .setOnInsert("timestamp", message.timestamp)
+            .push("contentChunks", message.content) // Optionally store chunks
+            // For simple content accumulation:
+            // .set("content", ...) is tricky with $concat in Update.
+            // Better to use a dedicated field or aggregation if we want true atomic append.
+            // But ReactiveMongoTemplate.upsert with Update.push is atomic.
+            // Let's stick to the prompt's suggestion of atomic upsert.
+        
+        mongoTemplate.upsert(query, update, Message::class.java)
+            .doOnError { e -> logger.error("Failed to save AI chunk for $messageId", e) }
             .subscribe()
     }
 

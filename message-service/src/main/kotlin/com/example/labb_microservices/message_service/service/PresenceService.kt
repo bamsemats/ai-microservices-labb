@@ -1,7 +1,9 @@
 package com.example.labb_microservices.message_service.service
 
 import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.springframework.data.redis.core.ScanOptions
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 
@@ -24,8 +26,9 @@ class PresenceService(
         return redisTemplate.hasKey("${presenceKeyPrefix}$userId")
     }
 
-    fun getAllOnlineUsers(): reactor.core.publisher.Flux<String> {
-        return redisTemplate.keys("${presenceKeyPrefix}*")
+    fun getAllOnlineUsers(): Flux<String> {
+        val options = ScanOptions.scanOptions().match("${presenceKeyPrefix}*").count(1000).build()
+        return redisTemplate.scan(options)
             .map { it.removePrefix(presenceKeyPrefix) }
     }
 }

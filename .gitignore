@@ -19,6 +19,9 @@ ralph/
 .geminiignore
 .env
 
+# Kubernetes secrets
+k8s/infrastructure/secrets.yaml
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

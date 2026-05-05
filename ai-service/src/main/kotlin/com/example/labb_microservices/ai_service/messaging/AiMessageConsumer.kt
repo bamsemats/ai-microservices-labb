@@ -1,5 +1,7 @@
 package com.example.labb_microservices.ai_service.messaging
 
+import com.example.labb_microservices.ai_service.model.AiStatus
+import com.example.labb_microservices.ai_service.model.AiStatusEvent
 import com.example.labb_microservices.ai_service.model.AdaptationEvent
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.EntityMessage
@@ -30,7 +32,9 @@ class AiMessageConsumer(
         logger.info("Analyzing sentiment and entities for messageId: {}, senderId: {}", message.id, message.senderId)
         
         // Memory Extraction
-        memoryWorker.processMessageForMemory(message).subscribe()
+        memoryWorker.processMessageForMemory(message)
+            .doOnError { e -> logger.error("Failed to extract memory from message: ${message.id}", e) }
+            .subscribe()
 
         val content = message.content.lowercase()
         
@@ -97,8 +101,8 @@ class AiMessageConsumer(
         rabbitTemplate.convertAndSend(
             RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
             "",
-            com.example.labb_microservices.ai_service.model.AiStatusEvent(
-                status = "THINKING",
+            AiStatusEvent(
+                status = AiStatus.THINKING,
                 channelId = message.channelId,
                 userId = message.senderId
             )
@@ -130,8 +134,8 @@ class AiMessageConsumer(
                 rabbitTemplate.convertAndSend(
                     RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
                     "",
-                    com.example.labb_microservices.ai_service.model.AiStatusEvent(
-                        status = "COMPLETED",
+                    AiStatusEvent(
+                        status = AiStatus.COMPLETED,
                         channelId = message.channelId,
                         userId = message.senderId
                     )
@@ -142,8 +146,8 @@ class AiMessageConsumer(
                 rabbitTemplate.convertAndSend(
                     RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
                     "",
-                    com.example.labb_microservices.ai_service.model.AiStatusEvent(
-                        status = "ERROR",
+                    AiStatusEvent(
+                        status = AiStatus.ERROR,
                         channelId = message.channelId,
                         userId = message.senderId
                     )

@@ -90,7 +90,7 @@ class OpenRouterResponseGenerator(
                             val response = objectMapper.readValue(json, OpenRouterResponse::class.java)
                             response.choices.firstOrNull()?.delta?.content ?: ""
                         } catch (e: Exception) {
-                            logger.warn("Failed to parse AI chunk: {}", json)
+                            logger.warn("Failed to parse AI chunk: {}", json, e)
                             ""
                         }
                     }

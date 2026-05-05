@@ -54,8 +54,8 @@ class SimulatedResponseGenerator(
                 
                 // Simulate LLM latency and streaming chunks
                 val words = finalResponse.split(" ")
-                Flux.fromIterable(words)
-                    .map { if (it == words.last()) it else "$it " }
+                Flux.fromIterable(words.withIndex())
+                    .map { (index, word) -> if (index == words.lastIndex) word else "$word " }
                     .delayElements(Duration.ofMillis(100))
             }
             .doOnComplete { logger.info("LLM simulation complete") }

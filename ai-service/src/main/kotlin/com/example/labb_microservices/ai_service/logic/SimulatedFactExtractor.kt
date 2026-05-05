@@ -23,17 +23,20 @@ class SimulatedFactExtractor : FactExtractor {
         if (content.contains("valorant")) facts.add(ExtractedFact(MemoryCategory.INTEREST, "Valorant", 0.9))
         if (content.contains("music")) facts.add(ExtractedFact(MemoryCategory.INTEREST, "Music", 0.7))
         if (content.contains("i love")) {
-            val thing = content.substringAfter("i love ").split(" ").firstOrNull()
+            val thing = content.substringAfter("i love ").split(Regex("\\W+")).firstOrNull()
             if (thing != null && thing.length > 2) {
-                facts.add(ExtractedFact(MemoryCategory.INTEREST, thing.capitalize(), 0.6))
+                val formattedThing = thing.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                facts.add(ExtractedFact(MemoryCategory.INTEREST, formattedThing, 0.6))
             }
         }
 
         // Goals
-        if (content.contains("want to learn") || content.contains("learning")) {
-            val topic = content.substringAfter("learn").substringAfter("ing").trim().split(" ").firstOrNull()
-            if (topic != null && topic.length > 2) {
-                facts.add(ExtractedFact(MemoryCategory.GOAL, "Learn $topic", 0.8))
+        val goalMatch = Regex("(?:want to learn|learning)\\b\\s*(\\w+)", RegexOption.IGNORE_CASE).find(message.content)
+        if (goalMatch != null) {
+            val topic = goalMatch.groupValues[1]
+            if (topic.length > 2) {
+                val formattedTopic = topic.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                facts.add(ExtractedFact(MemoryCategory.GOAL, "Learn $formattedTopic", 0.8))
             }
         }
 

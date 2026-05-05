@@ -53,9 +53,15 @@ services:
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
       mongodb:
         condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   auth-service:
     build:
@@ -68,8 +74,8 @@ services:
     environment:
       - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
       - SPRING_DATA_REDIS_HOST=redis
-      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
-      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/auth-service.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=password
@@ -78,7 +84,6 @@ services:
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=password
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
-      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       user-service:
         condition: service_started
@@ -97,8 +102,8 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
       - SPRING_RABBITMQ_HOST=rabbitmq
       - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
-      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
-      - ENCRYPTION_SECRET=another-very-long-and-secure-secret-key-32-chars
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/message-service.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=password
@@ -108,6 +113,7 @@ services:
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+      - SPRING_DATA_REDIS_HOST=redis
     depends_on:
       mongodb:
         condition: service_started
@@ -115,6 +121,8 @@ services:
         condition: service_healthy
       user-service:
         condition: service_started
+      redis:
+        condition: service_healthy
 
   gateway:
     build:
@@ -126,10 +134,9 @@ services:
       - SERVICES_AUTH=http://auth-service:8081
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
-      - JWT_SECRET=a-very-long-and-secure-secret-key-that-is-at-least-256-bits
+      - JWT_SECRET=${JWT_SECRET}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
-      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       auth-service:
         condition: service_started
@@ -154,12 +161,16 @@ services:
       - "8084:8084"
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/aidb
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mongodb:
+        condition: service_started
 
   content-aggregator-service:
     build:

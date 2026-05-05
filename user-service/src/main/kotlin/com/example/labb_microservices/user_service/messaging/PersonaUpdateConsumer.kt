@@ -17,9 +17,14 @@ class PersonaUpdateConsumer(
     fun handlePersonaUpdate(event: PersonaUpdateEvent) {
         logger.info("Received persona update for user {}: {} -> {}", event.userId, event.category, event.value)
         
-        userService.updateBioWithFact(event.userId, event.category, event.value)
-            .subscribe {
-                logger.info("Successfully updated bio for user {}", event.userId)
-            }
+        try {
+            userService.updateBioWithFact(event.userId, event.category, event.value)
+                .doOnSuccess { logger.info("Successfully updated bio for user {}", event.userId) }
+                .doOnError { e -> logger.error("Failed to update bio for user {}: {}", event.userId, e.message) }
+                .block()
+        } catch (e: Exception) {
+            logger.error("Error processing persona update for user {}: {}", event.userId, e.message)
+            throw e // Rethrow to trigger AMQP retry if configured
+        }
     }
 }

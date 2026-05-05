@@ -1,5 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
+import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryFragment
 import com.example.labb_microservices.ai_service.model.Message
 import com.example.labb_microservices.ai_service.repository.MemoryFragmentRepository
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
+import kotlin.math.max
 
 @Service
 class MemoryWorker(
@@ -20,7 +22,7 @@ class MemoryWorker(
     private val logger = LoggerFactory.getLogger(MemoryWorker::class.java)
 
     fun processMessageForMemory(message: Message): Mono<Void> {
-        if (message.senderId == "ai-bot") return Mono.empty()
+        if (message.authorType == AuthorType.BOT) return Mono.empty()
 
         return factExtractor.extractFacts(message)
             .flatMap { fact ->
@@ -28,7 +30,7 @@ class MemoryWorker(
                 memoryFragmentRepository.findByUserIdAndCategoryAndValue(message.senderId, fact.category, fact.value)
                     .flatMap { existing ->
                         val updated = existing.copy(
-                            confidence = (existing.confidence + fact.confidence) / 2.0,
+                            confidence = max(existing.confidence, fact.confidence),
                             timestamp = Instant.now(),
                             sourceMessageId = message.id ?: "unknown"
                         )
@@ -58,6 +60,11 @@ class MemoryWorker(
                                 }
                         }
                     )
+                    .onErrorResume { e ->
+                        // Handle DuplicateKeyException if concurrent writes happen
+                        logger.warn("Potential race condition during memory extraction: {}", e.message)
+                        Mono.empty()
+                    }
             }
             .then()
     }
@@ -67,8 +74,7 @@ class MemoryWorker(
         val event = PersonaUpdateEvent(
             userId = fragment.userId,
             category = fragment.category,
-            value = fragment.value,
-            confidence = fragment.confidence
+            value = fragment.value
         )
         rabbitTemplate.convertAndSend(
             RabbitMQConfig.PERSONA_EXCHANGE_NAME,

@@ -131,6 +131,7 @@ class MemoryWorkerIntegrationTest {
         // Give it a moment to reach the queue
         val event = rabbitTemplate.receiveAndConvert("test.persona.queue", 5000) as? com.example.labb_microservices.ai_service.model.PersonaUpdateEvent
 
+        org.junit.jupiter.api.Assertions.assertNotNull(event, "PersonaUpdateEvent should not be null")
         assertEquals("user-persona", event?.userId)
         assertEquals("React", event?.value)
         assertEquals(MemoryCategory.TECH_STACK, event?.category)

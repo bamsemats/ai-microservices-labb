@@ -13,6 +13,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
+- **Common Observability**: A dedicated module for centralized monitoring (Actuator), tracing (Micrometer), and production health indicators.
 - **Proto**: Shared Protobuf definitions for type-safe gRPC communication.
 
 ---
@@ -58,9 +59,11 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#42 Real AI Loop Closure**: Intelligent response generation with simulated LLM latency.
 - [x] **#43 Adapta-Memory: Fact Extraction**: Persistent preference storage in MongoDB.
 - [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
-- [x] **#45 Quality & Security Stabilization**: Masking, DTOs, Idempotency, and Accessibility.
-- [x] **#46 Infrastructure & Test Hardening**: Bounded timeouts, BOM-less certs, and container static discovery.
+- [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
+- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
+- [x] **#48 Infrastructure: Service Connectivity Fix**: Corrected Redis, RabbitMQ, and MongoDB hosts for containerized environments.
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
+- [x] **#49 Production Hardening**: Redis SCAN migration, same-length masking, and PKCS12 certs.
 
 ---
 
@@ -77,23 +80,25 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 ## 🏛 Design Decisions & Trade-offs
 
-### Adapta-Memory & Personalization
-The system now includes an "Adapta-Memory" worker that asynchronously extracts user interests and preferences from chat streams. This uses a deduplicated MongoDB store to build a long-term "Knowledge Base" for each user.
+### High-Availability WebSockets (Session-based)
+The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions. This migration resolved critical race conditions in multi-replica deployments.
 
-Key enhancements in Phase 3:
-- **Hybrid Context Injection**: The AI response generator retrieves these facts and injects them into the prompt, enabling hyper-personalized responses that reference past user facts.
-- **Persona Sync**: High-confidence facts (confidence > 0.9) trigger a `PersonaUpdateEvent` via RabbitMQ, which the `user-service` consumes to automatically update the user's public bio.
+### Atomic Data Pipelines
+AI-generated responses are now persisted using **atomic MongoDB upserts** ($concat/push). This eliminates race conditions during high-frequency streaming updates where multiple chunks for the same message might otherwise overwrite each other, ensuring the final message content is always complete and consistent.
 
-### Shared Security Library vs. Sidecar
-We use a shared module (`common-security`) for zero-trust validation. While this introduces a "distributed monolith" risk, it provides extreme simplicity and performance compared to a Service Mesh.
+### Kubernetes Hardening
+Deployments have transitioned to a **Hardened Posture**:
+- **Non-root execution**: All containers run as UID 1000 to minimize host-level exposure.
+- **Immutable Infrastructure**: Read-only root filesystems are enforced, with writable `/tmp` provided via `emptyDir` volumes for Spring Boot temp files.
+- **Privilege Reduction**: All Linux capabilities are dropped (`ALL`), and `allowPrivilegeEscalation` is disabled.
 
-### Synchronous vs. Asynchronous Communication
-The system uses gRPC for critical, low-latency lookups and RabbitMQ for everything else, ensuring a fast user experience while maintaining data integrity.
+### Decoupled Observability
+Observability (Actuator, Micrometer, Tracing) has been extracted from `common-security` into its own `common-observability` module. This prevents "dependency bloat" and ensures that security primitives can be evolved independently from the monitoring stack.
 
 ---
 
 ## ⚠️ Known Limitations
-- **Binary Coupling**: Services depend on `common-security` and `proto`.
+- **Binary Coupling**: Services depend on `common-security`, `common-observability`, and `proto`.
 - **Coordinated Rollouts**: Shared library updates require full-stack redeployment.
 
 ---

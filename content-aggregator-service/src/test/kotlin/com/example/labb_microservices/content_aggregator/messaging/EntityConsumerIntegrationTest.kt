@@ -2,6 +2,8 @@ package com.example.labb_microservices.content_aggregator.messaging
 
 import com.example.labb_microservices.content_aggregator.model.ContentInjectionEvent
 import com.example.labb_microservices.content_aggregator.model.EntityMessage
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -14,6 +16,7 @@ import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
+import java.time.Duration
 import java.util.*
 
 @SpringBootTest(properties = [
@@ -76,13 +79,17 @@ class EntityConsumerIntegrationTest {
         assertEquals("TWITCH_STREAM", event?.contentType)
         assertEquals(gameName, event?.data?.get("gameName"))
 
-        // Verify content is cached in Redis
-        StepVerifier.create(redisTemplate.opsForValue().get(cacheKey))
-            .assertNext { cachedData ->
-                val data = cachedData as Map<*, *>
-                assertEquals(gameName, data["gameName"])
-                assertEquals("NexusPrime", data["streamer"])
-            }
-            .verifyComplete()
+        // Wait for async Redis write and verify content
+        await.atMost(Duration.ofSeconds(5)).untilAsserted {
+            StepVerifier.create(redisTemplate.opsForValue().get(cacheKey))
+                .assertNext { cachedData ->
+                    val data = cachedData as? Map<*, *>
+                    assertNotNull(data, "Cached data should be a Map but was ${cachedData?.let { it::class.simpleName } ?: "null"}")
+                    assertEquals(gameName, data!!["gameName"])
+                    assertEquals("NexusPrime", data["streamer"])
+                }
+                .expectComplete()
+                .verify(Duration.ofSeconds(5))
+        }
     }
 }

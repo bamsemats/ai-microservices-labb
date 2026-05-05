@@ -21,6 +21,8 @@ try {
     # Convert SecureString to plain string for the temp file (securely handled in cleanup)
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
     $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    $BSTR = [System.IntPtr]::Zero
     
     $PassFile = [System.IO.Path]::GetTempFileName()
     # Write UTF8 without BOM using .NET to avoid corruption in keytool
@@ -36,14 +38,14 @@ try {
     # 1. Generate Root CA
     Write-Host "Generating Root CA..." -ForegroundColor Cyan
     keytool -genkeypair -alias rootca -keyalg RSA -keysize 4096 -ext bc:c -validity 3650 `
-        -keystore ca.jks -storepass:file "$PassFile" -keypass:file "$PassFile" -dname "CN=Labb-Root-CA, $DnameBase"
+        -keystore ca.jks -storepass:file "$PassFile" -keypass:file "$PassFile" -dname "CN=Labb-Root-CA, $DnameBase" -storetype PKCS12
 
     # 2. Export Root CA certificate
     keytool -exportcert -alias rootca -keystore ca.jks -storepass:file "$PassFile" -file ca.crt -rfc
 
     # 3. Create Truststore (common for all services)
     Write-Host "Creating Truststore..." -ForegroundColor Cyan
-    keytool -importcert -alias rootca -file ca.crt -keystore truststore.jks -storepass:file "$PassFile" -noprompt
+    keytool -importcert -alias rootca -file ca.crt -keystore truststore.jks -storepass:file "$PassFile" -noprompt -storetype PKCS12
 
     # 4. Function to generate service keystore
     function New-ServiceCert($name) {
@@ -53,7 +55,7 @@ try {
         # Create keystore and keypair
         keytool -genkeypair -alias $name -keyalg RSA -keysize 2048 -validity 365 `
             -keystore "$name.jks" -storepass:file "$PassFile" -keypass:file "$PassFile" -dname $serviceDname `
-            -ext "san=dns:$name,dns:localhost"
+            -ext "san=dns:$name,dns:localhost" -storetype PKCS12
         
         # Generate CSR
         keytool -certreq -alias $name -keystore "$name.jks" -storepass:file "$PassFile" -file "$name.csr"
@@ -63,10 +65,10 @@ try {
             -ext "san=dns:$name,dns:localhost" -rfc -validity 365
         
         # Import Root CA certificate (required for the chain)
-        keytool -importcert -alias rootca -file ca.crt -keystore "$name.jks" -storepass:file "$PassFile" -noprompt
+        keytool -importcert -alias rootca -file ca.crt -keystore "$name.jks" -storepass:file "$PassFile" -noprompt -storetype PKCS12
         
         # Import the signed certificate
-        keytool -importcert -alias $name -file "$name.crt" -keystore "$name.jks" -storepass:file "$PassFile" -noprompt
+        keytool -importcert -alias $name -file "$name.crt" -keystore "$name.jks" -storepass:file "$PassFile" -noprompt -storetype PKCS12
         
         # Cleanup temp files
         if (Test-Path "$name.csr") { Remove-Item "$name.csr" }

@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArraySet
 
 @Component
 class MessageWebSocketHandler(
@@ -26,13 +27,15 @@ class MessageWebSocketHandler(
     @org.springframework.beans.factory.annotation.Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
 
-    private val userSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
-    private val userChannels = ConcurrentHashMap<String, String>()
+    private val sessionSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
+    private val sessionChannels = ConcurrentHashMap<String, String>()
+    private val userSessions = ConcurrentHashMap<String, MutableSet<String>>()
     private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val token = extractToken(session)
         val channelId = extractChannel(session) ?: "general"
+        val sessionId = session.id
 
         val principalMono = if (token != null) {
             if (jwtTokenValidator.validateToken(token)) {
@@ -47,12 +50,12 @@ class MessageWebSocketHandler(
 
         return principalMono
             .flatMap { userId: String ->
-                logger.info("New WebSocket connection for user: {} in channel: {}", userId, channelId)
+                logger.info("New WebSocket connection for user: {} in channel: {}, session: {}", userId, channelId, sessionId)
                 
-                val sink = userSinks.computeIfAbsent(userId) {
-                    Sinks.many().multicast().directBestEffort()
-                }
-                userChannels[userId] = channelId
+                val sink = Sinks.many().multicast().directBestEffort<String>()
+                sessionSinks[sessionId] = sink
+                sessionChannels[sessionId] = channelId
+                userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
 
                 // Use a single completion sink to coordinate termination
                 val disconnectSink = Sinks.empty<Void>()
@@ -60,11 +63,16 @@ class MessageWebSocketHandler(
                 // Input stream - triggers disconnectSink on completion
                 val input = session.receive()
                     .doOnTerminate {
-                        logger.info("WebSocket input stream terminated for user: {}", userId)
+                        logger.info("WebSocket input stream terminated for user: {}, session: {}", userId, sessionId)
                         disconnectSink.tryEmitEmpty()
-                        userSinks.remove(userId, sink)
-                        userChannels.remove(userId)
-                        presenceService.setUserOffline(userId).subscribe()
+                        sessionSinks.remove(sessionId)
+                        sessionChannels.remove(sessionId)
+                        val sessions = userSessions[userId]
+                        sessions?.remove(sessionId)
+                        if (sessions?.isEmpty() == true) {
+                            userSessions.remove(userId)
+                            presenceService.setUserOffline(userId).subscribe()
+                        }
                     }
                     .then()
 
@@ -101,7 +109,7 @@ class MessageWebSocketHandler(
                             logger.warn("Closing session due to policy violation: {}", e.message)
                             session.close(CloseStatus(1008, e.message))
                         } else {
-                            logger.error("WebSocket error for user $userId", e)
+                            logger.error("WebSocket error for user $userId, session $sessionId", e)
                             session.close(CloseStatus.SERVER_ERROR)
                         }
                     }
@@ -152,10 +160,8 @@ class MessageWebSocketHandler(
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7)
         }
-        val query = session.handshakeInfo.uri.query ?: return null
-        return query.split("&")
-            .find { it.startsWith("token=") }
-            ?.substringAfter("token=")
+        // Token from query is removed for security
+        return null
     }
 
     private fun extractChannel(session: WebSocketSession): String? {
@@ -166,20 +172,22 @@ class MessageWebSocketHandler(
     }
 
     fun broadcastMessage(message: String) {
-        userSinks.values.forEach { it.tryEmitNext(message) }
+        sessionSinks.values.forEach { it.tryEmitNext(message) }
     }
 
     fun broadcastToChannel(channelId: String, message: String) {
-        userSinks.forEach { (userId, sink) ->
-            if (userChannels[userId] == channelId || channelId == "all") {
+        sessionSinks.forEach { (sessionId, sink) ->
+            if (sessionChannels[sessionId] == channelId || channelId == "all") {
                 sink.tryEmitNext(message)
             }
         }
     }
 
     fun sendMessageToUser(userId: String, channelId: String, message: String) {
-        if (userChannels[userId] == channelId || channelId == "all") {
-            userSinks[userId]?.tryEmitNext(message)
+        userSessions[userId]?.forEach { sessionId ->
+            if (sessionChannels[sessionId] == channelId || channelId == "all") {
+                sessionSinks[sessionId]?.tryEmitNext(message)
+            }
         }
     }
 

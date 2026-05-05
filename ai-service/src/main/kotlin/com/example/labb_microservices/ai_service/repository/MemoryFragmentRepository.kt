@@ -10,5 +10,6 @@ import reactor.core.publisher.Mono
 @Repository
 interface MemoryFragmentRepository : ReactiveMongoRepository<MemoryFragment, String> {
     fun findByUserId(userId: String): Flux<MemoryFragment>
+    fun findTop10ByUserIdOrderByConfidenceDesc(userId: String): Flux<MemoryFragment>
     fun findByUserIdAndCategoryAndValue(userId: String, category: MemoryCategory, value: String): Mono<MemoryFragment>
 }
