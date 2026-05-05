@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
       <div className="sidebar-section">
         <h3>Main</h3>
         <button 
-          className={`channel-item ${activeReceiver !== 'explore' && activeReceiver !== 'insights' ? 'active' : ''}`}
+          className={`channel-item ${activeReceiver === 'home' ? 'active' : ''}`}
           onClick={() => handleNav('/')}
         >
           <span className="icon">🏠</span> Home
@@ -122,7 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
         })()}
       </div>
       
-      <style>{`
+      <style href="Sidebar" precedence="default">{`
         .sidebar {
           width: 280px;
           height: calc(100vh - 2rem);

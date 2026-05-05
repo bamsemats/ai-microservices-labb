@@ -7,6 +7,25 @@ interface ContentWidgetProps {
 }
 
 const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
+  const commonStyles = (
+    <style>{`
+      .widget-badge {
+        font-size: 0.65rem;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        letter-spacing: 0.1em;
+      }
+      .thumbnail-placeholder {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+      }
+      .full-width {
+        width: 100%;
+      }
+    `}</style>
+  );
+
   if (content.contentType === 'TWITCH_STREAM') {
     const streamer = content.data.streamer || "Unknown streamer";
     const gameName = content.data.gameName || "Unknown game";
@@ -19,7 +38,8 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card twitch-widget"
       >
-        <div className="widget-badge">LIVE STREAM</div>
+        {commonStyles}
+        <div className="widget-badge twitch">LIVE STREAM</div>
         <div className="twitch-header">
           <div className="streamer-avatar">
             {streamer.charAt(0)}
@@ -48,12 +68,8 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             margin: 1rem 0;
             border-left: 4px solid #9146ff !important;
           }
-          .widget-badge {
-            font-size: 0.65rem;
-            font-weight: 800;
+          .widget-badge.twitch {
             color: #9146ff;
-            margin-bottom: 0.75rem;
-            letter-spacing: 0.1em;
           }
           .twitch-header {
             display: flex;
@@ -94,11 +110,6 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             object-fit: cover;
             opacity: 0.8;
           }
-          .thumbnail-placeholder {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-          }
           .viewer-count {
             position: absolute;
             bottom: 0.5rem;
@@ -117,9 +128,6 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             background: #ff4a4a;
             border-radius: 50%;
             box-shadow: 0 0 6px #ff4a4a;
-          }
-          .full-width {
-            width: 100%;
           }
         `}</style>
       </motion.div>
@@ -140,6 +148,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card youtube-widget"
       >
+        {commonStyles}
         <div className="widget-badge youtube">YOUTUBE VIDEO</div>
         <div className="youtube-header">
           <div className="video-info">
@@ -244,9 +253,6 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             font-size: 0.7rem;
             color: var(--text-muted);
             margin-bottom: 1rem;
-          }
-          .full-width {
-            width: 100%;
           }
         `}</style>
       </motion.div>

@@ -12,20 +12,25 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.util.*
 
-@SpringBootTest(properties = [
-    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
-    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
-])
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    properties = [
+        "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+        "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+    ]
+)
 @Testcontainers
 class MessageConsumerIdempotencyTest {
 
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val redis = GenericContainer("redis:7.2-alpine").withExposedPorts(6379)
         
         @Container
         @ServiceConnection
+        @JvmStatic
         val rabbit = org.testcontainers.containers.RabbitMQContainer("rabbitmq:3.12-management")
     }
 
@@ -52,6 +57,8 @@ class MessageConsumerIdempotencyTest {
         val trendingKey = "trending:channels"
         val userStatsKey = "stats:user:$senderId:messages"
 
+        val timeout = java.time.Duration.ofSeconds(5)
+
         // Process first time
         StepVerifier.create(messageConsumer.processDeliveredMessage(message))
             .verifyComplete()
@@ -59,27 +66,32 @@ class MessageConsumerIdempotencyTest {
         // Verify increments
         StepVerifier.create(redisTemplate.opsForZSet().score(trendingKey, channelId))
             .expectNext(1.0)
-            .verifyComplete()
+            .expectComplete()
+            .verify(timeout)
             
         StepVerifier.create(redisTemplate.opsForValue().get(userStatsKey))
             .assertNext { value ->
                 org.junit.jupiter.api.Assertions.assertEquals(1L, (value as Number).toLong())
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(timeout)
 
         // Process second time (same messageId)
         StepVerifier.create(messageConsumer.processDeliveredMessage(message))
-            .verifyComplete()
+            .expectComplete()
+            .verify(timeout)
 
         // Verify counters did NOT increment again
         StepVerifier.create(redisTemplate.opsForZSet().score(trendingKey, channelId))
             .expectNext(1.0)
-            .verifyComplete()
+            .expectComplete()
+            .verify(timeout)
             
         StepVerifier.create(redisTemplate.opsForValue().get(userStatsKey))
             .assertNext { value ->
                 org.junit.jupiter.api.Assertions.assertEquals(1L, (value as Number).toLong())
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(timeout)
     }
 }

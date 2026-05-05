@@ -51,7 +51,8 @@ class UserControllerTests {
     fun `should register a new user`() {
         val registrationRequest = mapOf(
             "username" to "testuser_" + UUID.randomUUID().toString().take(8),
-            "password" to "testpassword"
+            "password" to "testpassword",
+            "email" to "test@example.com"
         )
 
         webTestClient.post()

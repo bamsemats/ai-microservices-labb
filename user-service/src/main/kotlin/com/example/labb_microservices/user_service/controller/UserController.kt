@@ -8,7 +8,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
+import org.springframework.web.server.ResponseStatusException
+
 data class ProfileRequest(val displayName: String?, val bio: String?)
+data class RegisterUserRequest(val username: String, val email: String, val password: String)
 
 @RestController
 @RequestMapping
@@ -16,13 +19,20 @@ class UserController(private val userService: UserService) {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    fun register(@RequestBody user: User): Mono<UserDto> {
+    fun register(@RequestBody request: RegisterUserRequest): Mono<UserDto> {
+        val user = User(
+            username = request.username,
+            email = request.email,
+            password = request.password
+        )
         return userService.register(user).map { it.toUserDto() }
     }
 
     @GetMapping("/users/me")
     fun me(@AuthenticationPrincipal userId: String): Mono<UserDto> {
-        return userService.findById(userId).map { it.toUserDto() }
+        return userService.findById(userId)
+            .map { it.toUserDto() }
+            .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")))
     }
 
     @PutMapping("/users/profile")
@@ -30,7 +40,9 @@ class UserController(private val userService: UserService) {
         @RequestBody request: ProfileRequest,
         @AuthenticationPrincipal userId: String
     ): Mono<UserDto> {
-        return userService.updateProfile(userId, request.displayName, request.bio).map { it.toUserDto() }
+        return userService.updateProfile(userId, request.displayName, request.bio)
+            .map { it.toUserDto() }
+            .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")))
     }
 
     private fun User.toUserDto() = UserDto(

@@ -23,8 +23,13 @@ try {
     $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     
     $PassFile = [System.IO.Path]::GetTempFileName()
-    # Use UTF8 to preserve non-ASCII characters if any
-    $PlainPassword | Set-Content -Path $PassFile -Encoding UTF8 -NoNewline
+    # Write UTF8 without BOM using .NET to avoid corruption in keytool
+    $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($PassFile, $PlainPassword, $Utf8NoBom)
+
+    # Securely clear the plaintext variable from memory as early as possible
+    $PlainPassword = $null
+    Remove-Variable -Name PlainPassword -ErrorAction SilentlyContinue
 
     $DnameBase = "OU=Education, O=Example, L=Stockholm, S=SE, C=SE"
 
@@ -78,7 +83,7 @@ finally {
     if ($BSTR -ne [System.IntPtr]::Zero) {
         [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
     }
-    if (Test-Path $PassFile) {
+    if (![string]::IsNullOrEmpty($PassFile) -and (Test-Path $PassFile)) {
         Remove-Item $PassFile -Force
     }
 }

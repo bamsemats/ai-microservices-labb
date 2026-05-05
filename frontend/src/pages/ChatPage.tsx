@@ -14,7 +14,7 @@ type DisplayItem =
   | { type: 'content'; data: InjectedContent };
 
 const ChatPage: React.FC = () => {
-  const [receiverId, setReceiverId] = useState('all');
+  const [receiverId, setReceiverId] = useState('home');
   const [error, setError] = useState<string | null>(null);
   const { username, userId, isAdmin, logout } = useAuthStore();
   const { messages, injectedContent } = useChatStore();
@@ -30,9 +30,10 @@ const ChatPage: React.FC = () => {
   const handleSend = async (content: string) => {
     setError(null);
     try {
-      if (receiverId === 'all') {
+      if (receiverId === 'all' || receiverId === 'home') {
+        const target = receiverId === 'home' ? 'general' : receiverId;
         if (!isAdmin) {
-          setError("Only admins can broadcast to #general.");
+          setError(`Only admins can broadcast to #${target}.`);
           return;
         }
         await api.post('/messages/broadcast', { content });
@@ -49,14 +50,14 @@ const ChatPage: React.FC = () => {
   };
 
   const filteredMessages = messages.filter(msg => {
-    if (receiverId === 'all') {
+    if (receiverId === 'all' || receiverId === 'home') {
       return !msg.receiverId || msg.receiverId === 'all';
     }
     return (msg.senderId === userId && msg.receiverId === receiverId) || 
            (msg.senderId === receiverId && msg.receiverId === userId);
   });
 
-  const filteredInjectedContent = receiverId === 'all' ? injectedContent : [];
+  const filteredInjectedContent = (receiverId === 'all' || receiverId === 'home') ? injectedContent : [];
 
   // Combine messages and injected content for display
   const displayItems: DisplayItem[] = [
@@ -75,8 +76,10 @@ const ChatPage: React.FC = () => {
       <main className="chat-main-content">
         <header className="chat-navbar glass-panel">
           <div className="active-context">
-            <span className="context-prefix">{receiverId === 'all' ? '#' : '@'}</span>
-            <span className="context-name">{receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId)}</span>
+            <span className="context-prefix">{receiverId === 'all' || receiverId === 'home' ? '#' : '@'}</span>
+            <span className="context-name">
+              {receiverId === 'home' ? 'welcome' : (receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId))}
+            </span>
           </div>
           <div className="user-controls">
             <div className="user-badge glass-card">
@@ -90,7 +93,19 @@ const ChatPage: React.FC = () => {
         <section className="message-stream">
           <div className="message-list" ref={scrollRef}>
             <AnimatePresence initial={false} mode="popLayout">
-              {displayItems.length === 0 ? (
+              {receiverId === 'home' && filteredMessages.length === 0 ? (
+                <motion.div 
+                  key="welcome"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="empty-state welcome-state"
+                >
+                  <div className="empty-icon">🏠</div>
+                  <h2>Welcome to AdaptaChat</h2>
+                  <p>Select a channel or direct message to start communicating across frequencies.</p>
+                </motion.div>
+              ) : displayItems.length === 0 ? (
                 <motion.div 
                   key="empty"
                   initial={{ opacity: 0 }}
@@ -122,8 +137,8 @@ const ChatPage: React.FC = () => {
 
           <MessageComposer 
             onSend={handleSend} 
-            placeholder={`Message ${receiverId === 'all' ? '#general' : 'this frequency'}...`}
-            disabled={receiverId === 'all' && !isAdmin}
+            placeholder={`Message ${receiverId === 'home' ? 'general' : (receiverId === 'all' ? '#general' : 'this frequency')}...`}
+            disabled={(receiverId === 'all' || receiverId === 'home') && !isAdmin}
           />
         </section>
       </main>

@@ -53,6 +53,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#36 Stabilization & Quality Sweep**: All backend tests passing, frontend build verified.
 - [x] **#37 Persistent Channel Partitioning**: Strict channel-based message isolation.
 - [x] **#42 Real AI Loop Closure**: Intelligent response generation with simulated LLM latency.
+- [x] **#46 Infrastructure & Test Hardening**: Bounded timeouts, BOM-less certs, and container static discovery.
 
 ---
 
