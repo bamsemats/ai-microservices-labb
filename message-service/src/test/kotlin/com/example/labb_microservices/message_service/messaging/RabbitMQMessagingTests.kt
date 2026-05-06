@@ -1,5 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.Message
@@ -8,11 +9,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -28,19 +24,8 @@ import java.time.LocalDateTime
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0"
 ])
-@Testcontainers
 @Import(RabbitMQMessagingTests.LatchConfig::class, RabbitMQMessagingTests.ListenerConfig::class)
-class RabbitMQMessagingTests {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        val mongodb = MongoDBContainer("mongo:6.0.4")
-
-        @Container
-        @ServiceConnection
-        val rabbitmq = RabbitMQContainer("rabbitmq:3.11-management")
-    }
+class RabbitMQMessagingTests : BaseIntegrationTest() {
 
     @Autowired
     @org.springframework.beans.factory.annotation.Qualifier("latch1")

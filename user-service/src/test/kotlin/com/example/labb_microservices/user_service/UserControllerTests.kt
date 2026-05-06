@@ -1,19 +1,16 @@
 package com.example.labb_microservices.user_service
 
+import com.example.common.test.BaseIntegrationTest
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
@@ -25,14 +22,9 @@ import java.util.*
     "grpc.server.security.key-password=ignored",
     "grpc.server.security.trust-store-password=ignored"
 ])
-@Testcontainers
-class UserControllerTests {
+class UserControllerTests : BaseIntegrationTest() {
 
     companion object {
-        @Container
-        @ServiceConnection
-        val mongoDBContainer = MongoDBContainer("mongo:7.0")
-
         private const val SECRET = "a-very-long-and-secure-secret-key-that-is-at-least-256-bits"
         private val KEY = Keys.hmacShaKeyFor(SECRET.toByteArray())
     }

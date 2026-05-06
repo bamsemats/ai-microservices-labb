@@ -1,5 +1,6 @@
 package com.example.labb_microservices.ai_service.messaging
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.model.AdaptationEvent
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.Message
@@ -9,10 +10,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import org.springframework.context.annotation.Import
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -24,19 +21,8 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
-@Testcontainers
 @Import(AiMessageConsumerIntegrationTest.TestConfig::class)
-class AiMessageConsumerIntegrationTest {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
-
-        @Container
-        @ServiceConnection
-        val mongo = org.testcontainers.containers.MongoDBContainer("mongo:7.0")
-    }
+class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate

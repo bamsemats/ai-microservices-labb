@@ -1,0 +1,9 @@
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: false
+  data:
+    redis:
+      timeout: 500ms

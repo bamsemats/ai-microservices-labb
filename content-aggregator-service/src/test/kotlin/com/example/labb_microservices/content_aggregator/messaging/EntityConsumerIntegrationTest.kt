@@ -1,5 +1,6 @@
 package com.example.labb_microservices.content_aggregator.messaging
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.content_aggregator.model.ContentInjectionEvent
 import com.example.labb_microservices.content_aggregator.model.EntityMessage
 import org.junit.jupiter.api.Assertions.*
@@ -7,12 +8,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.data.redis.core.ReactiveRedisTemplate
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.time.Duration
 import java.util.*
@@ -21,20 +17,7 @@ import java.util.*
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
 ])
-@Testcontainers
-class EntityConsumerIntegrationTest {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
-
-        @Container
-        @ServiceConnection(name = "redis")
-        @JvmStatic
-        val redis = GenericContainer("redis:7.2-alpine").withExposedPorts(6379)
-    }
+class EntityConsumerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate

@@ -14,6 +14,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
 - **Common Observability**: A dedicated module for centralized monitoring (Actuator), tracing (Micrometer), and production health indicators.
+- **Common Test**: Singleton infrastructure for stable, noise-free integration tests across the monorepo.
 - **Proto**: Shared Protobuf definitions for type-safe gRPC communication.
 
 ---
@@ -62,8 +63,8 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
 - [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
-- [x] **#48 Infrastructure: Service Connectivity Fix**: Corrected Redis, RabbitMQ, and MongoDB hosts for containerized environments.
-- [x] **#49 Production Hardening**: Redis SCAN migration, same-length masking, and PKCS12 certs.
+- [x] **#48 Infrastructure Noise Reduction**: Singleton containers and fast-fail test settings.
+- [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
 - [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
 - [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
 

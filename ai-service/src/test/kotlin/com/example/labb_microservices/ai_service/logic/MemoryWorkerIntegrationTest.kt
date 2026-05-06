@@ -1,5 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory
 import com.example.labb_microservices.ai_service.model.Message
@@ -8,17 +9,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.util.*
 import java.time.Duration
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
-@Testcontainers
-class MemoryWorkerIntegrationTest {
+class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var memoryWorker: MemoryWorker
@@ -28,18 +24,6 @@ class MemoryWorkerIntegrationTest {
 
     @Autowired
     private lateinit var rabbitTemplate: org.springframework.amqp.rabbit.core.RabbitTemplate
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val mongoDBContainer = MongoDBContainer("mongo:7.0")
-
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val rabbitMQContainer = org.testcontainers.containers.RabbitMQContainer("rabbitmq:3.12-management")
-    }
 
     @org.springframework.boot.test.context.TestConfiguration
     class TestConfig {

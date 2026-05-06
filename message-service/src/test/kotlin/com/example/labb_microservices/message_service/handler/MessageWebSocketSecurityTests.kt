@@ -1,5 +1,6 @@
 package com.example.labb_microservices.message_service.handler
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.service.PresenceService
@@ -7,14 +8,9 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.test.StepVerifier
@@ -31,21 +27,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
     "auth.cache.ttl=0",
     "auth.validation.interval=1"
 ])
-@Testcontainers
-class MessageWebSocketSecurityTests {
+class MessageWebSocketSecurityTests : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var webSocketHandler: MessageWebSocketHandler
-
-    companion object {
-        @Container
-        @ServiceConnection
-        val mongodb = MongoDBContainer("mongo:6.0.4")
-
-        @Container
-        @ServiceConnection
-        val rabbitmq = RabbitMQContainer("rabbitmq:3.11-management")
-    }
 
     @LocalServerPort
     private var port: Int = 0

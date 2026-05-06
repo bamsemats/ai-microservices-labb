@@ -1,5 +1,6 @@
 package com.example.labb_microservices.message_service.handler
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.controller.BroadcastRequest
@@ -11,15 +12,10 @@ import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
 import org.springframework.test.context.bean.override.mockito.MockitoBean
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.Duration
@@ -30,18 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0"
 ])
-@Testcontainers
-class ChannelPartitioningTests {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        val mongodb = MongoDBContainer("mongo:6.0.4")
-
-        @Container
-        @ServiceConnection
-        val rabbitmq = RabbitMQContainer("rabbitmq:3.11-management")
-    }
+class ChannelPartitioningTests : BaseIntegrationTest() {
 
     @LocalServerPort
     private var port: Int = 0

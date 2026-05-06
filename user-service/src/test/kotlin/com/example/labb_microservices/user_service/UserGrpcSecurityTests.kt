@@ -1,5 +1,6 @@
 package com.example.labb_microservices.user_service
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.proto.CredentialsRequest
 import com.example.labb_microservices.proto.UserServiceGrpc
 import io.grpc.StatusRuntimeException
@@ -8,32 +9,23 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import java.nio.file.Paths
 
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=9090"
 ])
-@Testcontainers
 @DirtiesContext
-class UserGrpcSecurityTests {
+class UserGrpcSecurityTests : BaseIntegrationTest() {
 
     companion object {
-        @Container
-        @ServiceConnection
-        val mongoDBContainer = MongoDBContainer("mongo:7.0")
 
         @JvmStatic
         @DynamicPropertySource
-        fun registerProperties(registry: DynamicPropertyRegistry) {
+        fun registerGrpcProperties(registry: DynamicPropertyRegistry) {
             val certsDir = findCertsDir(java.nio.file.Paths.get(".").toAbsolutePath())
             val trustStorePath = "file:${certsDir.resolve("truststore.jks")}"
             val userServiceKeystorePath = "file:${certsDir.resolve("user-service.jks")}"

@@ -1,5 +1,6 @@
 package com.example.labb_microservices.auth_service
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.auth_service.client.UserGrpcClient
 import com.example.labb_microservices.auth_service.controller.LoginRequest
 import com.example.labb_microservices.proto.CredentialsResponse
@@ -13,25 +14,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.context.ApplicationContext
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0"
 ])
-@Testcontainers
-class AuthControllerTests {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val redis = GenericContainer("redis:7.0").withExposedPorts(6379)
-    }
+class AuthControllerTests : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var context: ApplicationContext

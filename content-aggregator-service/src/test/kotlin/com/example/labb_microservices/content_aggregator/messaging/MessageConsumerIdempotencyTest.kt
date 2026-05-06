@@ -1,14 +1,11 @@
 package com.example.labb_microservices.content_aggregator.messaging
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.content_aggregator.model.Message
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.data.redis.core.ReactiveRedisTemplate
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.util.*
 
@@ -19,20 +16,7 @@ import java.util.*
         "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
     ]
 )
-@Testcontainers
-class MessageConsumerIdempotencyTest {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val redis = GenericContainer("redis:7.2-alpine").withExposedPorts(6379)
-        
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val rabbit = org.testcontainers.containers.RabbitMQContainer("rabbitmq:3.12-management")
-    }
+class MessageConsumerIdempotencyTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var messageConsumer: MessageConsumer

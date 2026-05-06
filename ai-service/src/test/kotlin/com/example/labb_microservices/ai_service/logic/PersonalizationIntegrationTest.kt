@@ -1,5 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.messaging.RabbitMQConfig
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory
@@ -10,26 +11,14 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Import
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.time.Duration
 import java.util.*
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Import(RabbitMQConfig::class)
-@Testcontainers
-class PersonalizationIntegrationTest {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val mongoDBContainer = MongoDBContainer("mongo:7.0")
-    }
+class PersonalizationIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var responseGenerator: ResponseGenerator

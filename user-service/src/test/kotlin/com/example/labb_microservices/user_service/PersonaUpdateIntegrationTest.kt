@@ -1,22 +1,16 @@
 package com.example.labb_microservices.user_service
 
-import com.example.labb_microservices.user_service.config.RabbitConfig
+import com.example.common.test.BaseIntegrationTest
 import com.example.labb_microservices.user_service.dto.PersonaUpdateEvent
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilAsserted
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.containers.RabbitMQContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Duration
 
 @SpringBootTest(properties = [
@@ -28,20 +22,7 @@ import java.time.Duration
     "grpc.server.security.key-password=password",
     "grpc.server.security.trust-store-password=password"
 ])
-@Testcontainers
-class PersonaUpdateIntegrationTest {
-
-    companion object {
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val mongo = MongoDBContainer("mongo:7.0")
-
-        @Container
-        @ServiceConnection
-        @JvmStatic
-        val rabbit = RabbitMQContainer("rabbitmq:3.12-management")
-    }
+class PersonaUpdateIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate
