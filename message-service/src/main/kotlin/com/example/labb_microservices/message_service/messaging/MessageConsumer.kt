@@ -1,5 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
+import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
@@ -21,7 +22,8 @@ class MessageConsumer(
     private val mongoTemplate: ReactiveMongoTemplate,
     private val webSocketHandler: MessageWebSocketHandler,
     private val objectMapper: ObjectMapper,
-    private val messageProducer: MessageProducer
+    private val messageProducer: MessageProducer,
+    private val encryptionUtils: EncryptionUtils
 ) {
 
     private val logger = LoggerFactory.getLogger(MessageConsumer::class.java)
@@ -29,15 +31,22 @@ class MessageConsumer(
     @RabbitListener(queues = [RabbitMQConfig.STORAGE_QUEUE_NAME])
     fun storeMessage(message: Message) {
         val messageToSave = if (message.id.isNullOrBlank()) {
-            message.copy(id = java.util.UUID.randomUUID().toString())
+            message.copy(
+                id = java.util.UUID.randomUUID().toString(),
+                content = encryptionUtils.encrypt(message.content),
+                searchIndices = tokenizeAndHash(message.content)
+            )
         } else {
-            message
+            message.copy(
+                content = encryptionUtils.encrypt(message.content),
+                searchIndices = tokenizeAndHash(message.content)
+            )
         }
-        logger.info("Storing message: ${messageToSave.id}")
+        logger.info("Storing encrypted message: ${messageToSave.id}")
         messageRepository.save(messageToSave)
-            .doOnSuccess { savedMessage ->
-                logger.info("Saved message to MongoDB: ${savedMessage.id}")
-                messageProducer.deliverMessage(savedMessage)
+            .doOnSuccess {
+                logger.info("Saved encrypted message to MongoDB: ${it.id}")
+                messageProducer.deliverMessage(message) // Deliver original plain message
             }
             .block()
     }
@@ -75,6 +84,9 @@ class MessageConsumer(
         val messageId = message.id ?: return
         logger.debug("Received AI chunk for: $messageId")
         
+        val encryptedContent = encryptionUtils.encrypt(message.content)
+        val hashes = tokenizeAndHash(message.content)
+
         // Atomic update in MongoDB using Update.push to preserve duplicates and order
         val query = Query(Criteria.where("id").`is`(messageId))
         val update = Update().setOnInsert("id", messageId)
@@ -83,14 +95,23 @@ class MessageConsumer(
             .setOnInsert("channelId", message.channelId)
             .setOnInsert("authorType", message.authorType)
             .setOnInsert("timestamp", message.timestamp)
-            .setOnInsert("content", message.content) // Set initial content on insert
-            .push("contentChunks", message.content)
+            .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
+            .push("contentChunks", encryptedContent)
+            .addToSet("searchIndices").each(*hashes.toTypedArray())
         
         // Block to ensure persistence before delivery for consistency
         mongoTemplate.upsert(query, update, Message::class.java).block()
         
         // Deliver to WebSockets after successful persistence
         messageProducer.deliverMessage(message)
+    }
+
+    private fun tokenizeAndHash(content: String): Set<String> {
+        return content.lowercase()
+            .split(Regex("[^\\p{L}\\p{N}]+"))
+            .filter { it.isNotBlank() && it.length > 1 }
+            .map { encryptionUtils.hash(it) }
+            .toSet()
     }
 
     @RabbitListener(queues = ["#{adaptationQueue.name}"])

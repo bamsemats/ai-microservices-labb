@@ -4,6 +4,10 @@ export interface UITheme {
   theme: string;
   intensity: number;
   color?: string;
+  primaryColor?: string;
+  blurAmount?: number;
+  glassOpacity?: number;
+  glowIntensity?: number;
 }
 
 interface UIState {

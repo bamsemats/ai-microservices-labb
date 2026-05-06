@@ -20,22 +20,23 @@ export const useUIAdaptation = () => {
     controlsRef.current.forEach(c => c.stop());
     controlsRef.current = [];
 
-    // Animate Intensity
+    // Animate Glow Intensity
+    const targetGlow = currentTheme.glowIntensity ?? currentTheme.intensity;
     const intensityAnim = animate(
       parseFloat(getComputedStyle(root).getPropertyValue('--accent-glow-intensity') || "0.5"),
-      currentTheme.intensity,
+      targetGlow,
       {
         duration: 0.8,
-        ease: [0.4, 0, 0.2, 1], // Custom cubic-bezier
+        ease: [0.4, 0, 0.2, 1],
         onUpdate: (latest) => root.style.setProperty('--accent-glow-intensity', latest.toFixed(3))
       }
     );
     controlsRef.current.push(intensityAnim);
 
     // Animate Color if present
-    if (currentTheme.color) {
+    const targetColor = currentTheme.primaryColor ?? currentTheme.color;
+    if (targetColor) {
       const sourceColor = getComputedStyle(root).getPropertyValue('--accent-primary').trim() || "#8b5cf6";
-      const targetColor = currentTheme.color;
 
       if (isValidColor(sourceColor) && isValidColor(targetColor)) {
         const colorAnim = animate(
@@ -51,43 +52,45 @@ export const useUIAdaptation = () => {
       }
     }
     
-    // Theme-specific logic for blur and opacity
-    let targetBlur = '12px';
-    let targetOpacity = '0.05';
+    // Animate Blur and Opacity
+    let targetBlur = currentTheme.blurAmount;
+    let targetOpacity = currentTheme.glassOpacity;
 
-    switch (currentTheme.theme) {
-      case 'emergency':
-        targetBlur = '24px';
-        targetOpacity = '0.15';
-        break;
-      case 'zen':
-        targetBlur = '8px';
-        targetOpacity = '0.02';
-        break;
-      case 'vibrant':
-        targetBlur = '16px';
-        targetOpacity = '0.08';
-        break;
-      case 'deep':
-        targetBlur = '20px';
-        targetOpacity = '0.12';
-        break;
+    // Fallback for old themes if tokens are missing
+    if (targetBlur === undefined || targetOpacity === undefined) {
+      switch (currentTheme.theme) {
+        case 'emergency':
+          targetBlur = targetBlur ?? 24;
+          targetOpacity = targetOpacity ?? 0.15;
+          break;
+        case 'zen':
+          targetBlur = targetBlur ?? 8;
+          targetOpacity = targetOpacity ?? 0.02;
+          break;
+        case 'vibrant':
+          targetBlur = targetBlur ?? 16;
+          targetOpacity = targetOpacity ?? 0.08;
+          break;
+        case 'deep':
+          targetBlur = targetBlur ?? 20;
+          targetOpacity = targetOpacity ?? 0.12;
+          break;
+        default:
+          targetBlur = targetBlur ?? 12;
+          targetOpacity = targetOpacity ?? 0.05;
+      }
     }
 
-    const blurVal = parseFloat(targetBlur);
     const currentBlur = parseFloat(getComputedStyle(root).getPropertyValue('--glass-blur-amount') || "12px");
-    
-    const blurAnim = animate(currentBlur, blurVal, {
+    const blurAnim = animate(currentBlur, targetBlur, {
       duration: 1.0,
       ease: "backOut",
       onUpdate: (latest) => root.style.setProperty('--glass-blur-amount', `${latest.toFixed(1)}px`)
     });
     controlsRef.current.push(blurAnim);
 
-    const opacityVal = parseFloat(targetOpacity);
     const currentOpacity = parseFloat(getComputedStyle(root).getPropertyValue('--glass-opacity') || "0.05");
-
-    const opacityAnim = animate(currentOpacity, opacityVal, {
+    const opacityAnim = animate(currentOpacity, targetOpacity, {
       duration: 1.0,
       onUpdate: (latest) => root.style.setProperty('--glass-opacity', latest.toFixed(3))
     });

@@ -18,5 +18,6 @@ data class Message(
     val authorType: AuthorType = AuthorType.USER,
     val metadata: Map<String, String> = emptyMap(),
     val timestamp: LocalDateTime = LocalDateTime.now(),
-    val contentChunks: List<String> = emptyList()
+    val contentChunks: List<String> = emptyList(),
+    val searchIndices: Set<String> = emptySet()
 ) : Serializable

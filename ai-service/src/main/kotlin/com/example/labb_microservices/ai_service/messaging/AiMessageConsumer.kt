@@ -79,13 +79,45 @@ class AiMessageConsumer(
         // Sentiment Analysis
         val event = when {
             content.contains("urgent") || content.contains("critical") || content.contains("help") -> 
-                AdaptationEvent(theme = "emergency", intensity = 0.9, color = "#f43f5e")
+                AdaptationEvent(
+                    theme = "emergency", 
+                    intensity = 0.9, 
+                    glowIntensity = 0.9,
+                    color = "#f43f5e", 
+                    primaryColor = "#f43f5e",
+                    blurAmount = 24.0,
+                    glassOpacity = 0.15
+                )
             content.contains("happy") || content.contains("great") || content.contains("awesome") -> 
-                AdaptationEvent(theme = "vibrant", intensity = 0.8, color = "#ec4899")
+                AdaptationEvent(
+                    theme = "vibrant", 
+                    intensity = 0.8, 
+                    glowIntensity = 0.8,
+                    color = "#ec4899", 
+                    primaryColor = "#ec4899",
+                    blurAmount = 16.0,
+                    glassOpacity = 0.08
+                )
             content.contains("calm") || content.contains("relax") || content.contains("sleep") -> 
-                AdaptationEvent(theme = "zen", intensity = 0.2, color = "#06b6d4")
+                AdaptationEvent(
+                    theme = "zen", 
+                    intensity = 0.2, 
+                    glowIntensity = 0.2,
+                    color = "#06b6d4", 
+                    primaryColor = "#06b6d4",
+                    blurAmount = 8.0,
+                    glassOpacity = 0.02
+                )
             content.contains("focus") || content.contains("work") -> 
-                AdaptationEvent(theme = "deep", intensity = 0.4, color = "#8b5cf6")
+                AdaptationEvent(
+                    theme = "deep", 
+                    intensity = 0.4, 
+                    glowIntensity = 0.4,
+                    color = "#8b5cf6", 
+                    primaryColor = "#8b5cf6",
+                    blurAmount = 20.0,
+                    glassOpacity = 0.12
+                )
             else -> null
         }
 

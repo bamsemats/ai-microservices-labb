@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.mockito.Mockito.`when`
 import org.mockito.ArgumentMatchers.any
 import reactor.core.publisher.Flux
@@ -27,7 +27,7 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate
 
-    @MockBean
+    @MockitoBean
     private lateinit var responseGenerator: com.example.labb_microservices.ai_service.logic.ResponseGenerator
 
     @org.springframework.boot.test.context.TestConfiguration
@@ -80,6 +80,10 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("emergency", event?.theme)
         assertEquals(0.9, event?.intensity)
+        assertEquals(0.9, event?.glowIntensity)
+        assertEquals("#f43f5e", event?.primaryColor)
+        assertEquals(24.0, event?.blurAmount)
+        assertEquals(0.15, event?.glassOpacity)
     }
 
     @Test
@@ -106,6 +110,10 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("zen", event?.theme)
         assertEquals(0.2, event?.intensity)
+        assertEquals(0.2, event?.glowIntensity)
+        assertEquals("#06b6d4", event?.primaryColor)
+        assertEquals(8.0, event?.blurAmount)
+        assertEquals(0.02, event?.glassOpacity)
     }
 
     @Test
@@ -129,6 +137,6 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         assertEquals("ai-bot", response?.senderId)
         assertEquals("user-test", response?.receiverId)
         assertEquals(AuthorType.BOT, response?.authorType)
-        assertNotNull(response?.content)
+        assertEquals("Mock AI Response", response?.content)
     }
 }

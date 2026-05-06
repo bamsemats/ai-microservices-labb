@@ -37,10 +37,18 @@ export const useWebSocket = () => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'UI_ADAPTATION') {
-          const { theme, intensity, color } = data;
-          if (typeof theme === 'string' && typeof intensity === 'number' && typeof color === 'string') {
+          const { theme, intensity, color, primaryColor, blurAmount, glassOpacity, glowIntensity } = data;
+          if (typeof theme === 'string') {
             console.log('Applying AI UI Adaptation:', theme);
-            useUIStore.getState().setTheme({ theme, intensity, color });
+            useUIStore.getState().setTheme({ 
+              theme, 
+              intensity: typeof intensity === 'number' ? intensity : 0.5,
+              color: typeof color === 'string' ? color : undefined,
+              primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
+              blurAmount: typeof blurAmount === 'number' ? blurAmount : undefined,
+              glassOpacity: typeof glassOpacity === 'number' ? glassOpacity : undefined,
+              glowIntensity: typeof glowIntensity === 'number' ? glowIntensity : undefined
+            });
           }
         } else if (data.type === 'CONTENT_INJECTION') {
           if (data.contentType && data.data) {

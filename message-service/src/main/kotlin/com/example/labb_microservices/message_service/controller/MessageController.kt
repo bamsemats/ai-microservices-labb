@@ -1,9 +1,11 @@
 package com.example.labb_microservices.message_service.controller
 
+import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.messaging.MessageProducer
 import com.example.labb_microservices.message_service.model.AuthorType
 import com.example.labb_microservices.message_service.model.Message
+import com.example.labb_microservices.message_service.repository.MessageRepository
 import com.example.labb_microservices.message_service.service.PresenceService
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
@@ -36,6 +38,8 @@ class MessageController(
     private val userGrpcClient: UserGrpcClient,
     private val messageProducer: MessageProducer,
     private val presenceService: PresenceService,
+    private val messageRepository: MessageRepository,
+    private val encryptionUtils: EncryptionUtils,
     @org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
 ) {
 
@@ -91,6 +95,26 @@ class MessageController(
             }
     }
 
+    @GetMapping("/search")
+    fun searchMessages(@RequestParam q: String): Flux<Message> {
+        if (q.isBlank() || q.length < 2) return Flux.empty()
+        
+        val searchHash = encryptionUtils.hash(q.lowercase().trim())
+        logger.info("Searching for blind index: $searchHash")
+        
+        return messageRepository.findAllBySearchIndicesContaining(searchHash)
+            .map { encryptedMessage ->
+                try {
+                    encryptedMessage.copy(
+                        content = encryptionUtils.decrypt(encryptedMessage.content)
+                    )
+                } catch (e: Exception) {
+                    logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
+                    encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
+                }
+            }
+    }
+
     companion object {
         private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@ai(?:\\W|$)")
     }
@@ -127,8 +151,31 @@ class MessageController(
     }
 
     @GetMapping
-    fun getMessages(): Mono<String> {
-        return Mono.just("messages")
+    fun getMessages(
+        @RequestParam(required = false) receiverId: String?,
+        @RequestParam(required = false) channelId: String?
+    ): Flux<Message> {
+        val query = if (channelId != null) {
+            messageRepository.findAllByChannelId(channelId)
+        } else if (receiverId != null) {
+            // For DM, we want messages where (sender=me AND receiver=them) OR (sender=them AND receiver=me)
+            // But for simplicity of the repo method, we'll just filter after fetching by receiverId OR senderId
+            // Actually, findByReceiverIdOrSenderId(receiverId, receiverId) should work if receiverId is the peer
+            messageRepository.findAllByReceiverIdOrSenderId(receiverId, receiverId)
+        } else {
+            messageRepository.findAll()
+        }
+
+        return query.map { encryptedMessage ->
+            try {
+                encryptedMessage.copy(
+                    content = encryptionUtils.decrypt(encryptedMessage.content)
+                )
+            } catch (e: Exception) {
+                logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
+                encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
+            }
+        }
     }
 
     @GetMapping("/presence")
