@@ -98,6 +98,8 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_healthy
 
   message-service:
     build:
@@ -116,7 +118,7 @@ services:
       - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/message-service.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD}
-      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SECURITY_KEY_PASSWORD}
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
@@ -155,6 +157,8 @@ services:
         condition: service_started
       message-service:
         condition: service_started
+      jaeger:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -209,13 +213,27 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:1.55
+    user: "root"
     ports:
       - "16686:16686" # UI
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:16686 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - jaeger_data:/badger
 
 volumes:
   mongodb_data:
   redis_data:
+  jaeger_data:

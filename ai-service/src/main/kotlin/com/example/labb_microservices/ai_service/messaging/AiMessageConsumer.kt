@@ -43,13 +43,13 @@ class AiMessageConsumer(
         val content = message.content.lowercase()
         
         // Entity Extraction
-        val entityTriggerMatch = Regex("(?:playing|stream|watch|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
+        val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
         if (entityTriggerMatch != null) {
-            val verb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
+            val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
             val subject = entityTriggerMatch.groupValues[1].trim()
             
             val (type, value) = when {
-                verb == "playing" -> "GAME" to subject.replaceFirstChar { it.titlecase() }
+                matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
                 content.contains("elden ring") || subject.contains("elden ring") -> "GAME" to "Elden Ring"
                 content.contains("valorant") || subject.contains("valorant") -> "GAME" to "Valorant"
                 content.contains("minecraft") || subject.contains("minecraft") -> "GAME" to "Minecraft"
@@ -57,7 +57,7 @@ class AiMessageConsumer(
                 content.contains("python") -> "VIDEO" to "Python Tutorial"
                 content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
                 content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                subject.length > 2 -> (if (verb == "playing") "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
+                subject.length > 2 -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
                 else -> null to null
             }
             
@@ -178,6 +178,6 @@ class AiMessageConsumer(
                     )
                 }.subscribeOn(Schedulers.boundedElastic())
             }
-            .block()
+            .block(java.time.Duration.ofSeconds(70))
     }
 }

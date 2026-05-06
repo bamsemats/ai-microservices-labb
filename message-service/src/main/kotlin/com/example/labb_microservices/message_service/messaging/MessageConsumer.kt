@@ -28,8 +28,13 @@ class MessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.STORAGE_QUEUE_NAME])
     fun storeMessage(message: Message) {
-        logger.info("Storing message: ${message.id}")
-        messageRepository.save(message)
+        val messageToSave = if (message.id.isNullOrBlank()) {
+            message.copy(id = java.util.UUID.randomUUID().toString())
+        } else {
+            message
+        }
+        logger.info("Storing message: ${messageToSave.id}")
+        messageRepository.save(messageToSave)
             .doOnSuccess { savedMessage ->
                 logger.info("Saved message to MongoDB: ${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)

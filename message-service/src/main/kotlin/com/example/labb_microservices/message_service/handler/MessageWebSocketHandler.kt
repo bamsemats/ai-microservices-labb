@@ -3,6 +3,8 @@ package com.example.labb_microservices.message_service.handler
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.service.PresenceService
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.CloseStatus
@@ -14,6 +16,8 @@ import reactor.core.publisher.Sinks
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.TimeUnit
+import org.springframework.beans.factory.annotation.Value
 
 @Component
 class MessageWebSocketHandler(
@@ -24,8 +28,11 @@ class MessageWebSocketHandler(
 
     private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
 
-    @org.springframework.beans.factory.annotation.Value("\${auth.cache.ttl:60}")
+    @Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
+
+    @Value("\${auth.validation.interval:10}")
+    private var validationIntervalSeconds: Long = 10
 
     private val objectMapper = com.fasterxml.jackson.databind.ObjectMapper()
     private val sessionSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
@@ -33,7 +40,13 @@ class MessageWebSocketHandler(
     private val sessionTokens = ConcurrentHashMap<String, String>()
     private val sessionUsers = ConcurrentHashMap<String, String>()
     private val userSessions = ConcurrentHashMap<String, MutableSet<String>>()
-    private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
+    
+    private val userStatusCache: Cache<String, com.example.labb_microservices.proto.UserResponse> by lazy {
+        Caffeine.newBuilder()
+            .expireAfterWrite(cacheTtlSeconds, TimeUnit.SECONDS)
+            .maximumSize(1000)
+            .build()
+    }
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val initialToken = extractToken(session)
@@ -74,7 +87,7 @@ class MessageWebSocketHandler(
                         }
                     }
                 } catch (e: Exception) {
-                    // Ignore non-json or malformed for now
+                    logger.debug("Failed to parse incoming WebSocket frame from session {}: {}", sessionId, e.message)
                 }
             }
             .doFinally {
@@ -111,7 +124,7 @@ class MessageWebSocketHandler(
                 PolicyViolationException("Authentication timeout - please send auth token") 
             }
             .flatMap { userId ->
-                val validation = Flux.interval(Duration.ofSeconds(10))
+                val validation = Flux.interval(Duration.ofSeconds(validationIntervalSeconds))
                     .flatMap {
                         val token = sessionTokens[sessionId]
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
@@ -214,22 +227,6 @@ class MessageWebSocketHandler(
     fun broadcastToChannel(channelId: String, message: String) {
         sessionSinks.forEach { (sessionId, sink) ->
             if (sessionChannels[sessionId] == channelId || channelId == "all") {
-                sink.tryEmitNext(message)
-            }
-        }
-    }
-
-    fun sendMessageToUser(userId: String, channelId: String, message: String) {
-        userSessions[userId]?.forEach { sessionId ->
-            if (sessionChannels[sessionId] == channelId || channelId == "all") {
-                sessionSinks[sessionId]?.tryEmitNext(message)
-            }
-        }
-    }
-
-    private class PolicyViolationException(message: String) : RuntimeException(message)
-}
-sionId] == channelId || channelId == "all") {
                 sink.tryEmitNext(message)
             }
         }

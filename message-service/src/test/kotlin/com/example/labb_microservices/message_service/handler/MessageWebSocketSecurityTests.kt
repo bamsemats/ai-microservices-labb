@@ -25,7 +25,8 @@ import java.time.Duration
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0",
-    "auth.cache.ttl=0"
+    "auth.cache.ttl=0",
+    "auth.validation.interval=1"
 ])
 @Testcontainers
 class MessageWebSocketSecurityTests {
@@ -92,16 +93,17 @@ class MessageWebSocketSecurityTests {
         }
 
         StepVerifier.create(sessionMono)
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(20))
 
-        // Wait a bit more for the sink to be populated if needed
         StepVerifier.create(closeStatusSink.asMono())
             .expectNextMatches { status -> 
                 println("Final close status in test: ${status.code}")
-                // Strict 1008 check. 1005 (no status) is often a sign of transport loss in ReactorNetty
-                // TODO: Investigate why 1008 is sometimes lost in tests
+                // Strict 1008 check. Note: ReactorNetty sometimes loses the close code (returning 1005).
+                // TODO: Investigate transport-level close code loss and ensure 1008 is consistently received.
                 status.code == 1008 
             }
+            .expectComplete()
             .verify(Duration.ofSeconds(20))
     }
 
@@ -138,13 +140,17 @@ class MessageWebSocketSecurityTests {
         }
 
         StepVerifier.create(sessionMono)
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(20))
 
         StepVerifier.create(closeStatusSink.asMono())
             .expectNextMatches { status -> 
                 println("Final close status in test: ${status.code}")
-                status.code == 1008 || status.code == 1005 
+                // Strict 1008 check. Note: ReactorNetty sometimes loses the close code (returning 1005).
+                // TODO: Investigate transport-level close code loss and ensure 1008 is consistently received.
+                status.code == 1008 
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(Duration.ofSeconds(20))
     }
 }

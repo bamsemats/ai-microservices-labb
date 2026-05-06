@@ -29,11 +29,6 @@ class RabbitMQConfig {
         const val PERSONA_UPDATE_QUEUE_NAME = "chat.persona.update.queue"
     }
 
-    // =========================
-    // Exchanges
-    // =========================
-
-    // 🔥 FIX: Ska vara TopicExchange (inte Direct)
     @Bean
     fun personaExchange(): TopicExchange =
         TopicExchange(PERSONA_EXCHANGE_NAME)
@@ -53,10 +48,6 @@ class RabbitMQConfig {
     @Bean
     fun adaptationExchange(): FanoutExchange =
         FanoutExchange(ADAPTATION_EXCHANGE_NAME)
-
-    // =========================
-    // Queues
-    // =========================
 
     @Bean
     fun aiRequestQueue(): Queue =
@@ -78,10 +69,6 @@ class RabbitMQConfig {
     fun personaUpdateQueue(): Queue =
         Queue(PERSONA_UPDATE_QUEUE_NAME, true)
 
-    // =========================
-    // Bindings
-    // =========================
-
     @Bean
     fun aiRequestBinding(
         aiRequestQueue: Queue,
@@ -100,7 +87,6 @@ class RabbitMQConfig {
             .to(aiExchange)
             .with("ai.response")
 
-    // 🔥 FIX: korrekt routing key (inte "")
     @Bean
     fun sentimentBinding(
         sentimentQueue: Queue,
@@ -110,7 +96,6 @@ class RabbitMQConfig {
             .to(storageExchange)
             .with("sentiment")
 
-    // 🔥 FIX: matchar producer ("entity.detected")
     @Bean
     fun entityBinding(
         entityQueue: Queue,
@@ -120,7 +105,6 @@ class RabbitMQConfig {
             .to(entityExchange)
             .with("entity.detected")
 
-    // 🔥 Topic binding för persona
     @Bean
     fun personaUpdateBinding(
         personaUpdateQueue: Queue,
@@ -130,16 +114,10 @@ class RabbitMQConfig {
             .to(personaExchange)
             .with("persona.update")
 
-    // =========================
-    // Infra (KRITISK för tester)
-    // =========================
-
-    // 🔥 Ser till att queues/exchanges deklareras vid startup
     @Bean
     fun rabbitAdmin(connectionFactory: ConnectionFactory): RabbitAdmin =
         RabbitAdmin(connectionFactory)
 
-    // JSON converter
     @Bean
     fun messageConverter(objectMapper: ObjectMapper): MessageConverter =
         Jackson2JsonMessageConverter(objectMapper)
