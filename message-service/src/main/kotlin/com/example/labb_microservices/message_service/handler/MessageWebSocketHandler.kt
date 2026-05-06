@@ -90,7 +90,10 @@ class MessageWebSocketHandler(
                     sessions?.remove(sessionId)
                     if (sessions?.isEmpty() == true) {
                         userSessions.remove(userId)
-                        presenceService.setUserOffline(userId).subscribe()
+                        presenceService.setUserOffline(userId)
+                            .doOnError { e -> logger.error("Failed to set user offline: $userId", e) }
+                            .onErrorResume { Mono.empty() }
+                            .subscribe()
                     }
                 }
             }
@@ -103,6 +106,10 @@ class MessageWebSocketHandler(
         )
 
         val authenticationTasks = authenticatedUserId.asMono()
+            .timeout(Duration.ofSeconds(5))
+            .onErrorMap(java.util.concurrent.TimeoutException::class.java) { 
+                PolicyViolationException("Authentication timeout - please send auth token") 
+            }
             .flatMap { userId ->
                 val validation = Flux.interval(Duration.ofSeconds(10))
                     .flatMap {
@@ -139,6 +146,14 @@ class MessageWebSocketHandler(
     }
 
     private fun registerSession(sessionId: String, userId: String, channelId: String) {
+        val oldUserId = sessionUsers[sessionId]
+        if (oldUserId != null && oldUserId != userId) {
+            val oldSessions = userSessions[oldUserId]
+            oldSessions?.remove(sessionId)
+            if (oldSessions?.isEmpty() == true) {
+                userSessions.remove(oldUserId)
+            }
+        }
         sessionUsers[sessionId] = userId
         userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
     }

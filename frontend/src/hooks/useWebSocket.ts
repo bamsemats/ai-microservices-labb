@@ -9,10 +9,15 @@ type AiStatus = 'IDLE' | 'THINKING' | 'ERROR';
 export const useWebSocket = () => {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
-  const { token, isAuthenticated } = useAuthStore();
-  const { addMessage } = useChatStore();
-  const { setPresence } = usePresenceStore();
+  
+  const { token, isAuthenticated } = useAuthStore((state) => ({ 
+    token: state.token, 
+    isAuthenticated: state.isAuthenticated 
+  }));
+  const addMessage = useChatStore((state) => state.addMessage);
+  const setPresence = usePresenceStore((state) => state.setPresence);
 
   const connectRef = useRef<(() => void) | null>(null);
 
@@ -26,6 +31,7 @@ export const useWebSocket = () => {
 
     socket.onopen = () => {
       console.log('WebSocket Connected');
+      reconnectAttemptsRef.current = 0;
       if (token) {
         socket.send(JSON.stringify({ type: 'auth', token }));
       }
@@ -59,14 +65,17 @@ export const useWebSocket = () => {
           const allowedStatuses = ['online', 'offline', 'away', 'busy'];
           if (typeof userId === 'string' && typeof username === 'string' && allowedStatuses.includes(status)) {
             console.log('Received Presence Update:', userId, status);
-            setPresence(userId, username, status as any); // Cast is safe now after validation
+            setPresence(userId, username, status as any);
           }
         } else {
-          const isValidMessage = (m: any): m is Message => {
-            return typeof m.id === 'string' &&
-                   typeof m.senderId === 'string' &&
-                   typeof m.content === 'string' &&
-                   typeof m.channelId === 'string';
+          const isValidMessage = (m: unknown): m is Message => {
+            const msg = m as any;
+            return msg &&
+                   typeof msg.id === 'string' &&
+                   typeof msg.senderId === 'string' &&
+                   typeof msg.senderName === 'string' &&
+                   typeof msg.content === 'string' &&
+                   (typeof msg.timestamp === 'number' || !isNaN(Date.parse(msg.timestamp)));
           };
           if (isValidMessage(data)) {
             addMessage(data);
@@ -77,19 +86,36 @@ export const useWebSocket = () => {
       }
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket Disconnected');
+    socket.onclose = (event) => {
+      console.log(`WebSocket Disconnected (Code: ${event.code})`);
+      
       if (socketRef.current === socket) {
         socketRef.current = null;
+
+        // Bailing for auth-related codes (1008 or 4xxx custom)
+        if (event.code === 1008 || (event.code >= 4000 && event.code < 5000)) {
+          console.error('WebSocket closed due to authentication/policy violation. Stopping reconnect.');
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          return;
+        }
+
         if (mountedRef.current && connectRef.current) {
-          reconnectTimerRef.current = setTimeout(connectRef.current, 3000);
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`Scheduling reconnect in ${delay}ms (Attempt: ${reconnectAttemptsRef.current + 1})`);
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            connectRef.current?.();
+          }, delay);
         }
       }
     };
 
     socket.onerror = (error) => {
       console.error('WebSocket Error', error);
-      socket.close();
+      // Let onclose handle the logic
     };
 
     socketRef.current = socket;

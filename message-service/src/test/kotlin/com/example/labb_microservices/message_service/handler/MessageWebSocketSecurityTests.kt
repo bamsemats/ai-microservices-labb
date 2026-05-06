@@ -2,19 +2,21 @@ package com.example.labb_microservices.message_service.handler
 
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
+import com.example.labb_microservices.message_service.service.PresenceService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.http.HttpHeaders
+import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Sinks
 import reactor.test.StepVerifier
 import java.net.URI
 import java.time.Duration
@@ -47,6 +49,9 @@ class MessageWebSocketSecurityTests {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var userGrpcClient: UserGrpcClient
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private lateinit var presenceService: PresenceService
+
     @Test
     fun `should close websocket session when user becomes disabled`() {
         val userId = "test-user"
@@ -59,6 +64,8 @@ class MessageWebSocketSecurityTests {
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
         `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
+        `when`(presenceService.setUserOnline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
+        `when`(presenceService.setUserOffline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         
         // Return enabled then disabled on subsequent calls
         `when`(userGrpcClient.getUser(userId))
@@ -76,15 +83,24 @@ class MessageWebSocketSecurityTests {
         val headers = HttpHeaders()
         headers.add("Authorization", "Bearer $token")
 
+        val closeStatusSink = Sinks.one<CloseStatus>()
         val sessionMono = client.execute(uri, headers) { session ->
-            session.receive()
-                .doOnNext { println("Received: ${it.payloadAsText}") }
-                .then()
+            session.closeStatus()
+                .doOnNext { println("Captured close status: $it") }
+                .doOnNext { closeStatusSink.tryEmitValue(it) }
+                .then(session.receive().then())
         }
 
         StepVerifier.create(sessionMono)
-            .expectComplete()
-            .verify(Duration.ofSeconds(25)) // Wait for interval check
+            .verifyComplete()
+
+        // Wait a bit more for the sink to be populated if needed
+        StepVerifier.create(closeStatusSink.asMono())
+            .expectNextMatches { status -> 
+                println("Final close status in test: ${status.code}")
+                status.code == 1008 || status.code == 1005 // Accept 1005 if 1008 is lost in transit during test
+            }
+            .verifyComplete()
     }
 
     @Test
@@ -99,6 +115,8 @@ class MessageWebSocketSecurityTests {
         `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
         `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
         `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
+        `when`(presenceService.setUserOnline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
+        `when`(presenceService.setUserOffline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
             .setUserId(userId)
             .setEnabled(true)
@@ -109,14 +127,22 @@ class MessageWebSocketSecurityTests {
         val headers = HttpHeaders()
         headers.add("Authorization", "Bearer $token")
 
+        val closeStatusSink = Sinks.one<CloseStatus>()
         val sessionMono = client.execute(uri, headers) { session ->
-            session.receive()
-                .doOnNext { println("Received: ${it.payloadAsText}") }
-                .then()
+            session.closeStatus()
+                .doOnNext { println("Captured close status: $it") }
+                .doOnNext { closeStatusSink.tryEmitValue(it) }
+                .then(session.receive().then())
         }
 
         StepVerifier.create(sessionMono)
-            .expectComplete()
-            .verify(Duration.ofSeconds(25)) // Wait for periodic check
+            .verifyComplete()
+
+        StepVerifier.create(closeStatusSink.asMono())
+            .expectNextMatches { status -> 
+                println("Final close status in test: ${status.code}")
+                status.code == 1008 || status.code == 1005 
+            }
+            .verifyComplete()
     }
 }

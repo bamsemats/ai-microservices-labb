@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.util.*
+import java.time.Duration
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Testcontainers
@@ -31,10 +32,12 @@ class MemoryWorkerIntegrationTest {
     companion object {
         @Container
         @ServiceConnection
+        @JvmStatic
         val mongoDBContainer = MongoDBContainer("mongo:7.0")
 
         @Container
         @ServiceConnection
+        @JvmStatic
         val rabbitMQContainer = org.testcontainers.containers.RabbitMQContainer("rabbitmq:3.12-management")
     }
 
@@ -64,7 +67,7 @@ class MemoryWorkerIntegrationTest {
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message))
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
 
         // Should have 3 facts: TECH_STACK:React, TECH_STACK:Kotlin, INTEREST:React
         StepVerifier.create(memoryFragmentRepository.findByUserId("user123").collectList())
@@ -77,7 +80,7 @@ class MemoryWorkerIntegrationTest {
                 assertEquals("React And Kotlin", interests[0].value)
             }
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
     }
 
     @Test
@@ -103,15 +106,15 @@ class MemoryWorkerIntegrationTest {
         )
 
         // Reset state
-        memoryFragmentRepository.deleteAll().block()
+        memoryFragmentRepository.deleteAll().block(Duration.ofSeconds(5))
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message1))
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message2))
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
 
         StepVerifier.create(memoryFragmentRepository.findByUserId("user456").collectList())
             .assertNext { fragments ->
@@ -123,7 +126,7 @@ class MemoryWorkerIntegrationTest {
                 assertEquals(1.0, techStack?.confidence ?: 0.0, 0.01)
             }
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
     }
 
     @Test
@@ -142,7 +145,7 @@ class MemoryWorkerIntegrationTest {
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message))
             .expectComplete()
-            .verify(java.time.Duration.ofSeconds(5))
+            .verify(Duration.ofSeconds(5))
 
         // Give it a moment to reach the queue
         val event = rabbitTemplate.receiveAndConvert("test.persona.queue", 5000) as? com.example.labb_microservices.ai_service.model.PersonaUpdateEvent

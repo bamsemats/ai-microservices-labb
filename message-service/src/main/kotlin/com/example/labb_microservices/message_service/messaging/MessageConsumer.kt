@@ -78,6 +78,7 @@ class MessageConsumer(
             .setOnInsert("channelId", message.channelId)
             .setOnInsert("authorType", message.authorType)
             .setOnInsert("timestamp", message.timestamp)
+            .setOnInsert("content", message.content) // Set initial content on insert
             .addToSet("contentChunks", message.content)
         
         // Block to ensure persistence before delivery for consistency

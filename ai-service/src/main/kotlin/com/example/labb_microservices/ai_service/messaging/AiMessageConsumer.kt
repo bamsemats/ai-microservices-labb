@@ -33,10 +33,12 @@ class AiMessageConsumer(
 
         logger.info("Analyzing sentiment and entities for messageId: {}", message.id)
         
-        // Memory Extraction - Blocking to ensure completion and proper ack
+        // Memory Extraction - Non-blocking with timeout
         memoryWorker.processMessageForMemory(message)
-            .doOnError { e -> logger.error("Failed to extract memory from message: ${message.id}", e) }
-            .block()
+            .timeout(java.time.Duration.ofSeconds(30))
+            .subscribeOn(Schedulers.boundedElastic())
+            .doOnError { e -> logger.error("Failed to extract memory from message: ${message.id} after timeout or error", e) }
+            .subscribe()
 
         val content = message.content.lowercase()
         
