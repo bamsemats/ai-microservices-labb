@@ -20,6 +20,9 @@ import reactor.core.publisher.Sinks
 import reactor.test.StepVerifier
 import java.net.URI
 import java.time.Duration
+import org.springframework.beans.factory.annotation.Autowired
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
@@ -30,6 +33,9 @@ import java.time.Duration
 ])
 @Testcontainers
 class MessageWebSocketSecurityTests {
+
+    @Autowired
+    private lateinit var webSocketHandler: MessageWebSocketHandler
 
     companion object {
         @Container
@@ -97,11 +103,15 @@ class MessageWebSocketSecurityTests {
             .verify(Duration.ofSeconds(20))
 
         StepVerifier.create(closeStatusSink.asMono())
-            .expectNextMatches { status -> 
+            .assertNext { status -> 
                 println("Final close status in test: ${status.code}")
-                // Strict 1008 check. Note: ReactorNetty sometimes loses the close code (returning 1005).
-                // TODO: Investigate transport-level close code loss and ensure 1008 is consistently received.
-                status.code == 1008 
+                // Side-channel check: verify the server signaled a violation
+                assertTrue(webSocketHandler.policyViolations.get() > 0, "Server should have recorded a policy violation")
+                
+                // Strict 1008 check as per mandate. 
+                // Note: ReactorNetty sometimes returns 1005 (Empty) if the transport closes abruptly.
+                // TODO: Root-cause close code loss in ReactorNetty transport.
+                assertEquals(1008, status.code, "Expected close code 1008 (Policy Violation)")
             }
             .expectComplete()
             .verify(Duration.ofSeconds(20))
@@ -144,11 +154,15 @@ class MessageWebSocketSecurityTests {
             .verify(Duration.ofSeconds(20))
 
         StepVerifier.create(closeStatusSink.asMono())
-            .expectNextMatches { status -> 
+            .assertNext { status -> 
                 println("Final close status in test: ${status.code}")
-                // Strict 1008 check. Note: ReactorNetty sometimes loses the close code (returning 1005).
-                // TODO: Investigate transport-level close code loss and ensure 1008 is consistently received.
-                status.code == 1008 
+                // Side-channel check: verify the server signaled a violation
+                assertTrue(webSocketHandler.policyViolations.get() > 0, "Server should have recorded a policy violation")
+                
+                // Strict 1008 check as per mandate. 
+                // Note: ReactorNetty sometimes returns 1005 (Empty) if the transport closes abruptly.
+                // TODO: Root-cause close code loss in ReactorNetty transport.
+                assertEquals(1008, status.code, "Expected close code 1008 (Policy Violation)")
             }
             .expectComplete()
             .verify(Duration.ofSeconds(20))

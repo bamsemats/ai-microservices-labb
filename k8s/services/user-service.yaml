@@ -17,8 +17,9 @@ spec:
         runAsUser: 1000
       containers:
       - name: user-service
-        image: user-service:latest
-        imagePullPolicy: Never
+        image: user-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

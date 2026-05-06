@@ -17,8 +17,9 @@ spec:
         runAsUser: 1000
       containers:
       - name: message-service
-        image: message-service:latest
-        imagePullPolicy: Never
+        image: message-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

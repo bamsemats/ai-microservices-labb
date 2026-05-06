@@ -18,8 +18,9 @@ spec:
         fsGroup: 1000
       containers:
       - name: auth-service
-        image: auth-service:latest
-        imagePullPolicy: Never
+        image: auth-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

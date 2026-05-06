@@ -28,6 +28,8 @@ class MessageWebSocketHandler(
 
     private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
 
+    val policyViolations = java.util.concurrent.atomic.AtomicInteger(0)
+
     @Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
 
@@ -40,7 +42,7 @@ class MessageWebSocketHandler(
     private val sessionTokens = ConcurrentHashMap<String, String>()
     private val sessionUsers = ConcurrentHashMap<String, String>()
     private val userSessions = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     private val userStatusCache: Cache<String, com.example.labb_microservices.proto.UserResponse> by lazy {
         Caffeine.newBuilder()
             .expireAfterWrite(cacheTtlSeconds, TimeUnit.SECONDS)
@@ -120,8 +122,8 @@ class MessageWebSocketHandler(
 
         val authenticationTasks = authenticatedUserId.asMono()
             .timeout(Duration.ofSeconds(5))
-            .onErrorMap(java.util.concurrent.TimeoutException::class.java) { 
-                PolicyViolationException("Authentication timeout - please send auth token") 
+            .onErrorMap(java.util.concurrent.TimeoutException::class.java) {
+                PolicyViolationException("Authentication timeout - please send auth token")
             }
             .flatMap { userId ->
                 val validation = Flux.interval(Duration.ofSeconds(validationIntervalSeconds))
@@ -146,16 +148,23 @@ class MessageWebSocketHandler(
                 Mono.`when`(validation, presenceHeartbeat)
             }
 
-        return Mono.`when`(input, output, authenticationTasks)
+        val securityTask = authenticationTasks
             .onErrorResume { e ->
                 if (e is PolicyViolationException) {
+                    policyViolations.incrementAndGet()
                     logger.warn("Closing session due to policy violation: {}", e.message)
                     session.close(CloseStatus(1008, e.message))
+                        .delayElement(Duration.ofMillis(500))
+                        .then()
                 } else {
                     logger.error("WebSocket error for session $sessionId", e)
                     session.close(CloseStatus.SERVER_ERROR)
+                        .delayElement(Duration.ofMillis(500))
+                        .then()
                 }
             }
+
+        return Mono.`when`(input, output, securityTask)
     }
 
     private fun registerSession(sessionId: String, userId: String, channelId: String) {
@@ -188,7 +197,7 @@ class MessageWebSocketHandler(
                 if (cacheTtlSeconds > 0) {
                     userStatusCache.put(userId, response)
                 }
-                
+
                 if (response.enabled == false) {
                     Mono.error<Void>(PolicyViolationException("User account is disabled"))
                 } else {
