@@ -64,6 +64,8 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
 - [x] **#48 Infrastructure: Service Connectivity Fix**: Corrected Redis, RabbitMQ, and MongoDB hosts for containerized environments.
 - [x] **#49 Production Hardening**: Redis SCAN migration, same-length masking, and PKCS12 certs.
+- [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
+- [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
 
 ---
 

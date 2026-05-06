@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
 import { useUIStore } from '../store/useUIStore';
-import { usePresenceStore } from '../store/usePresenceStore';
+import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
 
 type AiStatus = 'IDLE' | 'THINKING' | 'ERROR';
 
@@ -62,20 +62,25 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'PRESENCE_UPDATE') {
           const { userId, username, status } = data;
-          const allowedStatuses = ['online', 'offline', 'away', 'busy'];
-          if (typeof userId === 'string' && typeof username === 'string' && allowedStatuses.includes(status)) {
+          const statusMap: Record<string, PresenceStatus> = {
+            'online': 'ONLINE',
+            'offline': 'OFFLINE',
+            'away': 'AWAY',
+            'busy': 'DND'
+          };
+          if (typeof userId === 'string' && typeof username === 'string' && status in statusMap) {
             console.log('Received Presence Update:', userId, status);
-            setPresence(userId, username, status as any);
+            setPresence(userId, username, statusMap[status]);
           }
         } else {
           const isValidMessage = (m: unknown): m is Message => {
-            const msg = m as any;
-            return msg &&
+            const msg = m as Record<string, unknown>;
+            return !!msg &&
                    typeof msg.id === 'string' &&
                    typeof msg.senderId === 'string' &&
                    typeof msg.senderName === 'string' &&
                    typeof msg.content === 'string' &&
-                   (typeof msg.timestamp === 'number' || !isNaN(Date.parse(msg.timestamp)));
+                   (typeof msg.timestamp === 'number' || (typeof msg.timestamp === 'string' && !isNaN(Date.parse(msg.timestamp))));
           };
           if (isValidMessage(data)) {
             addMessage(data);
