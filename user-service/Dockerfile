@@ -18,6 +18,7 @@ COPY content-aggregator-service/pom.xml content-aggregator-service/
 RUN mvn install -N -B
 COPY proto/src proto/src
 COPY common-security/src common-security/src
+COPY common-observability/src common-observability/src
 RUN mvn install -pl proto,common-security,common-observability -DskipTests -B
 
 # Build the service

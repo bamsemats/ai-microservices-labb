@@ -16,6 +16,7 @@ COPY content-aggregator-service/pom.xml content-aggregator-service/
 
 # Install parent and shared modules
 RUN mvn install -N -B
+COPY common-observability/src common-observability/src
 RUN mvn install -pl common-observability -DskipTests -B
 
 # Build the service

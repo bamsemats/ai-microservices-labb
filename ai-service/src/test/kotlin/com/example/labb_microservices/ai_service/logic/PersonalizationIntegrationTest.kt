@@ -1,5 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
+import com.example.labb_microservices.ai_service.messaging.RabbitMQConfig
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory
 import com.example.labb_microservices.ai_service.model.MemoryFragment
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.context.annotation.Import
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -18,6 +20,7 @@ import java.time.Duration
 import java.util.*
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
+@Import(RabbitMQConfig::class)
 @Testcontainers
 class PersonalizationIntegrationTest {
 

@@ -49,7 +49,7 @@ class MemoryWorkerIntegrationTest {
         }
 
         @org.springframework.context.annotation.Bean
-        fun testPersonaBinding(testPersonaQueue: org.springframework.amqp.core.Queue, personaExchange: org.springframework.amqp.core.DirectExchange): org.springframework.amqp.core.Binding {
+        fun testPersonaBinding(testPersonaQueue: org.springframework.amqp.core.Queue, personaExchange: org.springframework.amqp.core.TopicExchange): org.springframework.amqp.core.Binding {
             return org.springframework.amqp.core.BindingBuilder.bind(testPersonaQueue).to(personaExchange).with("persona.update")
         }
     }

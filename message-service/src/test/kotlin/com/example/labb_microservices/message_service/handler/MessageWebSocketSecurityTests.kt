@@ -98,9 +98,11 @@ class MessageWebSocketSecurityTests {
         StepVerifier.create(closeStatusSink.asMono())
             .expectNextMatches { status -> 
                 println("Final close status in test: ${status.code}")
-                status.code == 1008 || status.code == 1005 // Accept 1005 if 1008 is lost in transit during test
+                // Strict 1008 check. 1005 (no status) is often a sign of transport loss in ReactorNetty
+                // TODO: Investigate why 1008 is sometimes lost in tests
+                status.code == 1008 
             }
-            .verifyComplete()
+            .verify(Duration.ofSeconds(20))
     }
 
     @Test

@@ -69,6 +69,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_healthy
 
   auth-service:
     build:
@@ -126,6 +128,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_healthy
       user-service:
         condition: service_started
       redis:
@@ -176,6 +180,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_healthy
       mongodb:
         condition: service_healthy
 
@@ -195,6 +201,8 @@ services:
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
       redis:
         condition: service_healthy

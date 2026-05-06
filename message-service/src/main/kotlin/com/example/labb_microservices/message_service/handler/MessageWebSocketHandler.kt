@@ -160,7 +160,7 @@ class MessageWebSocketHandler(
 
     private fun checkUserStatus(userId: String): Mono<Void> {
         if (cacheTtlSeconds > 0) {
-            val cached = userStatusCache[userId]
+            val cached = userStatusCache.getIfPresent(userId)
             if (cached != null) {
                 return if (cached.enabled == false) {
                     Mono.error(PolicyViolationException("User account is disabled"))
@@ -173,12 +173,7 @@ class MessageWebSocketHandler(
         return userGrpcClient.getUser(userId)
             .flatMap { response ->
                 if (cacheTtlSeconds > 0) {
-                    userStatusCache[userId] = response
-                    Mono.delay(Duration.ofSeconds(cacheTtlSeconds))
-                        .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
-                        .doOnNext { userStatusCache.remove(userId) }
-                        .doOnError { e -> logger.error("Cache eviction failed", e) }
-                        .subscribe()
+                    userStatusCache.put(userId, response)
                 }
                 
                 if (response.enabled == false) {
@@ -219,6 +214,22 @@ class MessageWebSocketHandler(
     fun broadcastToChannel(channelId: String, message: String) {
         sessionSinks.forEach { (sessionId, sink) ->
             if (sessionChannels[sessionId] == channelId || channelId == "all") {
+                sink.tryEmitNext(message)
+            }
+        }
+    }
+
+    fun sendMessageToUser(userId: String, channelId: String, message: String) {
+        userSessions[userId]?.forEach { sessionId ->
+            if (sessionChannels[sessionId] == channelId || channelId == "all") {
+                sessionSinks[sessionId]?.tryEmitNext(message)
+            }
+        }
+    }
+
+    private class PolicyViolationException(message: String) : RuntimeException(message)
+}
+sionId] == channelId || channelId == "all") {
                 sink.tryEmitNext(message)
             }
         }

@@ -12,10 +12,8 @@ export const useWebSocket = () => {
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
   
-  const { token, isAuthenticated } = useAuthStore((state) => ({ 
-    token: state.token, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const token = useAuthStore((state) => state.token);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addMessage = useChatStore((state) => state.addMessage);
   const setPresence = usePresenceStore((state) => state.setPresence);
 
@@ -25,16 +23,13 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/messages`;
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${token}`;
     
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       console.log('WebSocket Connected');
       reconnectAttemptsRef.current = 0;
-      if (token) {
-        socket.send(JSON.stringify({ type: 'auth', token }));
-      }
     };
 
     socket.onmessage = (event) => {
@@ -147,7 +142,12 @@ export const useWebSocket = () => {
 
   const sendMessage = useCallback((content: string) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(content);
+      const payload = {
+        type: 'CHAT_MESSAGE',
+        content,
+        timestamp: new Date().toISOString()
+      };
+      socketRef.current.send(JSON.stringify(payload));
     } else {
       console.error('WebSocket is not open');
     }

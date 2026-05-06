@@ -60,8 +60,8 @@ class MessageConsumer(
                 }
             }
         } catch (e: Exception) {
-            logger.error("Transient failure broadcasting message ${message.id}", e)
-            throw e // Rethrow for RabbitMQ retry
+            logger.error("Transient failure broadcasting message ${message.id} to anonymous websocket queue", e)
+            // Do not rethrow for anonymous queue to prevent infinite requeue
         }
     }
 
@@ -70,7 +70,7 @@ class MessageConsumer(
         val messageId = message.id ?: return
         logger.debug("Received AI chunk for: $messageId")
         
-        // Atomic update in MongoDB using Update.push
+        // Atomic update in MongoDB using Update.push to preserve duplicates and order
         val query = Query(Criteria.where("id").`is`(messageId))
         val update = Update().setOnInsert("id", messageId)
             .setOnInsert("senderId", message.senderId)
@@ -79,7 +79,7 @@ class MessageConsumer(
             .setOnInsert("authorType", message.authorType)
             .setOnInsert("timestamp", message.timestamp)
             .setOnInsert("content", message.content) // Set initial content on insert
-            .addToSet("contentChunks", message.content)
+            .push("contentChunks", message.content)
         
         // Block to ensure persistence before delivery for consistency
         mongoTemplate.upsert(query, update, Message::class.java).block()

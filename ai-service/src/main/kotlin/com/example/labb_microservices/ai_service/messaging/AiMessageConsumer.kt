@@ -125,6 +125,7 @@ class AiMessageConsumer(
         }
 
         responseGenerator.generateResponse(message)
+            .timeout(java.time.Duration.ofSeconds(60))
             .concatMap { chunk ->
                 Mono.fromRunnable<Unit> {
                     val aiChunk = Message(
