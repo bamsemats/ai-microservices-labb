@@ -6,6 +6,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY proto/pom.xml proto/
 COPY common-security/pom.xml common-security/
+COPY common-observability/pom.xml common-observability/
 COPY gateway/pom.xml gateway/
 COPY auth-service/pom.xml auth-service/
 COPY user-service/pom.xml user-service/
@@ -13,8 +14,9 @@ COPY message-service/pom.xml message-service/
 COPY ai-service/pom.xml ai-service/
 COPY content-aggregator-service/pom.xml content-aggregator-service/
 
-# Install parent POM
+# Install parent and shared modules
 RUN mvn install -N -B
+RUN mvn install -pl common-observability -DskipTests -B
 
 # Build the service
 COPY gateway/src gateway/src

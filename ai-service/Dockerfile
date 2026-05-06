@@ -6,6 +6,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY proto/pom.xml proto/
 COPY common-security/pom.xml common-security/
+COPY common-observability/pom.xml common-observability/
 COPY gateway/pom.xml gateway/
 COPY auth-service/pom.xml auth-service/
 COPY user-service/pom.xml user-service/
@@ -17,7 +18,7 @@ COPY content-aggregator-service/pom.xml content-aggregator-service/
 RUN mvn install -N -B
 COPY proto/src proto/src
 COPY common-security/src common-security/src
-RUN mvn install -pl proto,common-security -DskipTests -B
+RUN mvn install -pl proto,common-security,common-observability -DskipTests -B
 
 # Build the service
 COPY ai-service/src ai-service/src
