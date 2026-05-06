@@ -73,7 +73,7 @@ class MemoryWorkerIntegrationTest {
                 assertEquals(2, techStack.size)
                 val interests = fragments.filter { it.category == MemoryCategory.INTEREST }
                 assertEquals(1, interests.size)
-                assertEquals("React", interests[0].value)
+                assertEquals("React And Kotlin", interests[0].value)
             }
             .verifyComplete()
     }

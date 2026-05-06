@@ -53,13 +53,21 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'PRESENCE_UPDATE') {
           const { userId, username, status } = data;
-          if (typeof userId === 'string' && typeof username === 'string' && typeof status === 'string') {
+          const allowedStatuses = ['online', 'offline', 'away', 'busy'];
+          if (typeof userId === 'string' && typeof username === 'string' && allowedStatuses.includes(status)) {
             console.log('Received Presence Update:', userId, status);
-            setPresence(userId, username, status as any);
+            setPresence(userId, username, status as any); // Cast is safe now after validation
           }
-        } else if (data.id && data.senderId && data.content) {
-          const message: Message = data;
-          addMessage(message);
+        } else {
+          const isValidMessage = (m: any): m is Message => {
+            return typeof m.id === 'string' &&
+                   typeof m.senderId === 'string' &&
+                   typeof m.content === 'string' &&
+                   typeof m.channelId === 'string';
+          };
+          if (isValidMessage(data)) {
+            addMessage(data);
+          }
         }
       } catch (err) {
         console.error('Failed to parse WebSocket message', err);

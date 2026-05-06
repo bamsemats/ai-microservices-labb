@@ -98,3 +98,17 @@ spec:
             name: gateway
             port:
               number: 8080
+      - path: /refresh
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /logout
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080

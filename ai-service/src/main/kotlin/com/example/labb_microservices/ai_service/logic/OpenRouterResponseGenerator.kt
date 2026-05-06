@@ -46,7 +46,7 @@ class OpenRouterResponseGenerator(
             .collectList()
             .flatMapMany { fragments ->
                 val context = if (fragments.isNotEmpty()) {
-                    "User Context (Past Facts):\n" + fragments.joinToString("\n") { "- ${it.category}: ${it.value}" }
+                    "User Context (Past Facts):\n" + fragments.joinToString("\n") { "- ${it.category}: ${piiRedactor.redact(it.value)}" }
                 } else {
                     ""
                 }
@@ -85,6 +85,7 @@ class OpenRouterResponseGenerator(
                     .bodyValue(request)
                     .retrieve()
                     .bodyToFlux(object : ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                    .timeout(java.time.Duration.ofSeconds(30))
                     .mapNotNull { it.data() }
                     .filter { it != "[DONE]" }
                     .map { json ->
@@ -98,7 +99,11 @@ class OpenRouterResponseGenerator(
                     }
                     .filter { it.isNotEmpty() }
                     .onErrorResume { e ->
-                        logger.error("Error calling OpenRouter: {}", e.message)
+                        if (e is java.util.concurrent.TimeoutException) {
+                            logger.error("Timeout calling OpenRouter: {}", e.message)
+                        } else {
+                            logger.error("Error calling OpenRouter: {}", e.message)
+                        }
                         Flux.just("I'm having trouble connecting to my brain right now.")
                     }
             }

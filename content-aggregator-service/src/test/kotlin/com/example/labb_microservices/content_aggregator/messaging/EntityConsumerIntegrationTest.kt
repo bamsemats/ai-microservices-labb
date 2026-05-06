@@ -2,8 +2,6 @@ package com.example.labb_microservices.content_aggregator.messaging
 
 import com.example.labb_microservices.content_aggregator.model.ContentInjectionEvent
 import com.example.labb_microservices.content_aggregator.model.EntityMessage
-import org.awaitility.kotlin.await
-import org.awaitility.kotlin.untilAsserted
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate

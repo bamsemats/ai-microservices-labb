@@ -14,10 +14,16 @@ import reactor.core.scheduler.Schedulers
 import java.time.Instant
 import kotlin.math.max
 
+import org.springframework.data.mongodb.core.ReactiveMongoOperations
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.mongodb.core.query.Update
+
 @Service
 class MemoryWorker(
     private val factExtractor: FactExtractor,
     private val memoryFragmentRepository: MemoryFragmentRepository,
+    private val mongoTemplate: ReactiveMongoOperations,
     private val rabbitTemplate: RabbitTemplate
 ) {
     private val logger = LoggerFactory.getLogger(MemoryWorker::class.java)
@@ -27,16 +33,22 @@ class MemoryWorker(
 
         return factExtractor.extractFacts(message)
             .flatMap { fact ->
-                // Deduplicate/Update existing facts for the same user, category, and value
-                memoryFragmentRepository.findByUserIdAndCategoryAndValue(message.senderId, fact.category, fact.value)
-                    .flatMap { existing ->
-                        val updated = existing.copy(
-                            confidence = max(existing.confidence, fact.confidence),
-                            timestamp = Instant.now(),
-                            sourceMessageId = message.id ?: "unknown"
-                        )
-                        logger.info("Updating existing memory for user: category={}, confidence={}", fact.category, updated.confidence)
-                        memoryFragmentRepository.save(updated)
+                val query = Query(Criteria.where("userId").`is`(message.senderId)
+                    .and("category").`is`(fact.category)
+                    .and("value").`is`(fact.value))
+                
+                val update = Update()
+                    .set("confidence", fact.confidence)
+                    .set("timestamp", Instant.now())
+                    .set("sourceMessageId", message.id ?: "unknown")
+                    .setOnInsert("userId", message.senderId)
+                    .setOnInsert("category", fact.category)
+                    .setOnInsert("value", fact.value)
+
+                mongoTemplate.upsert(query, update, MemoryFragment::class.java)
+                    .flatMap { result ->
+                        // Reload to check confidence and publish if needed
+                        memoryFragmentRepository.findByUserIdAndCategoryAndValue(message.senderId, fact.category, fact.value)
                             .flatMap { saved ->
                                 if (saved.confidence > 0.9) {
                                     publishPersonaUpdate(saved)
@@ -44,31 +56,6 @@ class MemoryWorker(
                                     Mono.empty()
                                 }
                             }
-                    }
-                    .switchIfEmpty(
-                        Mono.defer {
-                            val fragment = MemoryFragment(
-                                userId = message.senderId,
-                                category = fact.category,
-                                value = fact.value,
-                                confidence = fact.confidence,
-                                sourceMessageId = message.id ?: "unknown"
-                            )
-                            logger.info("Extracting new memory: category={}, confidence={}", fact.category, fact.confidence)
-                            memoryFragmentRepository.save(fragment)
-                                .flatMap { saved ->
-                                    if (saved.confidence > 0.9) {
-                                        publishPersonaUpdate(saved)
-                                    } else {
-                                        Mono.empty()
-                                    }
-                                }
-                        }
-                    )
-                    .onErrorResume { e ->
-                        // Handle DuplicateKeyException if concurrent writes happen
-                        logger.warn("Potential race condition during memory extraction: {}", e.message)
-                        Mono.empty()
                     }
             }
             .then()

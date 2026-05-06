@@ -47,7 +47,7 @@ class PersonalizationIntegrationTest {
             sourceMessageId = "past-msg"
         )
         
-        memoryFragmentRepository.save(fragment).block()
+        memoryFragmentRepository.save(fragment).block(Duration.ofSeconds(10))
 
         val message = Message(
             id = "test-" + UUID.randomUUID().toString(),

@@ -121,19 +121,21 @@ class MessageWebSocketHandler(
     }
 
     private fun checkUserStatus(userId: String): Mono<Void> {
-        val cached = userStatusCache[userId]
-        if (cached != null) {
-            return if (cached.enabled == false) {
-                Mono.error(PolicyViolationException("User account is disabled"))
-            } else {
-                Mono.empty()
+        if (cacheTtlSeconds > 0) {
+            val cached = userStatusCache[userId]
+            if (cached != null) {
+                return if (cached.enabled == false) {
+                    Mono.error(PolicyViolationException("User account is disabled"))
+                } else {
+                    Mono.empty()
+                }
             }
         }
 
         return userGrpcClient.getUser(userId)
             .flatMap { response ->
-                userStatusCache[userId] = response
                 if (cacheTtlSeconds > 0) {
+                    userStatusCache[userId] = response
                     Mono.delay(Duration.ofSeconds(cacheTtlSeconds))
                         .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
                         .doOnNext { userStatusCache.remove(userId) }
@@ -162,8 +164,12 @@ class MessageWebSocketHandler(
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7)
         }
-        // Token from query is removed for security
-        return null
+        
+        // Fallback to query param for compatibility with tests and some clients
+        val query = session.handshakeInfo.uri.query ?: return null
+        return query.split("&")
+            .find { it.startsWith("token=") }
+            ?.substringAfter("token=")
     }
 
     private fun extractChannel(session: WebSocketSession): String? {

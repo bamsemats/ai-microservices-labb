@@ -30,10 +30,9 @@ class MessageConsumer(
     fun storeMessage(message: Message) {
         logger.info("Storing message: ${message.id}")
         messageRepository.save(message)
-            .flatMap { savedMessage ->
+            .doOnSuccess { savedMessage ->
                 logger.info("Saved message to MongoDB: ${savedMessage.id}")
                 messageProducer.deliverMessage(savedMessage)
-                Mono.just(savedMessage)
             }
             .block()
     }
@@ -41,9 +40,14 @@ class MessageConsumer(
     @RabbitListener(queues = ["#{websocketQueue.name}"])
     fun deliverMessage(message: Message) {
         logger.info("Delivering message: ${message.id} to WebSockets in channel ${message.channelId}")
+        val jsonMessage = try {
+            objectMapper.writeValueAsString(message)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize message ${message.id} for WebSocket", e)
+            return // Acknowledge and drop poison pill
+        }
+
         try {
-            val jsonMessage = objectMapper.writeValueAsString(message)
-            
             if (message.receiverId == "all") {
                 webSocketHandler.broadcastToChannel(message.channelId, jsonMessage)
             } else {
@@ -56,8 +60,8 @@ class MessageConsumer(
                 }
             }
         } catch (e: Exception) {
-            logger.error("Failed to serialize message for WebSocket", e)
-            throw e
+            logger.error("Transient failure broadcasting message ${message.id}", e)
+            throw e // Rethrow for RabbitMQ retry
         }
     }
 
@@ -66,10 +70,7 @@ class MessageConsumer(
         val messageId = message.id ?: return
         logger.debug("Received AI chunk for: $messageId")
         
-        // Immediately deliver to WebSockets for low perceived latency
-        messageProducer.deliverMessage(message)
-
-        // Atomic update in MongoDB using $concat
+        // Atomic update in MongoDB using Update.push
         val query = Query(Criteria.where("id").`is`(messageId))
         val update = Update().setOnInsert("id", messageId)
             .setOnInsert("senderId", message.senderId)
@@ -77,38 +78,47 @@ class MessageConsumer(
             .setOnInsert("channelId", message.channelId)
             .setOnInsert("authorType", message.authorType)
             .setOnInsert("timestamp", message.timestamp)
-            .push("contentChunks", message.content) // Optionally store chunks
-            // For simple content accumulation:
-            // .set("content", ...) is tricky with $concat in Update.
-            // Better to use a dedicated field or aggregation if we want true atomic append.
-            // But ReactiveMongoTemplate.upsert with Update.push is atomic.
-            // Let's stick to the prompt's suggestion of atomic upsert.
+            .push("contentChunks", message.content)
         
-        mongoTemplate.upsert(query, update, Message::class.java)
-            .doOnError { e -> logger.error("Failed to save AI chunk for $messageId", e) }
-            .subscribe()
+        // Block to ensure persistence before delivery for consistency
+        mongoTemplate.upsert(query, update, Message::class.java).block()
+        
+        // Deliver to WebSockets after successful persistence
+        messageProducer.deliverMessage(message)
     }
 
     @RabbitListener(queues = ["#{adaptationQueue.name}"])
     fun consumeGenericEvent(eventData: Map<String, Any>) {
         val type = eventData["type"] as? String ?: "UI_ADAPTATION"
         logger.info("Received real-time event: $type")
-        try {
-            val jsonEvent = objectMapper.writeValueAsString(eventData)
-            webSocketHandler.broadcastMessage(jsonEvent)
+        val jsonEvent = try {
+            objectMapper.writeValueAsString(eventData)
         } catch (e: Exception) {
             logger.error("Failed to serialize generic event for WebSocket", e)
+            return
+        }
+
+        try {
+            webSocketHandler.broadcastMessage(jsonEvent)
+        } catch (e: Exception) {
+            logger.error("Transient failure broadcasting generic event", e)
         }
     }
 
     @RabbitListener(queues = ["#{contentInjectionQueue.name}"])
     fun consumeContentInjectionEvent(event: ContentInjectionEvent) {
         logger.info("Received Content Injection Event: ${event.contentType}")
-        try {
-            val jsonEvent = objectMapper.writeValueAsString(event)
-            webSocketHandler.broadcastMessage(jsonEvent)
+        val jsonEvent = try {
+            objectMapper.writeValueAsString(event)
         } catch (e: Exception) {
             logger.error("Failed to serialize content injection event for WebSocket", e)
+            return
+        }
+
+        try {
+            webSocketHandler.broadcastMessage(jsonEvent)
+        } catch (e: Exception) {
+            logger.error("Transient failure broadcasting content injection event", e)
             throw e
         }
     }
@@ -116,12 +126,18 @@ class MessageConsumer(
     @RabbitListener(queues = ["#{presenceQueue.name}"])
     fun consumePresenceUpdate(event: PresenceUpdateEvent) {
         logger.info("Received Presence Update: ${event.userId} is ${event.status}")
+        val jsonEvent = try {
+            objectMapper.writeValueAsString(event)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize presence update for user ${event.userId}", e)
+            return
+        }
+
         try {
-            val jsonEvent = objectMapper.writeValueAsString(event)
             // Broadcast presence to all users as it affects the sidebar
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
-            logger.error("Failed to serialize presence update for WebSocket", e)
+            logger.error("Transient failure broadcasting presence update for user ${event.userId}", e)
             throw e
         }
     }

@@ -66,6 +66,8 @@ spec:
           value: rabbitmq
         - name: GRPC_CLIENT_USER_SERVICE_ADDRESS
           value: static://user-service:9090
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
         volumeMounts:
         - name: tmp-volume
           mountPath: /tmp

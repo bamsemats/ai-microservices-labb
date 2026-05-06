@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.util.*
 
 @Service
@@ -41,9 +43,11 @@ class AiMessageConsumer(
         // Entity Extraction
         val entityTriggerMatch = Regex("(?:playing|stream|watch|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
         if (entityTriggerMatch != null) {
+            val verb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
             val subject = entityTriggerMatch.groupValues[1].trim()
             
             val (type, value) = when {
+                verb == "playing" -> "GAME" to subject.replaceFirstChar { it.titlecase() }
                 content.contains("elden ring") || subject.contains("elden ring") -> "GAME" to "Elden Ring"
                 content.contains("valorant") || subject.contains("valorant") -> "GAME" to "Valorant"
                 content.contains("minecraft") || subject.contains("minecraft") -> "GAME" to "Minecraft"
@@ -51,7 +55,7 @@ class AiMessageConsumer(
                 content.contains("python") -> "VIDEO" to "Python Tutorial"
                 content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
                 content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                subject.length > 2 -> "VIDEO" to subject.replaceFirstChar { it.titlecase() }
+                subject.length > 2 -> (if (verb == "playing") "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
                 else -> null to null
             }
             
@@ -113,51 +117,58 @@ class AiMessageConsumer(
         )
 
         responseGenerator.generateResponse(message)
-            .doOnNext { chunk ->
-                val aiChunk = Message(
-                    id = responseId,
-                    senderId = "ai-bot",
-                    receiverId = receiverId,
-                    channelId = message.channelId,
-                    content = chunk,
-                    authorType = AuthorType.BOT
-                )
+            .flatMap { chunk ->
+                Mono.fromRunnable<Unit> {
+                    val aiChunk = Message(
+                        id = responseId,
+                        senderId = "ai-bot",
+                        receiverId = receiverId,
+                        channelId = message.channelId,
+                        content = chunk,
+                        authorType = AuthorType.BOT
+                    )
 
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.AI_EXCHANGE_NAME,
-                    "ai.response",
-                    aiChunk
-                )
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.AI_EXCHANGE_NAME,
+                        "ai.response",
+                        aiChunk
+                    )
+                }
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn(chunk)
             }
             .doOnTerminate {
                 readinessIndicator.decrementActiveRequests()
             }
-            .doOnComplete {
-                logger.info("AI streaming complete for responseId: {}", responseId)
-                // Notify UI that AI is done
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
-                    "",
-                    AiStatusEvent(
-                        status = AiStatus.COMPLETED,
-                        channelId = message.channelId,
-                        userId = message.senderId
+            .then(
+                Mono.fromRunnable<Unit> {
+                    logger.info("AI streaming complete for responseId: {}", responseId)
+                    // Notify UI that AI is done
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                        "",
+                        AiStatusEvent(
+                            status = AiStatus.COMPLETED,
+                            channelId = message.channelId,
+                            userId = message.senderId
+                        )
                     )
-                )
-            }
-            .doOnError { e ->
-                logger.error("AI processing failed", e)
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
-                    "",
-                    AiStatusEvent(
-                        status = AiStatus.ERROR,
-                        channelId = message.channelId,
-                        userId = message.senderId
+                }.subscribeOn(Schedulers.boundedElastic())
+            )
+            .onErrorResume { e ->
+                Mono.fromRunnable<Unit> {
+                    logger.error("AI processing failed", e)
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                        "",
+                        AiStatusEvent(
+                            status = AiStatus.ERROR,
+                            channelId = message.channelId,
+                            userId = message.senderId
+                        )
                     )
-                )
+                }.subscribeOn(Schedulers.boundedElastic())
             }
-            .then()
             .block()
     }
 }

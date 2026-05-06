@@ -101,6 +101,12 @@
 				<artifactId>grpc-server-spring-boot-starter</artifactId>
 				<version>${grpc-spring-boot-starter.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.awaitility</groupId>
+				<artifactId>awaitility-kotlin</artifactId>
+				<version>${awaitility.version}</version>
+				<scope>test</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
