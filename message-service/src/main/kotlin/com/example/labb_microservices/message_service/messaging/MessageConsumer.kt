@@ -78,7 +78,7 @@ class MessageConsumer(
             .setOnInsert("channelId", message.channelId)
             .setOnInsert("authorType", message.authorType)
             .setOnInsert("timestamp", message.timestamp)
-            .push("contentChunks", message.content)
+            .addToSet("contentChunks", message.content)
         
         // Block to ensure persistence before delivery for consistency
         mongoTemplate.upsert(query, update, Message::class.java).block()
@@ -119,7 +119,6 @@ class MessageConsumer(
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting content injection event", e)
-            throw e
         }
     }
 
@@ -138,7 +137,6 @@ class MessageConsumer(
             webSocketHandler.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting presence update for user ${event.userId}", e)
-            throw e
         }
     }
 }

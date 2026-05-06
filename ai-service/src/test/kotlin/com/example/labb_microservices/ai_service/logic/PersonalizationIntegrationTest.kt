@@ -50,12 +50,13 @@ class PersonalizationIntegrationTest {
         memoryFragmentRepository.save(fragment).block(Duration.ofSeconds(10))
 
         val message = Message(
-            id = "test-" + UUID.randomUUID().toString(),
+            id = UUID.randomUUID().toString(),
             senderId = userId,
             receiverId = "ai-bot",
             channelId = "general",
             content = "What do you think of this architecture?",
-            authorType = AuthorType.USER
+            authorType = AuthorType.USER,
+            metadata = mapOf("X-Adapta-Test-Mode" to "true")
         )
 
         StepVerifier.create(responseGenerator.generateResponse(message))

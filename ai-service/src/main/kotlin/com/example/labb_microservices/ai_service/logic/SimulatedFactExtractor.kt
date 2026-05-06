@@ -12,11 +12,17 @@ class SimulatedFactExtractor : FactExtractor {
         val content = message.content.lowercase()
         val facts = mutableListOf<ExtractedFact>()
 
+        val boost = when (message.metadata["X-Confidence-Boost"]) {
+            "true" -> 0.05
+            "false" -> -0.10
+            else -> 0.0
+        }
+
         // Tech Stack
-        if (content.contains("react")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "React", 0.95))
-        if (content.contains("kotlin")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "Kotlin", 0.95))
-        if (content.contains("spring boot")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "Spring Boot", 0.9))
-        if (content.contains("mongodb")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "MongoDB", 0.85))
+        if (content.contains("react")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "React", (0.95 + boost).coerceIn(0.0, 1.0)))
+        if (content.contains("kotlin")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "Kotlin", (0.95 + boost).coerceIn(0.0, 1.0)))
+        if (content.contains("spring boot")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "Spring Boot", (0.9 + boost).coerceIn(0.0, 1.0)))
+        if (content.contains("mongodb")) facts.add(ExtractedFact(MemoryCategory.TECH_STACK, "MongoDB", (0.85 + boost).coerceIn(0.0, 1.0)))
 
         // Interests
         if (content.contains("elden ring")) facts.add(ExtractedFact(MemoryCategory.INTEREST, "Elden Ring", 0.9))

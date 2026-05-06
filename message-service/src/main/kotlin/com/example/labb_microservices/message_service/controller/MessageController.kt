@@ -15,8 +15,20 @@ import reactor.core.scheduler.Schedulers
 import java.util.*
 import org.springframework.security.access.prepost.PreAuthorize
 
-data class MessageRequest(val receiverId: String, val content: String, val channelId: String? = null)
-data class BroadcastRequest(val content: String, val channelId: String? = null)
+import jakarta.validation.Valid
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
+
+data class MessageRequest(
+    @field:NotBlank val receiverId: String,
+    @field:NotBlank @field:Size(max = 5000) val content: String,
+    val channelId: String? = null
+)
+
+data class BroadcastRequest(
+    @field:NotBlank @field:Size(max = 5000) val content: String,
+    val channelId: String? = null
+)
 
 @RestController
 @RequestMapping("/messages")
@@ -31,7 +43,7 @@ class MessageController(
 
     @PostMapping
     fun sendMessage(
-        @RequestBody request: MessageRequest,
+        @Valid @RequestBody request: MessageRequest,
         @RequestHeader("X-Adapta-Test-Mode", required = false) testMode: String?
     ): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
@@ -39,16 +51,17 @@ class MessageController(
             .flatMap { senderId ->
                 Mono.fromCallable {
                     val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
+                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
                     val message = Message(
                         id = idPrefix + UUID.randomUUID().toString(),
                         senderId = senderId,
                         receiverId = request.receiverId,
-                        channelId = request.channelId ?: "general",
+                        channelId = channelId,
                         content = request.content,
                         authorType = AuthorType.USER
                     )
                     processMessage(message)
-                    "Message sent to queue by $senderId in channel ${message.channelId}"
+                    "Message sent to queue by $senderId in channel $channelId"
                 }
                 .subscribeOn(Schedulers.boundedElastic())
             }
@@ -56,22 +69,23 @@ class MessageController(
 
     @PostMapping("/broadcast")
     @PreAuthorize("hasRole('ADMIN')")
-    fun broadcastMessage(@RequestBody request: BroadcastRequest): Mono<String> {
+    fun broadcastMessage(@Valid @RequestBody request: BroadcastRequest): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
             .flatMap { context ->
                 val auth = context.authentication
                 val senderId = auth.name
                 Mono.fromCallable {
+                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "all"
                     val message = Message(
                         id = UUID.randomUUID().toString(),
                         senderId = senderId,
                         receiverId = "all",
-                        channelId = request.channelId ?: "all",
+                        channelId = channelId,
                         content = request.content,
                         authorType = AuthorType.USER
                     )
                     processMessage(message)
-                    "Broadcast message sent by $senderId in channel ${message.channelId}"
+                    "Broadcast message sent by $senderId in channel $channelId"
                 }
                 .subscribeOn(Schedulers.boundedElastic())
             }

@@ -18,7 +18,19 @@ spec:
       containers:
       - name: gateway
         image: gateway:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -59,9 +71,21 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: gateway-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    kubernetes.io/ingress.class: "nginx"
 spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - adapta-chat.local
+    secretName: gateway-tls
   rules:
-  - http:
+  - host: adapta-chat.local
+    http:
       paths:
       - path: /login
         pathType: Prefix

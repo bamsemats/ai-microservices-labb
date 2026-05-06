@@ -30,7 +30,7 @@ class OpenRouterResponseGenerator(
 
     override fun generateResponse(message: Message): Flux<String> {
         // Support for Test Mode (X-Adapta-Test-Mode header propagated via metadata)
-        if (message.id?.startsWith("test-") == true) {
+        if (message.metadata["X-Adapta-Test-Mode"] == "true") {
             logger.info("Test mode detected for message: {}. Returning mock response with context.", message.id)
             return memoryFragmentRepository.findByUserId(message.senderId)
                 .collectList()

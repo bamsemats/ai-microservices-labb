@@ -16,5 +16,7 @@ data class Message(
     val channelId: String = "general",
     val content: String,
     val authorType: AuthorType = AuthorType.USER,
-    val timestamp: LocalDateTime = LocalDateTime.now()
+    val metadata: Map<String, String> = emptyMap(),
+    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val contentChunks: List<String> = emptyList()
 ) : Serializable

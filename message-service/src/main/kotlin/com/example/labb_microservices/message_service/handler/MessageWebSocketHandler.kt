@@ -27,65 +27,86 @@ class MessageWebSocketHandler(
     @org.springframework.beans.factory.annotation.Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
 
+    private val objectMapper = com.fasterxml.jackson.databind.ObjectMapper()
     private val sessionSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
     private val sessionChannels = ConcurrentHashMap<String, String>()
+    private val sessionTokens = ConcurrentHashMap<String, String>()
+    private val sessionUsers = ConcurrentHashMap<String, String>()
     private val userSessions = ConcurrentHashMap<String, MutableSet<String>>()
     private val userStatusCache = ConcurrentHashMap<String, com.example.labb_microservices.proto.UserResponse>()
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        val token = extractToken(session)
+        val initialToken = extractToken(session)
         val channelId = extractChannel(session) ?: "general"
         val sessionId = session.id
 
-        val principalMono = if (token != null) {
-            if (jwtTokenValidator.validateToken(token)) {
-                val userId = jwtTokenValidator.getUserIdFromToken(token)
-                if (userId != null) Mono.just(userId) else Mono.empty<String>()
-            } else {
-                Mono.empty<String>()
+        val authenticatedUserId = Sinks.one<String>()
+        val disconnectSink = Sinks.empty<Void>()
+        val sink = Sinks.many().multicast().directBestEffort<String>()
+
+        sessionSinks[sessionId] = sink
+        sessionChannels[sessionId] = channelId
+
+        if (initialToken != null && jwtTokenValidator.validateToken(initialToken)) {
+            val userId = jwtTokenValidator.getUserIdFromToken(initialToken)
+            if (userId != null) {
+                sessionTokens[sessionId] = initialToken
+                registerSession(sessionId, userId, channelId)
+                authenticatedUserId.tryEmitValue(userId)
             }
-        } else {
-            session.handshakeInfo.principal.map { it.name }
         }
 
-        return principalMono
-            .flatMap { userId: String ->
-                logger.info("New WebSocket connection for user: {} in channel: {}, session: {}", userId, channelId, sessionId)
-                
-                val sink = Sinks.many().multicast().directBestEffort<String>()
-                sessionSinks[sessionId] = sink
-                sessionChannels[sessionId] = channelId
-                userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
-
-                // Use a single completion sink to coordinate termination
-                val disconnectSink = Sinks.empty<Void>()
-
-                // Input stream - triggers disconnectSink on completion
-                val input = session.receive()
-                    .doOnTerminate {
-                        logger.info("WebSocket input stream terminated for user: {}, session: {}", userId, sessionId)
-                        disconnectSink.tryEmitEmpty()
-                        sessionSinks.remove(sessionId)
-                        sessionChannels.remove(sessionId)
-                        val sessions = userSessions[userId]
-                        sessions?.remove(sessionId)
-                        if (sessions?.isEmpty() == true) {
-                            userSessions.remove(userId)
-                            presenceService.setUserOffline(userId).subscribe()
+        val input = session.receive()
+            .doOnNext { message ->
+                val payload = message.payloadAsText
+                try {
+                    val json = objectMapper.readTree(payload)
+                    if (json.has("type") && json.get("type").asText() == "auth" && json.has("token")) {
+                        val token = json.get("token").asText()
+                        if (jwtTokenValidator.validateToken(token)) {
+                            val userId = jwtTokenValidator.getUserIdFromToken(token)
+                            if (userId != null) {
+                                logger.info("User {} authenticated via message in session {}", userId, sessionId)
+                                sessionTokens[sessionId] = token
+                                registerSession(sessionId, userId, channelId)
+                                authenticatedUserId.tryEmitValue(userId)
+                            }
                         }
                     }
-                    .then()
+                } catch (e: Exception) {
+                    // Ignore non-json or malformed for now
+                }
+            }
+            .doFinally {
+                val userId = sessionUsers[sessionId]
+                logger.info("WebSocket session ending for user: {}, session: {}", userId ?: "anonymous", sessionId)
+                disconnectSink.tryEmitEmpty()
+                sessionSinks.remove(sessionId)
+                sessionChannels.remove(sessionId)
+                sessionTokens.remove(sessionId)
+                sessionUsers.remove(sessionId)
+                if (userId != null) {
+                    val sessions = userSessions[userId]
+                    sessions?.remove(sessionId)
+                    if (sessions?.isEmpty() == true) {
+                        userSessions.remove(userId)
+                        presenceService.setUserOffline(userId).subscribe()
+                    }
+                }
+            }
+            .then()
 
-                // Output stream - stop when disconnectSink completes
-                val output = session.send(
-                    sink.asFlux()
-                        .takeUntilOther(disconnectSink.asMono())
-                        .map { session.textMessage(it) }
-                )
+        val output = session.send(
+            sink.asFlux()
+                .takeUntilOther(disconnectSink.asMono())
+                .map { session.textMessage(it) }
+        )
 
-                // Periodic validation - stop when disconnectSink completes
+        val authenticationTasks = authenticatedUserId.asMono()
+            .flatMap { userId ->
                 val validation = Flux.interval(Duration.ofSeconds(10))
                     .flatMap {
+                        val token = sessionTokens[sessionId]
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
                             Mono.error<Void>(PolicyViolationException("Token invalid"))
                         } else {
@@ -95,7 +116,6 @@ class MessageWebSocketHandler(
                     .takeUntilOther(disconnectSink.asMono())
                     .then()
 
-                // Global Presence Heartbeat - stop when disconnectSink completes
                 val presenceHeartbeat = presenceService.setUserOnline(userId)
                     .onErrorResume { Mono.empty() }
                     .thenMany(Flux.interval(Duration.ofMinutes(1)))
@@ -103,21 +123,24 @@ class MessageWebSocketHandler(
                     .takeUntilOther(disconnectSink.asMono())
                     .then()
 
-                // Execute all tasks concurrently
-                Mono.`when`(input, output, validation, presenceHeartbeat)
-                    .onErrorResume { e ->
-                        if (e is PolicyViolationException) {
-                            logger.warn("Closing session due to policy violation: {}", e.message)
-                            session.close(CloseStatus(1008, e.message))
-                        } else {
-                            logger.error("WebSocket error for user $userId, session $sessionId", e)
-                            session.close(CloseStatus.SERVER_ERROR)
-                        }
-                    }
+                Mono.`when`(validation, presenceHeartbeat)
             }
-            .switchIfEmpty(
-                session.close(CloseStatus(1008, "Unauthorized"))
-            )
+
+        return Mono.`when`(input, output, authenticationTasks)
+            .onErrorResume { e ->
+                if (e is PolicyViolationException) {
+                    logger.warn("Closing session due to policy violation: {}", e.message)
+                    session.close(CloseStatus(1008, e.message))
+                } else {
+                    logger.error("WebSocket error for session $sessionId", e)
+                    session.close(CloseStatus.SERVER_ERROR)
+                }
+            }
+    }
+
+    private fun registerSession(sessionId: String, userId: String, channelId: String) {
+        sessionUsers[sessionId] = userId
+        userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
     }
 
     private fun checkUserStatus(userId: String): Mono<Void> {
@@ -164,12 +187,7 @@ class MessageWebSocketHandler(
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7)
         }
-        
-        // Fallback to query param for compatibility with tests and some clients
-        val query = session.handshakeInfo.uri.query ?: return null
-        return query.split("&")
-            .find { it.startsWith("token=") }
-            ?.substringAfter("token=")
+        return null
     }
 
     private fun extractChannel(session: WebSocketSession): String? {

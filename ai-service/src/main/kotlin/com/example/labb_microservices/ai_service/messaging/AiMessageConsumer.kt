@@ -106,18 +106,24 @@ class AiMessageConsumer(
         val receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId
 
         // Notify UI that AI is thinking
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
-            "",
-            AiStatusEvent(
-                status = AiStatus.THINKING,
-                channelId = message.channelId,
-                userId = message.senderId
+        try {
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                "",
+                AiStatusEvent(
+                    status = AiStatus.THINKING,
+                    channelId = message.channelId,
+                    userId = message.senderId
+                )
             )
-        )
+        } catch (e: Exception) {
+            logger.error("Failed to publish THINKING status", e)
+            readinessIndicator.decrementActiveRequests()
+            throw e
+        }
 
         responseGenerator.generateResponse(message)
-            .flatMap { chunk ->
+            .concatMap { chunk ->
                 Mono.fromRunnable<Unit> {
                     val aiChunk = Message(
                         id = responseId,

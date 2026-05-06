@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.containers.RabbitMQContainer
@@ -71,9 +72,11 @@ class MessageWebSocketSecurityTests {
                 .build()))
 
         val client = ReactorNettyWebSocketClient()
-        val uri = URI("ws://localhost:$port/ws/messages?token=$token")
+        val uri = URI("ws://localhost:$port/ws/messages")
+        val headers = HttpHeaders()
+        headers.add("Authorization", "Bearer $token")
 
-        val sessionMono = client.execute(uri) { session ->
+        val sessionMono = client.execute(uri, headers) { session ->
             session.receive()
                 .doOnNext { println("Received: ${it.payloadAsText}") }
                 .then()
@@ -102,9 +105,11 @@ class MessageWebSocketSecurityTests {
             .build()))
 
         val client = ReactorNettyWebSocketClient()
-        val uri = URI("ws://localhost:$port/ws/messages?token=$token")
+        val uri = URI("ws://localhost:$port/ws/messages")
+        val headers = HttpHeaders()
+        headers.add("Authorization", "Bearer $token")
 
-        val sessionMono = client.execute(uri) { session ->
+        val sessionMono = client.execute(uri, headers) { session ->
             session.receive()
                 .doOnNext { println("Received: ${it.payloadAsText}") }
                 .then()

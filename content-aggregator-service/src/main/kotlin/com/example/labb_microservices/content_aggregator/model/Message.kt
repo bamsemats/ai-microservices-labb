@@ -10,5 +10,6 @@ data class Message(
     val receiverId: String,
     val channelId: String = "general",
     val content: String,
-    val authorType: AuthorType = AuthorType.USER
+    val authorType: AuthorType = AuthorType.USER,
+    val metadata: Map<String, String> = emptyMap()
 ) : Serializable

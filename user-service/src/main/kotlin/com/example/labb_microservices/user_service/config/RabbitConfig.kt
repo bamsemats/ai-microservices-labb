@@ -1,5 +1,6 @@
 package com.example.labb_microservices.user_service.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.amqp.core.*
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
@@ -57,7 +58,7 @@ class RabbitConfig {
     }
 
     @Bean
-    fun messageConverter(): MessageConverter {
-        return Jackson2JsonMessageConverter()
+    fun messageConverter(objectMapper: ObjectMapper): MessageConverter {
+        return Jackson2JsonMessageConverter(objectMapper)
     }
 }

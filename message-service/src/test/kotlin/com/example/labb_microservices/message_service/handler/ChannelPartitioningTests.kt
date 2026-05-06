@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -81,13 +82,17 @@ class ChannelPartitioningTests {
 
         val client = ReactorNettyWebSocketClient()
         
+        val headersA = HttpHeaders()
+        headersA.add("Authorization", "Bearer $tokenA")
         // Connect User A to Channel-A
-        val sessionAMono = client.execute(URI("ws://localhost:$port/ws/messages?token=$tokenA&channel=Channel-A")) { session ->
+        val sessionAMono = client.execute(URI("ws://localhost:$port/ws/messages?channel=Channel-A"), headersA) { session ->
             session.receive().map { it.payloadAsText }.doOnNext { receivedA.add(it) }.then()
         }
 
+        val headersB = HttpHeaders()
+        headersB.add("Authorization", "Bearer $tokenB")
         // Connect User B to Channel-B
-        val sessionBMono = client.execute(URI("ws://localhost:$port/ws/messages?token=$tokenB&channel=Channel-B")) { session ->
+        val sessionBMono = client.execute(URI("ws://localhost:$port/ws/messages?channel=Channel-B"), headersB) { session ->
             session.receive().map { it.payloadAsText }.doOnNext { receivedB.add(it) }.then()
         }
 

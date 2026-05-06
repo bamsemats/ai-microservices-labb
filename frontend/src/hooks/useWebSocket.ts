@@ -26,6 +26,9 @@ export const useWebSocket = () => {
 
     socket.onopen = () => {
       console.log('WebSocket Connected');
+      if (token) {
+        socket.send(JSON.stringify({ type: 'auth', token }));
+      }
     };
 
     socket.onmessage = (event) => {
@@ -76,9 +79,11 @@ export const useWebSocket = () => {
 
     socket.onclose = () => {
       console.log('WebSocket Disconnected');
-      socketRef.current = null;
-      if (mountedRef.current && connectRef.current) {
-        reconnectTimerRef.current = setTimeout(connectRef.current, 3000);
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+        if (mountedRef.current && connectRef.current) {
+          reconnectTimerRef.current = setTimeout(connectRef.current, 3000);
+        }
       }
     };
 

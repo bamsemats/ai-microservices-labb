@@ -38,7 +38,7 @@ class MemoryWorker(
                     .and("value").`is`(fact.value))
                 
                 val update = Update()
-                    .set("confidence", fact.confidence)
+                    .max("confidence", fact.confidence)
                     .set("timestamp", Instant.now())
                     .set("sourceMessageId", message.id ?: "unknown")
                     .setOnInsert("userId", message.senderId)

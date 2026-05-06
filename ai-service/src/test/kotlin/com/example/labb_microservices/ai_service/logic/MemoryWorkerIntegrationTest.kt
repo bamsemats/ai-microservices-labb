@@ -63,7 +63,8 @@ class MemoryWorkerIntegrationTest {
         )
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message))
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
 
         // Should have 3 facts: TECH_STACK:React, TECH_STACK:Kotlin, INTEREST:React
         StepVerifier.create(memoryFragmentRepository.findByUserId("user123").collectList())
@@ -75,18 +76,20 @@ class MemoryWorkerIntegrationTest {
                 assertEquals(1, interests.size)
                 assertEquals("React And Kotlin", interests[0].value)
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
     }
 
     @Test
-    fun `should update existing memory fragment and average confidence`() {
+    fun `should update existing memory fragment and keep max confidence`() {
         val message1 = Message(
             id = "msg1",
             senderId = "user456",
             receiverId = "all",
             channelId = "general",
-            content = "React is awesome", // Avoid "I love" to keep it to 1 fact
-            authorType = AuthorType.USER
+            content = "React is okay", 
+            authorType = AuthorType.USER,
+            metadata = mapOf("X-Confidence-Boost" to "false") // 0.95 - 0.10 = 0.85
         )
 
         val message2 = Message(
@@ -94,28 +97,40 @@ class MemoryWorkerIntegrationTest {
             senderId = "user456",
             receiverId = "all",
             channelId = "general",
-            content = "React is the best",
-            authorType = AuthorType.USER
+            content = "I love React", 
+            authorType = AuthorType.USER,
+            metadata = mapOf("X-Confidence-Boost" to "true") // 0.95 + 0.05 = 1.0
         )
 
+        // Reset state
+        memoryFragmentRepository.deleteAll().block()
+
         StepVerifier.create(memoryWorker.processMessageForMemory(message1))
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message2))
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
 
-        StepVerifier.create(memoryFragmentRepository.findByUserId("user456"))
-            .assertNext { fragment ->
-                assertEquals("React", fragment.value)
-                assertEquals("msg2", fragment.sourceMessageId)
-                // (0.95 + 0.95) / 2 = 0.95
-                assertEquals(0.95, fragment.confidence, 0.01)
+        StepVerifier.create(memoryFragmentRepository.findByUserId("user456").collectList())
+            .assertNext { fragments ->
+                val techStack = fragments.find { it.category == MemoryCategory.TECH_STACK }
+                org.junit.jupiter.api.Assertions.assertNotNull(techStack, "Tech stack fragment should exist")
+                assertEquals("React", techStack?.value)
+                assertEquals("msg2", techStack?.sourceMessageId)
+                // Max(0.85, 1.0) = 1.0
+                assertEquals(1.0, techStack?.confidence ?: 0.0, 0.01)
             }
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
     }
 
     @Test
     fun `should publish persona update event for high confidence facts`() {
+        // Drain queue
+        while (rabbitTemplate.receive("test.persona.queue", 100) != null) { /* ignore */ }
+
         val message = Message(
             id = UUID.randomUUID().toString(),
             senderId = "user-persona",
@@ -126,7 +141,8 @@ class MemoryWorkerIntegrationTest {
         )
 
         StepVerifier.create(memoryWorker.processMessageForMemory(message))
-            .verifyComplete()
+            .expectComplete()
+            .verify(java.time.Duration.ofSeconds(5))
 
         // Give it a moment to reach the queue
         val event = rabbitTemplate.receiveAndConvert("test.persona.queue", 5000) as? com.example.labb_microservices.ai_service.model.PersonaUpdateEvent
