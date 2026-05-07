@@ -25,11 +25,19 @@ class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
     @Autowired
     private lateinit var rabbitTemplate: org.springframework.amqp.rabbit.core.RabbitTemplate
 
+    @Autowired
+    private lateinit var rabbitAdmin: org.springframework.amqp.rabbit.core.RabbitAdmin
+
+    @Autowired
+    private lateinit var applicationContext: org.springframework.context.ApplicationContext
+
     @org.springframework.boot.test.context.TestConfiguration
     class TestConfig {
+        private val queueName = "test.persona.queue-" + java.util.UUID.randomUUID().toString()
+
         @org.springframework.context.annotation.Bean
         fun testPersonaQueue(): org.springframework.amqp.core.Queue {
-            return org.springframework.amqp.core.Queue("test.persona.queue", false)
+            return org.springframework.amqp.core.Queue(queueName, false, false, false)
         }
 
         @org.springframework.context.annotation.Bean
@@ -117,8 +125,11 @@ class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `should publish persona update event for high confidence facts`() {
+        val queue = applicationContext.getBean("testPersonaQueue", org.springframework.amqp.core.Queue::class.java)
+        rabbitAdmin.declareQueue(queue)
+        
         // Drain queue
-        while (rabbitTemplate.receive("test.persona.queue", 100) != null) { /* ignore */ }
+        while (rabbitTemplate.receive(queue.name, 100) != null) { /* ignore */ }
 
         val message = Message(
             id = UUID.randomUUID().toString(),
@@ -134,7 +145,7 @@ class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
             .verify(Duration.ofSeconds(5))
 
         // Give it a moment to reach the queue
-        val event = rabbitTemplate.receiveAndConvert("test.persona.queue", 5000) as? com.example.labb_microservices.ai_service.model.PersonaUpdateEvent
+        val event = rabbitTemplate.receiveAndConvert(queue.name, 5000) as? com.example.labb_microservices.ai_service.model.PersonaUpdateEvent
 
         org.junit.jupiter.api.Assertions.assertNotNull(event, "PersonaUpdateEvent should not be null")
         assertEquals("user-persona", event?.userId)

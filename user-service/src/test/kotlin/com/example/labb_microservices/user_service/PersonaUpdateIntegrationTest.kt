@@ -13,15 +13,18 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.time.Duration
 
-@SpringBootTest(properties = [
-    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
-    "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0",
-    "grpc.server.security.enabled=false",
-    "grpc.server.security.key-store-password=password",
-    "grpc.server.security.key-password=password",
-    "grpc.server.security.trust-store-password=password"
-])
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    properties = [
+        "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+        "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
+        "grpc.server.port=0",
+        "grpc.server.security.enabled=false",
+        "grpc.server.security.key-store-password=password",
+        "grpc.server.security.key-password=password",
+        "grpc.server.security.trust-store-password=password"
+    ]
+)
 class PersonaUpdateIntegrationTest : BaseIntegrationTest() {
 
     @Autowired

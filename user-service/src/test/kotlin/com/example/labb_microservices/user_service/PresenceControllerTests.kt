@@ -49,6 +49,13 @@ class PresenceControllerTests : BaseIntegrationTest() {
         testUser = userRepository.save(User(username = username, password = "password")).block()!!
     }
 
+    @org.junit.jupiter.api.AfterEach
+    fun tearDown() {
+        if (::testUser.isInitialized) {
+            userRepository.deleteById(testUser.id!!).block()
+        }
+    }
+
     @Test
     fun `should update and get presence status`() {
         val token = Jwts.builder()

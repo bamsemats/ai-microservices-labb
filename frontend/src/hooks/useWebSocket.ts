@@ -23,7 +23,7 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${token}`;
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${encodeURIComponent(token)}`;
     
     const socket = new WebSocket(wsUrl);
 
@@ -57,8 +57,12 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'AI_STATUS') {
           const status = data.status;
-          const allowedStatuses = ['IDLE', 'THINKING', 'ERROR', 'COMPLETED'];
-          if (allowedStatuses.includes(status)) {
+          const allowedStatuses = ['IDLE', 'THINKING', 'ERROR', 'COMPLETED'] as const;
+          type ServerStatus = typeof allowedStatuses[number];
+          const isServerStatus = (s: unknown): s is ServerStatus => 
+            typeof s === 'string' && allowedStatuses.includes(s as ServerStatus);
+
+          if (isServerStatus(status)) {
             console.log('Received AI Status:', status);
             const mappedStatus: AiStatus = status === 'COMPLETED' ? 'IDLE' : status;
             useChatStore.getState().setAiStatus(mappedStatus);

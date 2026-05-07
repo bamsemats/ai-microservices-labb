@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.verify
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -25,22 +26,17 @@ import org.junit.jupiter.api.BeforeEach
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Import(AiMessageConsumerIntegrationTest.TestConfig::class)
+@org.springframework.test.annotation.DirtiesContext
 class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
     private lateinit var rabbitTemplate: RabbitTemplate
 
-    @MockitoBean
-    private lateinit var responseGenerator: com.example.labb_microservices.ai_service.logic.ResponseGenerator
-
-    @MockitoBean
-    private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
-
     @org.springframework.boot.test.context.TestConfiguration
     class TestConfig {
         @org.springframework.context.annotation.Bean
         fun testAdaptationQueue(): org.springframework.amqp.core.Queue {
-            return org.springframework.amqp.core.Queue("test.adaptation.queue." + UUID.randomUUID().toString(), true, false, false)
+            return org.springframework.amqp.core.Queue("test.adaptation.queue." + UUID.randomUUID().toString(), false, false, false)
         }
 
         @org.springframework.context.annotation.Bean
@@ -48,6 +44,12 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             return org.springframework.amqp.core.BindingBuilder.bind(testAdaptationQueue).to(adaptationExchange)
         }
     }
+
+    @Autowired
+    private lateinit var memoryFragmentRepository: com.example.labb_microservices.ai_service.repository.MemoryFragmentRepository
+
+    @MockitoBean
+    private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
 
     @Autowired
     private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
@@ -60,8 +62,23 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
     @BeforeEach
     fun setUp() {
+        // Ensure queue is declared before purge
+        rabbitAdmin.declareQueue(testAdaptationQueue)
+        
         // Drain adaptation queue using purge
         rabbitAdmin.purgeQueue(testAdaptationQueue.name)
+        
+        // Clear and seed repository
+        memoryFragmentRepository.deleteAll().block()
+        memoryFragmentRepository.save(
+            com.example.labb_microservices.ai_service.model.MemoryFragment(
+                userId = "user-test",
+                category = com.example.labb_microservices.ai_service.model.MemoryCategory.INTEREST,
+                value = "Test Context",
+                confidence = 1.0,
+                sourceMessageId = "test"
+            )
+        ).block()
         
         // Default stubs
         `when`(factExtractor.extractFacts(any())).thenReturn(Flux.empty())
@@ -81,8 +98,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
         // Polling to handle multiple event types in fanout
         var event: AdaptationEvent? = null
-        for (i in 1..10) {
-            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 1000)
+        for (i in 1..20) {
+            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 500)
             if (received is AdaptationEvent) {
                 event = received
                 break
@@ -111,8 +128,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
         var event: AdaptationEvent? = null
-        for (i in 1..10) {
-            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 1000)
+        for (i in 1..20) {
+            val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 500)
             if (received is AdaptationEvent) {
                 event = received
                 break
@@ -130,10 +147,6 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `should process AI request and return response with simulated latency`() {
-        // We use metadata to trigger test mode in the real generator as a fallback
-        // but we still try to mock it.
-        `when`(responseGenerator.generateResponse(any())).thenReturn(Flux.just("Mock AI Response"))
-
         val message = Message(
             id = UUID.randomUUID().toString(),
             senderId = "user-test",
@@ -145,14 +158,13 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.AI_EXCHANGE_NAME, "ai.request", message)
 
-        // Give it more time (up to 10s) because of the simulated 1-3s latency + startup/processing overhead
-        val response = rabbitTemplate.receiveAndConvert(RabbitMQConfig.AI_RESPONSE_QUEUE_NAME, 10000) as? Message
+        // Give it more time (up to 15s)
+        val response = rabbitTemplate.receiveAndConvert(RabbitMQConfig.AI_RESPONSE_QUEUE_NAME, 15000) as? Message
 
         assertNotNull(response, "AI response should not be null")
         assertEquals("ai-bot", response?.senderId)
         assertEquals("user-test", response?.receiverId)
         assertEquals(AuthorType.BOT, response?.authorType)
-        // If mock fails, it will return the test mode response from real generator
-        assertTrue(response?.content?.contains("Mock AI Response") == true || response?.content?.contains("Deterministic mock response") == true)
+        assertEquals("Deterministic mock response. Context found: [Test Context]", response?.content)
     }
 }

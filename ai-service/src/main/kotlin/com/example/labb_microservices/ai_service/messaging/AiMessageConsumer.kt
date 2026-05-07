@@ -59,7 +59,7 @@ class AiMessageConsumer(
                     content.contains("python") -> "VIDEO" to "Python Tutorial"
                     content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
                     content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                    subject.length > 2 && subject.length < 50 -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
+                    subject.length > 2 && subject.length < 50 && rawSubject.firstOrNull()?.isUpperCase() == true -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
                     else -> null to null
                 }
                 
@@ -131,7 +131,7 @@ class AiMessageConsumer(
             }
         }.subscribeOn(Schedulers.boundedElastic())
 
-        Mono.`when`(memoryPipeline, entityProcessing, sentimentProcessing).block(java.time.Duration.ofSeconds(60))
+        Mono.`when`(memoryPipeline, entityProcessing, sentimentProcessing).then().block(java.time.Duration.ofSeconds(60))
     }
 
     private fun sanitizeSubject(subject: String): String {

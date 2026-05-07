@@ -29,6 +29,11 @@ class PersonalizationIntegrationTest : BaseIntegrationTest() {
     @Autowired
     private lateinit var memoryFragmentRepository: MemoryFragmentRepository
 
+    @org.junit.jupiter.api.BeforeEach
+    fun setUp() {
+        memoryFragmentRepository.deleteAll().block(Duration.ofSeconds(5))
+    }
+
     @Test
     fun `AI should reference user interests in response`() {
         val userId = "user-789"

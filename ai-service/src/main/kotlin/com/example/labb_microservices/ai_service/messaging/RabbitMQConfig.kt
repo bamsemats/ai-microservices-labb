@@ -23,10 +23,8 @@ class RabbitMQConfig {
         const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
 
         const val ENTITY_EXCHANGE_NAME = "chat.entity.exchange"
-        const val ENTITY_QUEUE_NAME = "chat.entity.queue"
 
         const val PERSONA_EXCHANGE_NAME = "chat.persona.exchange"
-        const val PERSONA_UPDATE_QUEUE_NAME = "chat.persona.update.queue"
     }
 
     @Bean

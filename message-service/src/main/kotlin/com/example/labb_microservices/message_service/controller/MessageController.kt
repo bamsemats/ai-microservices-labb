@@ -113,16 +113,16 @@ class MessageController(
         if (tokens.isEmpty()) return Flux.empty()
         
         val hashes = tokens.map { encryptionUtils.hash(it) }
-        logger.info("Searching for blind indices: $hashes")
+        logger.info("Searching for blind indices. Token count: ${tokens.size}")
         
-        return messageRepository.findAllBySearchIndicesContainingAll(hashes)
-            .flatMap { encryptedMessage ->
-                ReactiveSecurityContextHolder.getContext()
-                    .flatMap { context ->
-                        val auth = context.authentication
-                        val principal = auth.name
-                        val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
-                        
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMapMany { context ->
+                val auth = context.authentication
+                val principal = auth.name
+                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                
+                messageRepository.findAllBySearchIndicesContainingAll(hashes)
+                    .flatMap { encryptedMessage ->
                         // Check if user is allowed to see this message
                         val isParticipant = encryptedMessage.senderId == principal || encryptedMessage.receiverId == principal || encryptedMessage.receiverId == "all"
                         

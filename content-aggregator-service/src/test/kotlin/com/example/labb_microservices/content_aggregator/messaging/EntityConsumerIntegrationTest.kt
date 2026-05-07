@@ -8,6 +8,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.amqp.core.Binding
+import org.springframework.amqp.core.BindingBuilder
+import org.springframework.amqp.core.FanoutExchange
+import org.springframework.amqp.core.Queue
+import org.springframework.amqp.rabbit.core.RabbitAdmin
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import reactor.test.StepVerifier
 import java.time.Duration
@@ -25,21 +32,21 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
     @Autowired
     private lateinit var redisTemplate: ReactiveRedisTemplate<String, Any>
 
-    @org.springframework.boot.test.context.TestConfiguration
+    @TestConfiguration
     class TestConfig {
-        @org.springframework.context.annotation.Bean
-        fun testContentQueue(): org.springframework.amqp.core.Queue {
-            return org.springframework.amqp.core.Queue("test.content.queue", false)
+        @Bean
+        fun testContentQueue(): Queue {
+            return Queue("test.content.queue", false)
         }
 
-        @org.springframework.context.annotation.Bean
-        fun testContentBinding(testContentQueue: org.springframework.amqp.core.Queue, contentInjectionExchange: org.springframework.amqp.core.FanoutExchange): org.springframework.amqp.core.Binding {
-            return org.springframework.amqp.core.BindingBuilder.bind(testContentQueue).to(contentInjectionExchange)
+        @Bean
+        fun testContentBinding(testContentQueue: Queue, contentInjectionExchange: FanoutExchange): Binding {
+            return BindingBuilder.bind(testContentQueue).to(contentInjectionExchange)
         }
     }
 
     @Autowired
-    private lateinit var rabbitAdmin: org.springframework.amqp.rabbit.core.RabbitAdmin
+    private lateinit var rabbitAdmin: RabbitAdmin
 
     @Test
     fun `should cache content and publish injection event when game is detected`() {
