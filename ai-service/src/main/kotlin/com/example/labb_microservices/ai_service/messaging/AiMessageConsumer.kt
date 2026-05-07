@@ -131,7 +131,7 @@ class AiMessageConsumer(
             }
         }.subscribeOn(Schedulers.boundedElastic())
 
-        Mono.zip(memoryPipeline, entityProcessing, sentimentProcessing).then().block(java.time.Duration.ofSeconds(60))
+        Mono.`when`(memoryPipeline, entityProcessing, sentimentProcessing).block(java.time.Duration.ofSeconds(60))
     }
 
     private fun sanitizeSubject(subject: String): String {
