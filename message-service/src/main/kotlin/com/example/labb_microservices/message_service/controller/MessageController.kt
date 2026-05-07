@@ -112,29 +112,35 @@ class MessageController(
         
         if (tokens.isEmpty()) return Flux.empty()
         
-        val hashes = tokens.map { encryptionUtils.hash(it) }
-        logger.info("Searching for blind indices. Token count: ${tokens.size}")
-        
-        return ReactiveSecurityContextHolder.getContext()
-            .flatMapMany { context ->
-                val auth = context.authentication
-                val principal = auth.name
-                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
-                
-                messageRepository.findAllBySearchIndicesContainingAll(hashes)
-                    .flatMap { encryptedMessage ->
-                        // Check if user is allowed to see this message
-                        val isParticipant = encryptedMessage.senderId == principal || 
-                                           encryptedMessage.receiverId == principal || 
-                                           (encryptedMessage.receiverId == "all" && encryptedMessage.channelId == "global")
-                        
-                        if (isAdmin || isParticipant) {
-                            Mono.just(decryptMessage(encryptedMessage))
-                        } else {
-                            Mono.empty()
+        return Mono.fromCallable { 
+            tokens.map { encryptionUtils.hash(it) } 
+        }
+        .subscribeOn(Schedulers.boundedElastic())
+        .flatMapMany { hashes ->
+            logger.info("Searching for blind indices. Token count: ${tokens.size}")
+            
+            ReactiveSecurityContextHolder.getContext()
+                .flatMapMany { context ->
+                    val auth = context.authentication
+                    val principal = auth.name
+                    val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                    
+                    messageRepository.findAllBySearchIndicesContainingAll(hashes)
+                        .flatMap { encryptedMessage ->
+                            // Check if user is allowed to see this message
+                            val isParticipant = encryptedMessage.senderId == principal || 
+                                               encryptedMessage.receiverId == principal || 
+                                               (encryptedMessage.receiverId == "all" && encryptedMessage.channelId == "global")
+                            
+                            if (isAdmin || isParticipant) {
+                                Mono.fromCallable { decryptMessage(encryptedMessage) }
+                                    .subscribeOn(Schedulers.boundedElastic())
+                            } else {
+                                Mono.empty()
+                            }
                         }
-                    }
-            }
+                }
+        }
     }
 
     companion object {
@@ -185,9 +191,11 @@ class MessageController(
 
                 val query = when {
                     channelId != null -> {
-                        // For simplicity, we allow anyone to see channel transcripts
-                        // In a real app, you'd check channel membership here
-                        messageRepository.findAllByChannelId(channelId)
+                        if (isAdmin) {
+                            messageRepository.findAllByChannelId(channelId)
+                        } else {
+                            Flux.empty()
+                        }
                     }
                     receiverId != null -> {
                         // Principal must be one of the participants
@@ -209,7 +217,10 @@ class MessageController(
                     }
                 }
 
-                query.map { decryptMessage(it) }
+                query.flatMap { encryptedMessage ->
+                    Mono.fromCallable { decryptMessage(encryptedMessage) }
+                        .subscribeOn(Schedulers.boundedElastic())
+                }
             }
     }
 
