@@ -29,7 +29,7 @@ RUN mvn package -pl auth-service -Dmaven.test.skip=true -B
 
 # Run stage
 FROM eclipse-temurin:21-jre
-RUN groupadd -g 1000 appgroup && useradd -u 1000 -g appgroup -s /bin/sh appuser
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -s /bin/sh appuser
 WORKDIR /app
 COPY --from=build /app/auth-service/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app

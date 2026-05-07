@@ -14,7 +14,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
       containers:
       - name: ai-service
         image: ai-service:v1.0.0

@@ -14,7 +14,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
       containers:
       - name: gateway
         image: gateway:v1.0.0

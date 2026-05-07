@@ -14,7 +14,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
       containers:
       - name: user-service
         image: user-service:v1.0.0
