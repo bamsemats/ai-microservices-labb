@@ -51,9 +51,13 @@ export const useWebSocket = () => {
             });
           }
         } else if (data.type === 'CONTENT_INJECTION') {
-          if (data.contentType && data.data) {
+          if (typeof data.contentType === 'string' && data.data !== null && typeof data.data === 'object') {
             console.log('Received Content Injection:', data.contentType);
-            useChatStore.getState().addInjectedContent(data);
+            useChatStore.getState().addInjectedContent({
+              type: 'CONTENT_INJECTION',
+              contentType: data.contentType,
+              data: data.data
+            });
           }
         } else if (data.type === 'AI_STATUS') {
           const status = data.status;
@@ -83,9 +87,9 @@ export const useWebSocket = () => {
           }
         } else {
           const isValidMessage = (m: unknown): m is Message => {
+            if (typeof m !== 'object' || m === null) return false;
             const msg = m as Record<string, unknown>;
-            return !!msg &&
-                   typeof msg.id === 'string' &&
+            return typeof msg.id === 'string' &&
                    typeof msg.senderId === 'string' &&
                    typeof msg.senderName === 'string' &&
                    typeof msg.content === 'string' &&
@@ -109,6 +113,7 @@ export const useWebSocket = () => {
         // Bailing for auth-related codes (1008 or 4xxx custom)
         if (event.code === 1008 || (event.code >= 4000 && event.code < 5000)) {
           console.error('WebSocket closed due to authentication/policy violation. Stopping reconnect.');
+          reconnectAttemptsRef.current = 0;
           if (reconnectTimerRef.current) {
             clearTimeout(reconnectTimerRef.current);
             reconnectTimerRef.current = null;
@@ -117,8 +122,10 @@ export const useWebSocket = () => {
         }
 
         if (mountedRef.current && connectRef.current) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          console.log(`Scheduling reconnect in ${delay}ms (Attempt: ${reconnectAttemptsRef.current + 1})`);
+          const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const jitter = Math.random() * 1000;
+          const delay = baseDelay + jitter;
+          console.log(`Scheduling reconnect in ${Math.round(delay)}ms (Attempt: ${reconnectAttemptsRef.current + 1})`);
           reconnectTimerRef.current = setTimeout(() => {
             reconnectAttemptsRef.current++;
             connectRef.current?.();

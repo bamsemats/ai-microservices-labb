@@ -25,6 +25,10 @@ class RabbitMQConfig {
         const val ENTITY_EXCHANGE_NAME = "chat.entity.exchange"
 
         const val PERSONA_EXCHANGE_NAME = "chat.persona.exchange"
+
+        const val DLX_NAME = "ai.dlx"
+        const val DLQ_NAME = "ai.dlq"
+        const val DLX_ROUTING_KEY = "dead-letter"
     }
 
     @Bean
@@ -49,34 +53,37 @@ class RabbitMQConfig {
 
     @Bean
     fun aiDeadLetterExchange(): DirectExchange =
-        DirectExchange("ai.dlx")
+        DirectExchange(DLX_NAME)
 
     @Bean
     fun aiDeadLetterQueue(): Queue =
-        Queue("ai.dlq", true)
+        Queue(DLQ_NAME, true)
 
     @Bean
     fun aiDeadLetterBinding(aiDeadLetterQueue: Queue, aiDeadLetterExchange: DirectExchange): Binding =
         BindingBuilder.bind(aiDeadLetterQueue)
             .to(aiDeadLetterExchange)
-            .with("dead-letter")
+            .with(DLX_ROUTING_KEY)
 
     @Bean
     fun aiRequestQueue(): Queue =
         QueueBuilder.durable(AI_REQUEST_QUEUE_NAME)
-            .withArgument("x-dead-letter-exchange", "ai.dlx")
-            .withArgument("x-dead-letter-routing-key", "dead-letter")
+            .withArgument("x-dead-letter-exchange", DLX_NAME)
+            .withArgument("x-dead-letter-routing-key", DLX_ROUTING_KEY)
             .build()
 
     @Bean
     fun aiResponseQueue(): Queue =
-        Queue(AI_RESPONSE_QUEUE_NAME, true)
+        QueueBuilder.durable(AI_RESPONSE_QUEUE_NAME)
+            .withArgument("x-dead-letter-exchange", DLX_NAME)
+            .withArgument("x-dead-letter-routing-key", DLX_ROUTING_KEY)
+            .build()
 
     @Bean
     fun sentimentQueue(): Queue =
         QueueBuilder.durable(SENTIMENT_QUEUE_NAME)
-            .withArgument("x-dead-letter-exchange", "ai.dlx")
-            .withArgument("x-dead-letter-routing-key", "dead-letter")
+            .withArgument("x-dead-letter-exchange", DLX_NAME)
+            .withArgument("x-dead-letter-routing-key", DLX_ROUTING_KEY)
             .build()
 
     @Bean

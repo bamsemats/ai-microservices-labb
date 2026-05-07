@@ -124,7 +124,9 @@ class MessageController(
                 messageRepository.findAllBySearchIndicesContainingAll(hashes)
                     .flatMap { encryptedMessage ->
                         // Check if user is allowed to see this message
-                        val isParticipant = encryptedMessage.senderId == principal || encryptedMessage.receiverId == principal || encryptedMessage.receiverId == "all"
+                        val isParticipant = encryptedMessage.senderId == principal || 
+                                           encryptedMessage.receiverId == principal || 
+                                           (encryptedMessage.receiverId == "all" && encryptedMessage.channelId == "global")
                         
                         if (isAdmin || isParticipant) {
                             Mono.just(decryptMessage(encryptedMessage))
