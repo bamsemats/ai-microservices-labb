@@ -50,8 +50,25 @@ class RabbitMQConfig {
         FanoutExchange(ADAPTATION_EXCHANGE_NAME)
 
     @Bean
+    fun aiDeadLetterExchange(): DirectExchange =
+        DirectExchange("ai.dlx")
+
+    @Bean
+    fun aiDeadLetterQueue(): Queue =
+        Queue("ai.dlq", true)
+
+    @Bean
+    fun aiDeadLetterBinding(aiDeadLetterQueue: Queue, aiDeadLetterExchange: DirectExchange): Binding =
+        BindingBuilder.bind(aiDeadLetterQueue)
+            .to(aiDeadLetterExchange)
+            .with("dead-letter")
+
+    @Bean
     fun aiRequestQueue(): Queue =
-        Queue(AI_REQUEST_QUEUE_NAME, true)
+        QueueBuilder.durable(AI_REQUEST_QUEUE_NAME)
+            .withArgument("x-dead-letter-exchange", "ai.dlx")
+            .withArgument("x-dead-letter-routing-key", "dead-letter")
+            .build()
 
     @Bean
     fun aiResponseQueue(): Queue =
@@ -59,15 +76,10 @@ class RabbitMQConfig {
 
     @Bean
     fun sentimentQueue(): Queue =
-        Queue(SENTIMENT_QUEUE_NAME, true)
-
-    @Bean
-    fun entityQueue(): Queue =
-        Queue(ENTITY_QUEUE_NAME, true)
-
-    @Bean
-    fun personaUpdateQueue(): Queue =
-        Queue(PERSONA_UPDATE_QUEUE_NAME, true)
+        QueueBuilder.durable(SENTIMENT_QUEUE_NAME)
+            .withArgument("x-dead-letter-exchange", "ai.dlx")
+            .withArgument("x-dead-letter-routing-key", "dead-letter")
+            .build()
 
     @Bean
     fun aiRequestBinding(
@@ -95,24 +107,6 @@ class RabbitMQConfig {
         BindingBuilder.bind(sentimentQueue)
             .to(storageExchange)
             .with("sentiment")
-
-    @Bean
-    fun entityBinding(
-        entityQueue: Queue,
-        entityExchange: DirectExchange
-    ): Binding =
-        BindingBuilder.bind(entityQueue)
-            .to(entityExchange)
-            .with("entity.detected")
-
-    @Bean
-    fun personaUpdateBinding(
-        personaUpdateQueue: Queue,
-        personaExchange: TopicExchange
-    ): Binding =
-        BindingBuilder.bind(personaUpdateQueue)
-            .to(personaExchange)
-            .with("persona.update")
 
     @Bean
     fun rabbitAdmin(connectionFactory: ConnectionFactory): RabbitAdmin =

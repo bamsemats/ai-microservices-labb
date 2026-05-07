@@ -5,7 +5,6 @@ data class AdaptationEvent(
     val theme: String,
     val intensity: Double? = null,
     val color: String? = null,
-    val primaryColor: String? = null,
     val blurAmount: Double? = null,
     val glassOpacity: Double? = null,
     val glowIntensity: Double? = null,

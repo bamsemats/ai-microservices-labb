@@ -30,18 +30,24 @@ class PersonaUpdateIntegrationTest : BaseIntegrationTest() {
     @Autowired
     private lateinit var userRepository: UserRepository
 
+    @org.junit.jupiter.api.AfterEach
+    fun tearDown() {
+        userRepository.deleteAll().block()
+    }
+
     @Test
     fun `should update user bio when persona update event is received`() {
+        val uniqueId = java.util.UUID.randomUUID().toString()
         val user = User(
-            id = "user-persona-123",
-            username = "personauser",
+            id = uniqueId,
+            username = "personauser_$uniqueId",
             password = "password",
             bio = "Initial bio"
         )
         userRepository.save(user).block()
 
         val event = PersonaUpdateEvent(
-            userId = "user-persona-123",
+            userId = uniqueId,
             category = "TECH_STACK",
             value = "Kotlin"
         )
@@ -49,7 +55,7 @@ class PersonaUpdateIntegrationTest : BaseIntegrationTest() {
         rabbitTemplate.convertAndSend("chat.persona.exchange", "persona.update", event)
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
-            val updatedUser = userRepository.findById("user-persona-123").block()
+            val updatedUser = userRepository.findById(uniqueId).block()
             assertTrue(updatedUser?.bio?.contains("Skills: Kotlin") == true, "Bio should have been updated with Skills: Kotlin")
             assertTrue(updatedUser?.bio?.contains("Initial bio") == true, "Original bio should be preserved")
         }

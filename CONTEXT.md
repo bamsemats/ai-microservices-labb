@@ -29,4 +29,4 @@ The interface between `auth-service` and `user-service` for validating credentia
 The streaming interface between clients and the `message-service`.
 
 ### Analytical Seam (RabbitMQ)
-The asynchronous pipeline where messages are sent for AI processing and content aggregation.
+The asynchronous pipeline where messages are sent for AI processing and content aggregation. This seam has been deepened to carry **Design Tokens** (visual style parameters) calculated by the AI, directly driving the Fluid UI in the frontend.

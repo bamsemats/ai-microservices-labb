@@ -70,7 +70,7 @@ services:
       rabbitmq:
         condition: service_healthy
       jaeger:
-        condition: service_healthy
+        condition: service_started
 
   auth-service:
     build:
@@ -99,7 +99,7 @@ services:
       redis:
         condition: service_healthy
       jaeger:
-        condition: service_healthy
+        condition: service_started
 
   message-service:
     build:
@@ -118,7 +118,7 @@ services:
       - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/message-service.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD}
-      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SECURITY_KEY_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD}
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
       - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
@@ -131,7 +131,7 @@ services:
       rabbitmq:
         condition: service_healthy
       jaeger:
-        condition: service_healthy
+        condition: service_started
       user-service:
         condition: service_started
       redis:
@@ -158,7 +158,7 @@ services:
       message-service:
         condition: service_started
       jaeger:
-        condition: service_healthy
+        condition: service_started
 
   frontend:
     build: ./frontend
@@ -185,7 +185,7 @@ services:
       rabbitmq:
         condition: service_healthy
       jaeger:
-        condition: service_healthy
+        condition: service_started
       mongodb:
         condition: service_healthy
 
@@ -207,13 +207,12 @@ services:
       rabbitmq:
         condition: service_healthy
       jaeger:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
 
   jaeger:
     image: jaegertracing/all-in-one:1.55
-    user: "root"
     ports:
       - "16686:16686" # UI
       - "4317:4317"   # OTLP gRPC

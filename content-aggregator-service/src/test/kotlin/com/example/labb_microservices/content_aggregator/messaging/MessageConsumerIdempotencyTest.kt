@@ -27,8 +27,12 @@ class MessageConsumerIdempotencyTest : BaseIntegrationTest() {
     @Test
     fun `should only increment counters once for the same message ID`() {
         val messageId = UUID.randomUUID().toString()
-        val channelId = "channel-123"
-        val senderId = "user-456"
+        val uniqueId = UUID.randomUUID().toString().take(8)
+        val channelId = "channel-$uniqueId"
+        val senderId = "user-$uniqueId"
+        
+        // Clear Redis state for isolation
+        redisTemplate.execute { it.serverCommands().flushAll() }.blockFirst()
         
         val message = Message(
             id = messageId,

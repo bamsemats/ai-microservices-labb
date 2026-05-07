@@ -29,106 +29,113 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.SENTIMENT_QUEUE_NAME])
     fun processSentimentAnalysis(message: Message) {
-        if (message.authorType == AuthorType.BOT) return // Don't analyze self
+        if (message.authorType == AuthorType.BOT) return
 
         logger.info("Analyzing sentiment and entities for messageId: {}", message.id)
         
-        // Memory Extraction - Non-blocking with timeout
-        memoryWorker.processMessageForMemory(message)
+        // Memory Extraction - Composed into the pipeline
+        val memoryPipeline = memoryWorker.processMessageForMemory(message)
             .timeout(java.time.Duration.ofSeconds(30))
             .subscribeOn(Schedulers.boundedElastic())
             .doOnError { e -> logger.error("Failed to extract memory from message: ${message.id} after timeout or error", e) }
-            .subscribe()
+            .onErrorResume { Mono.empty() } // Don't fail the whole pipeline for memory extraction
 
         val content = message.content.lowercase()
         
         // Entity Extraction
-        val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
-        if (entityTriggerMatch != null) {
-            val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
-            val subject = entityTriggerMatch.groupValues[1].trim()
-            
-            val (type, value) = when {
-                matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
-                content.contains("elden ring") || subject.contains("elden ring") -> "GAME" to "Elden Ring"
-                content.contains("valorant") || subject.contains("valorant") -> "GAME" to "Valorant"
-                content.contains("minecraft") || subject.contains("minecraft") -> "GAME" to "Minecraft"
-                content.contains("react") -> "VIDEO" to "React Tutorial"
-                content.contains("python") -> "VIDEO" to "Python Tutorial"
-                content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
-                content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                subject.length > 2 -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
-                else -> null to null
-            }
-            
-            if (type != null && value != null) {
-                logger.info("Entity detected: $type = $value")
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ENTITY_EXCHANGE_NAME,
-                    "entity.detected",
-                    EntityMessage(
-                        entityType = type,
-                        entityValue = value,
-                        originalMessageId = message.id ?: UUID.randomUUID().toString(),
-                        senderId = message.senderId
+        val entityProcessing = Mono.fromRunnable<Unit> {
+            val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
+            if (entityTriggerMatch != null) {
+                val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
+                val rawSubject = entityTriggerMatch.groupValues[1].trim()
+                val subject = sanitizeSubject(rawSubject)
+                
+                val (type, value) = when {
+                    matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
+                    content.contains("elden ring") || subject.contains("elden ring") -> "GAME" to "Elden Ring"
+                    content.contains("valorant") || subject.contains("valorant") -> "GAME" to "Valorant"
+                    content.contains("minecraft") || subject.contains("minecraft") -> "GAME" to "Minecraft"
+                    content.contains("react") -> "VIDEO" to "React Tutorial"
+                    content.contains("python") -> "VIDEO" to "Python Tutorial"
+                    content.contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
+                    content.contains("lofi") || content.contains("music") -> "VIDEO" to "Lofi Hip Hop"
+                    subject.length > 2 && subject.length < 50 -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
+                    else -> null to null
+                }
+                
+                if (type != null && value != null) {
+                    logger.info("Entity detected: $type = $value")
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.ENTITY_EXCHANGE_NAME,
+                        "entity.detected",
+                        EntityMessage(
+                            entityType = type,
+                            entityValue = value,
+                            originalMessageId = message.id ?: UUID.randomUUID().toString(),
+                            senderId = message.senderId
+                        )
                     )
-                )
+                }
             }
-        }
+        }.subscribeOn(Schedulers.boundedElastic())
 
         // Sentiment Analysis
-        val event = when {
-            content.contains("urgent") || content.contains("critical") || content.contains("help") -> 
-                AdaptationEvent(
-                    theme = "emergency", 
-                    intensity = 0.9, 
-                    glowIntensity = 0.9,
-                    color = "#f43f5e", 
-                    primaryColor = "#f43f5e",
-                    blurAmount = 24.0,
-                    glassOpacity = 0.15
-                )
-            content.contains("happy") || content.contains("great") || content.contains("awesome") -> 
-                AdaptationEvent(
-                    theme = "vibrant", 
-                    intensity = 0.8, 
-                    glowIntensity = 0.8,
-                    color = "#ec4899", 
-                    primaryColor = "#ec4899",
-                    blurAmount = 16.0,
-                    glassOpacity = 0.08
-                )
-            content.contains("calm") || content.contains("relax") || content.contains("sleep") -> 
-                AdaptationEvent(
-                    theme = "zen", 
-                    intensity = 0.2, 
-                    glowIntensity = 0.2,
-                    color = "#06b6d4", 
-                    primaryColor = "#06b6d4",
-                    blurAmount = 8.0,
-                    glassOpacity = 0.02
-                )
-            content.contains("focus") || content.contains("work") -> 
-                AdaptationEvent(
-                    theme = "deep", 
-                    intensity = 0.4, 
-                    glowIntensity = 0.4,
-                    color = "#8b5cf6", 
-                    primaryColor = "#8b5cf6",
-                    blurAmount = 20.0,
-                    glassOpacity = 0.12
-                )
-            else -> null
-        }
+        val sentimentProcessing = Mono.fromRunnable<Unit> {
+            val event = when {
+                Regex("\\b(urgent|critical|help|emergency|911)\\b", RegexOption.IGNORE_CASE).containsMatchIn(content) -> 
+                    AdaptationEvent(
+                        theme = "emergency", 
+                        intensity = 0.9, 
+                        glowIntensity = 0.9,
+                        color = "#f43f5e", 
+                        blurAmount = 24.0,
+                        glassOpacity = 0.15
+                    )
+                Regex("\\b(happy|great|awesome|joy|excited)\\b", RegexOption.IGNORE_CASE).containsMatchIn(content) -> 
+                    AdaptationEvent(
+                        theme = "vibrant", 
+                        intensity = 0.8, 
+                        glowIntensity = 0.8,
+                        color = "#ec4899", 
+                        blurAmount = 16.0,
+                        glassOpacity = 0.08
+                    )
+                Regex("\\b(calm|relax|sleep|peaceful|zen)\\b", RegexOption.IGNORE_CASE).containsMatchIn(content) -> 
+                    AdaptationEvent(
+                        theme = "zen", 
+                        intensity = 0.2, 
+                        glowIntensity = 0.2,
+                        color = "#06b6d4", 
+                        blurAmount = 8.0,
+                        glassOpacity = 0.02
+                    )
+                Regex("\\b(focus|work|study|job|deep)\\b", RegexOption.IGNORE_CASE).containsMatchIn(content) -> 
+                    AdaptationEvent(
+                        theme = "deep", 
+                        intensity = 0.4, 
+                        glowIntensity = 0.4,
+                        color = "#8b5cf6", 
+                        blurAmount = 20.0,
+                        glassOpacity = 0.12
+                    )
+                else -> null
+            }
 
-        event?.let {
-            logger.info("Sentiment detected! Publishing adaptation event: ${it.theme}")
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
-                "",
-                it
-            )
-        }
+            event?.let {
+                logger.info("Sentiment detected! Publishing adaptation event: ${it.theme}")
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                    "",
+                    it
+                )
+            }
+        }.subscribeOn(Schedulers.boundedElastic())
+
+        Mono.zip(memoryPipeline, entityProcessing, sentimentProcessing).then().block(java.time.Duration.ofSeconds(60))
+    }
+
+    private fun sanitizeSubject(subject: String): String {
+        return subject.replace(Regex("(?:\\b(?:at|tonight|am|pm|the|a|an)\\b|\\d{1,2}(?::\\d{2})?)", RegexOption.IGNORE_CASE), "").trim()
     }
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
@@ -140,7 +147,7 @@ class AiMessageConsumer(
         val receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId
 
         // Notify UI that AI is thinking
-        try {
+        val startNotify = Mono.fromRunnable<Unit> {
             rabbitTemplate.convertAndSend(
                 RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
                 "",
@@ -150,13 +157,9 @@ class AiMessageConsumer(
                     userId = message.senderId
                 )
             )
-        } catch (e: Exception) {
-            logger.error("Failed to publish THINKING status", e)
-            readinessIndicator.decrementActiveRequests()
-            throw e
-        }
+        }.subscribeOn(Schedulers.boundedElastic())
 
-        responseGenerator.generateResponse(message)
+        startNotify.thenMany(responseGenerator.generateResponse(message))
             .timeout(java.time.Duration.ofSeconds(60))
             .concatMap { chunk ->
                 Mono.fromRunnable<Unit> {
@@ -210,6 +213,7 @@ class AiMessageConsumer(
                     )
                 }.subscribeOn(Schedulers.boundedElastic())
             }
+            .then()
             .block(java.time.Duration.ofSeconds(70))
     }
 }

@@ -9,7 +9,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **API Gateway**: Entry point for all clients. Handles routing and coarse-grained JWT validation.
 - **Auth Service**: Manages user sessions and issues JWTs upon successful login.
 - **User Service**: Handles user registration and profile management. Provides gRPC endpoints for metadata lookups.
-- **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
+- **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.        
 - **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
@@ -61,18 +61,21 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#43 Adapta-Memory: Fact Extraction**: Persistent preference storage in MongoDB.
 - [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
 - [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
-- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
+- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.       
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
 - [x] **#48 Infrastructure Noise Reduction**: Singleton containers and fast-fail test settings.
 - [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
 - [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
 - [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
+- [ ] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession`.
+- [x] **#53 AI-Driven Design Tokens**: Deepen Analytical Seam by moving design logic to `ai-service`.
+- [x] **#58 Full-Stack Security & Reliability Sweep**: Non-root Docker execution, mTLS hardening, and multi-token search.
 
 ---
 
 ## 🛠 Technology Stack
 
-- **Backend**: Spring Boot 3.4.1, Spring WebFlux (Reactive), Kotlin
+- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin
 - **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS
 - **Messaging**: RabbitMQ, gRPC, WebSockets
 - **Persistence**: MongoDB, Redis
@@ -81,22 +84,21 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 ---
 
-## 🏛 Design Decisions & Trade-offs
+## 🏗 Design Decisions & Trade-offs
+
+### Full-Stack Security & Reliability Sweep
+A comprehensive sweep was performed to harden the system's production readiness:
+- **Non-root Docker images**: All microservices now run as unprivileged users (UID 1000) to mitigate container breakout risks.
+- **Kubernetes Hardening**: Enforced `seccompProfile: RuntimeDefault` across all pods to limit syscall access.
+- **Multi-Token Blind Indexing**: Evolved the search architecture from full-string hashing to tokenized hashing. This allows for rich, multi-word search queries over AES-encrypted content without sacrificing privacy or performance.
+- **Admin-Only Broadcasts**: Enforced strict authorization for system-wide announcements (`receiverId="all"`), preventing unauthorized users from bypassing channel isolation.
+- **Test Isolation & Hermeticity**: Resolved flakiness in the CI/CD pipeline by ensuring deterministic test data (unique IDs), programmatic infrastructure reuse, and explicit queue purging between test runs.
+
+### Deepened Analytical Seam (AI-Driven UI)
+The system has moved from a "Shallow" to a "Deep" Analytical Seam for UI adaptation. Instead of the AI service sending raw sentiment themes for the frontend to interpret, the `ai-service` now calculates and publishes specific **Design Tokens** (primaryColor, blurAmount, glassOpacity, glowIntensity). This allows the UI to evolve its visual language dynamically without requiring frontend redeployments.
 
 ### High-Availability WebSockets (Session-based)
-The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions. This migration resolved critical race conditions in multi-replica deployments.
-
-### Atomic Data Pipelines
-AI-generated responses are now persisted using **atomic MongoDB upserts** ($concat/push). This eliminates race conditions during high-frequency streaming updates where multiple chunks for the same message might otherwise overwrite each other, ensuring the final message content is always complete and consistent.
-
-### Kubernetes Hardening
-Deployments have transitioned to a **Hardened Posture**:
-- **Non-root execution**: All containers run as UID 1000 to minimize host-level exposure.
-- **Immutable Infrastructure**: Read-only root filesystems are enforced, with writable `/tmp` provided via `emptyDir` volumes for Spring Boot temp files.
-- **Privilege Reduction**: All Linux capabilities are dropped (`ALL`), and `allowPrivilegeEscalation` is disabled.
-
-### Decoupled Observability
-Observability (Actuator, Micrometer, Tracing) has been extracted from `common-security` into its own `common-observability` module. This prevents "dependency bloat" and ensures that security primitives can be evolved independently from the monitoring stack.
+The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions.
 
 ---
 
@@ -106,7 +108,7 @@ Observability (Actuator, Micrometer, Tracing) has been extracted from `common-se
 
 ---
 
-## 🏃 How to Run
+## 🏁 How to Run
 
 ### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
 ```bash

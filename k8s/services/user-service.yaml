@@ -25,6 +25,8 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         ports:
         - containerPort: 8082
         - containerPort: 9090
@@ -64,12 +66,38 @@ spec:
               key: encryption-secret
         - name: SPRING_DATA_MONGODB_URI
           value: mongodb://mongodb:27017/userdb
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: SPRING_RABBITMQ_HOST
+          value: rabbitmq
+        - name: GRPC_SERVER_SECURITY_ENABLED
+          value: "true"
+        - name: GRPC_SERVER_SECURITY_KEYSTORE_PATH
+          value: /app/certs/user-service.jks
+        - name: GRPC_SERVER_SECURITY_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-keystore-password
+        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PATH
+          value: /app/certs/truststore.jks
+        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-truststore-password
         volumeMounts:
         - name: tmp-volume
           mountPath: /tmp
+        - name: certs-volume
+          mountPath: /app/certs
+          readOnly: true
       volumes:
       - name: tmp-volume
         emptyDir: {}
+      - name: certs-volume
+        secret:
+          secretName: user-service-certs
 ---
 apiVersion: v1
 kind: Service

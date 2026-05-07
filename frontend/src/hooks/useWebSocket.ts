@@ -65,15 +65,17 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'PRESENCE_UPDATE') {
           const { userId, username, status } = data;
+          const normalizedStatus = (status || '').toString().toUpperCase();
           const statusMap: Record<string, PresenceStatus> = {
-            'online': 'ONLINE',
-            'offline': 'OFFLINE',
-            'away': 'AWAY',
-            'busy': 'DND'
+            'ONLINE': 'ONLINE',
+            'OFFLINE': 'OFFLINE',
+            'AWAY': 'AWAY',
+            'DND': 'DND',
+            'BUSY': 'DND'
           };
-          if (typeof userId === 'string' && typeof username === 'string' && status in statusMap) {
-            console.log('Received Presence Update:', userId, status);
-            setPresence(userId, username, statusMap[status]);
+          if (typeof userId === 'string' && typeof username === 'string' && normalizedStatus in statusMap) {
+            console.log('Received Presence Update:', userId, normalizedStatus);
+            setPresence(userId, username, statusMap[normalizedStatus]);
           }
         } else {
           const isValidMessage = (m: unknown): m is Message => {

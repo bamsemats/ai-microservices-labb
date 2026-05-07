@@ -51,8 +51,15 @@ class MessageController(
         @RequestHeader("X-Adapta-Test-Mode", required = false) testMode: String?
     ): Mono<String> {
         return ReactiveSecurityContextHolder.getContext()
-            .map { it.authentication.name }
-            .flatMap { senderId ->
+            .flatMap { context ->
+                val auth = context.authentication
+                val senderId = auth.name
+                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                
+                if (request.receiverId == "all" && !isAdmin) {
+                    return@flatMap Mono.error<String>(AccessDeniedException("Only admins can send broadcast messages"))
+                }
+
                 Mono.fromCallable {
                     val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
                     val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
@@ -99,19 +106,32 @@ class MessageController(
     fun searchMessages(@RequestParam q: String): Flux<Message> {
         if (q.isBlank() || q.length < 2) return Flux.empty()
         
-        val searchHash = encryptionUtils.hash(q.lowercase().trim())
-        logger.info("Searching for blind index: $searchHash")
+        val tokens = q.lowercase()
+            .split(Regex("[^\\p{L}\\p{N}]+"))
+            .filter { it.isNotBlank() && it.length > 1 }
         
-        return messageRepository.findAllBySearchIndicesContaining(searchHash)
-            .map { encryptedMessage ->
-                try {
-                    encryptedMessage.copy(
-                        content = encryptionUtils.decrypt(encryptedMessage.content)
-                    )
-                } catch (e: Exception) {
-                    logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
-                    encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
-                }
+        if (tokens.isEmpty()) return Flux.empty()
+        
+        val hashes = tokens.map { encryptionUtils.hash(it) }
+        logger.info("Searching for blind indices: $hashes")
+        
+        return messageRepository.findAllBySearchIndicesContainingAll(hashes)
+            .flatMap { encryptedMessage ->
+                ReactiveSecurityContextHolder.getContext()
+                    .flatMap { context ->
+                        val auth = context.authentication
+                        val principal = auth.name
+                        val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                        
+                        // Check if user is allowed to see this message
+                        val isParticipant = encryptedMessage.senderId == principal || encryptedMessage.receiverId == principal || encryptedMessage.receiverId == "all"
+                        
+                        if (isAdmin || isParticipant) {
+                            Mono.just(decryptMessage(encryptedMessage))
+                        } else {
+                            Mono.empty()
+                        }
+                    }
             }
     }
 
@@ -155,26 +175,50 @@ class MessageController(
         @RequestParam(required = false) receiverId: String?,
         @RequestParam(required = false) channelId: String?
     ): Flux<Message> {
-        val query = if (channelId != null) {
-            messageRepository.findAllByChannelId(channelId)
-        } else if (receiverId != null) {
-            // For DM, we want messages where (sender=me AND receiver=them) OR (sender=them AND receiver=me)
-            // But for simplicity of the repo method, we'll just filter after fetching by receiverId OR senderId
-            // Actually, findByReceiverIdOrSenderId(receiverId, receiverId) should work if receiverId is the peer
-            messageRepository.findAllByReceiverIdOrSenderId(receiverId, receiverId)
-        } else {
-            messageRepository.findAll()
-        }
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMapMany { context ->
+                val auth = context.authentication
+                val principal = auth.name
+                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
 
-        return query.map { encryptedMessage ->
-            try {
-                encryptedMessage.copy(
-                    content = encryptionUtils.decrypt(encryptedMessage.content)
-                )
-            } catch (e: Exception) {
-                logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
-                encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
+                val query = when {
+                    channelId != null -> {
+                        // For simplicity, we allow anyone to see channel transcripts
+                        // In a real app, you'd check channel membership here
+                        messageRepository.findAllByChannelId(channelId)
+                    }
+                    receiverId != null -> {
+                        // Principal must be one of the participants
+                        if (receiverId == principal) {
+                            messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
+                        } else {
+                            // Find DMs between principal and receiverId
+                            messageRepository.findAllBySenderIdAndReceiverId(principal, receiverId)
+                                .mergeWith(messageRepository.findAllBySenderIdAndReceiverId(receiverId, principal))
+                        }
+                    }
+                    isAdmin -> {
+                        messageRepository.findAll()
+                    }
+                    else -> {
+                        // Non-admins can only see messages they are part of
+                        messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
+                            .mergeWith(messageRepository.findAllByReceiverId("all"))
+                    }
+                }
+
+                query.map { decryptMessage(it) }
             }
+    }
+
+    private fun decryptMessage(encryptedMessage: Message): Message {
+        return try {
+            encryptedMessage.copy(
+                content = encryptionUtils.decrypt(encryptedMessage.content)
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
+            encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
         }
     }
 

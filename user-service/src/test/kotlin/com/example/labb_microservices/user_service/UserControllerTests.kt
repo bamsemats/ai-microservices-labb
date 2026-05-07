@@ -32,19 +32,24 @@ class UserControllerTests : BaseIntegrationTest() {
     @Autowired
     private lateinit var context: ApplicationContext
 
+    @Autowired
+    private lateinit var userRepository: com.example.labb_microservices.user_service.repository.UserRepository
+
     private lateinit var webTestClient: WebTestClient
 
     @BeforeEach
     fun setUp() {
         webTestClient = WebTestClient.bindToApplicationContext(context).build()
+        userRepository.deleteAll().block()
     }
 
     @Test
     fun `should register a new user`() {
+        val uniqueId = UUID.randomUUID().toString().take(8)
         val registrationRequest = mapOf(
-            "username" to "testuser_" + UUID.randomUUID().toString().take(8),
+            "username" to "testuser_$uniqueId",
             "password" to "testpassword",
-            "email" to "test@example.com"
+            "email" to "test_$uniqueId@example.com"
         )
 
         webTestClient.post()
@@ -72,7 +77,6 @@ class UserControllerTests : BaseIntegrationTest() {
         val userId = "test-user-id"
         
         // Register user first so they exist in DB
-        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
         userRepository.save(com.example.labb_microservices.user_service.model.User(
             id = userId,
             username = username,
@@ -104,7 +108,6 @@ class UserControllerTests : BaseIntegrationTest() {
         val username = "profileuser"
         
         // Register user first
-        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
         userRepository.save(com.example.labb_microservices.user_service.model.User(
             id = userId,
             username = username,
@@ -157,8 +160,9 @@ class UserControllerTests : BaseIntegrationTest() {
 
     @Test
     fun `should register user with encrypted email and return decrypted email`() {
-        val username = "testuser_" + UUID.randomUUID().toString().take(8)
-        val email = "test@example.com"
+        val uniqueId = UUID.randomUUID().toString().take(8)
+        val username = "testuser_$uniqueId"
+        val email = "test_$uniqueId@example.com"
         val registrationRequest = mapOf(
             "username" to username,
             "password" to "testpassword",
@@ -179,7 +183,6 @@ class UserControllerTests : BaseIntegrationTest() {
         org.junit.jupiter.api.Assertions.assertEquals(email, response["email"])
         
         // Verify database has encrypted email (we can check via repository directly)
-        val userRepository = context.getBean(com.example.labb_microservices.user_service.repository.UserRepository::class.java)
         val userId = response["id"] as String
         
         // We use stepVerifier because it's reactive

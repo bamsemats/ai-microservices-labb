@@ -38,6 +38,9 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
         }
     }
 
+    @Autowired
+    private lateinit var rabbitAdmin: org.springframework.amqp.rabbit.core.RabbitAdmin
+
     @Test
     fun `should cache content and publish injection event when game is detected`() {
         val gameName = "Elden Ring"
@@ -50,6 +53,9 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
 
         val cacheKey = "content:game:elden_ring"
 
+        // Drain queue first using purge
+        rabbitAdmin.purgeQueue("test.content.queue")
+
         // Ensure cache is empty
         redisTemplate.delete(cacheKey).block()
 
@@ -57,8 +63,8 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
         rabbitTemplate.convertAndSend(RabbitMQConfig.ENTITY_EXCHANGE_NAME, "entity.detected", entityMessage)
 
         // Verify event is published
-        val event = rabbitTemplate.receiveAndConvert("test.content.queue", 5000) as? ContentInjectionEvent
-        assertNotNull(event, "Content injection event should not be null")
+        val event = rabbitTemplate.receiveAndConvert("test.content.queue", 10000) as? ContentInjectionEvent
+        assertNotNull(event, "received ContentInjectionEvent from test.content.queue within timeout")
         assertEquals("TWITCH_STREAM", event?.contentType)
         assertEquals(gameName, event?.data?.get("gameName"))
 

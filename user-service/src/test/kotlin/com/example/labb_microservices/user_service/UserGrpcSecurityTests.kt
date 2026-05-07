@@ -16,16 +16,20 @@ import org.springframework.test.context.DynamicPropertySource
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=9090"
+    "grpc.server.port=0"
 ])
 @DirtiesContext
 class UserGrpcSecurityTests : BaseIntegrationTest() {
 
     companion object {
+        private var dynamicGrpcPort: Int = 0
 
         @JvmStatic
         @DynamicPropertySource
         fun registerGrpcProperties(registry: DynamicPropertyRegistry) {
+            dynamicGrpcPort = java.net.ServerSocket(0).use { it.localPort }
+            registry.add("grpc.server.port") { dynamicGrpcPort }
+
             val certsDir = findCertsDir(java.nio.file.Paths.get(".").toAbsolutePath())
             val trustStorePath = "file:${certsDir.resolve("truststore.jks")}"
             val userServiceKeystorePath = "file:${certsDir.resolve("user-service.jks")}"
@@ -43,7 +47,7 @@ class UserGrpcSecurityTests : BaseIntegrationTest() {
             registry.add("grpc.server.security.client-auth") { "REQUIRE" }
 
             // Secure Client
-            registry.add("grpc.client.secure-client.address") { "static://localhost:9090" }
+            registry.add("grpc.client.secure-client.address") { "static://localhost:$dynamicGrpcPort" }
             registry.add("grpc.client.secure-client.negotiation-type") { "TLS" }
             registry.add("grpc.client.secure-client.security.enabled") { "true" }
             registry.add("grpc.client.secure-client.security.client-auth-enabled") { "true" }
@@ -56,7 +60,7 @@ class UserGrpcSecurityTests : BaseIntegrationTest() {
             registry.add("grpc.client.secure-client.security.trust-store-password") { "password" }
 
             // Insecure Client
-            registry.add("grpc.client.insecure-client.address") { "static://localhost:9090" }
+            registry.add("grpc.client.insecure-client.address") { "static://localhost:$dynamicGrpcPort" }
             registry.add("grpc.client.insecure-client.negotiation-type") { "TLS" }
             registry.add("grpc.client.insecure-client.security.enabled") { "true" }
             registry.add("grpc.client.insecure-client.security.client-auth-enabled") { "false" }
@@ -66,6 +70,20 @@ class UserGrpcSecurityTests : BaseIntegrationTest() {
         }
 
         private fun findCertsDir(start: java.nio.file.Path): java.nio.file.Path {
+            // 1. Try classpath/resource
+            val resource = this::class.java.classLoader.getResource("certs")
+            if (resource != null) {
+                return java.nio.file.Paths.get(resource.toURI())
+            }
+
+            // 2. Try system property
+            val baseDir = System.getProperty("project.basedir") ?: System.getProperty("MAVEN_PROJECT_DIR")
+            if (baseDir != null) {
+                val candidate = java.nio.file.Paths.get(baseDir).resolve("certs")
+                if (java.nio.file.Files.exists(candidate)) return candidate
+            }
+
+            // 3. Fallback to upward traversal
             var curr: java.nio.file.Path? = start
             while (curr != null) {
                 val candidate = curr.resolve("certs")

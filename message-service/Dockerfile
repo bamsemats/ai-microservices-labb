@@ -19,15 +19,18 @@ RUN mvn install -N -B
 COPY proto/src proto/src
 COPY common-security/src common-security/src
 COPY common-observability/src common-observability/src
-RUN mvn install -pl proto,common-security,common-observability -DskipTests -B
+RUN mvn install -pl proto,common-security,common-observability -Dmaven.test.skip=true -B
 
 # Build the service
 COPY message-service/src message-service/src
-RUN mvn package -pl message-service -DskipTests -B
+RUN mvn package -pl message-service -Dmaven.test.skip=true -B
 
 # Run stage
 FROM eclipse-temurin:21-jre
+RUN groupadd -g 1000 appgroup && useradd -u 1000 -g appgroup -s /bin/sh appuser
 WORKDIR /app
 COPY --from=build /app/message-service/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
+USER appuser
 EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "app.jar"]

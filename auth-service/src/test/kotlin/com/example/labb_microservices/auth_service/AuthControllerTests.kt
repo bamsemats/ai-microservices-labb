@@ -15,6 +15,10 @@ import org.springframework.context.ApplicationContext
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 
+import com.example.labb_microservices.auth_service.controller.LoginResponse
+import com.example.labb_microservices.auth_service.service.RefreshTokenService
+import java.util.UUID
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
@@ -25,6 +29,9 @@ class AuthControllerTests : BaseIntegrationTest() {
     @Autowired
     private lateinit var context: ApplicationContext
 
+    @Autowired
+    private lateinit var refreshTokenService: RefreshTokenService
+
     private lateinit var webTestClient: WebTestClient
 
     @MockitoBean
@@ -33,14 +40,18 @@ class AuthControllerTests : BaseIntegrationTest() {
     @BeforeEach
     fun setUp() {
         webTestClient = WebTestClient.bindToApplicationContext(context).build()
+        // Clear Redis state for isolation
+        val redisTemplate = context.getBean("reactiveStringRedisTemplate") as org.springframework.data.redis.core.ReactiveStringRedisTemplate
+        redisTemplate.execute { it.serverCommands().flushAll() }.blockFirst()
     }
 
     @Test
     fun `should login and return jwt`() {
+        val userId = UUID.randomUUID().toString()
         val loginRequest = LoginRequest("testuser", "testpassword")
         val grpcResponse = CredentialsResponse.newBuilder()
             .setValid(true)
-            .setUserId("123")
+            .setUserId(userId)
             .setUsername("testuser")
             .build()
 
@@ -56,16 +67,17 @@ class AuthControllerTests : BaseIntegrationTest() {
             .expectBody()
             .jsonPath("$.accessToken").exists()
             .jsonPath("$.refreshToken").exists()
-            .jsonPath("$.userId").isEqualTo("123")
+            .jsonPath("$.userId").isEqualTo(userId)
             .jsonPath("$.username").isEqualTo("testuser")
     }
 
     @Test
     fun `should refresh token`() {
+        val userId = UUID.randomUUID().toString()
         val loginRequest = LoginRequest("testuser", "testpassword")
         val grpcResponse = CredentialsResponse.newBuilder()
             .setValid(true)
-            .setUserId("123")
+            .setUserId(userId)
             .setUsername("testuser")
             .build()
 
@@ -78,12 +90,11 @@ class AuthControllerTests : BaseIntegrationTest() {
             .bodyValue(loginRequest)
             .exchange()
             .expectStatus().isOk
-            .expectBody(Map::class.java)
+            .expectBody(LoginResponse::class.java)
             .returnResult()
             .responseBody!!
 
-        val refreshToken = loginResponse["refreshToken"] as String
-        val userId = loginResponse["userId"] as String
+        val refreshToken = loginResponse.refreshToken
 
         val refreshRequest = mapOf("userId" to userId, "refreshToken" to refreshToken)
 
@@ -100,10 +111,11 @@ class AuthControllerTests : BaseIntegrationTest() {
 
     @Test
     fun `should logout and invalidate refresh token`() {
+        val userId = UUID.randomUUID().toString()
         val loginRequest = LoginRequest("testuser", "testpassword")
         val grpcResponse = CredentialsResponse.newBuilder()
             .setValid(true)
-            .setUserId("123")
+            .setUserId(userId)
             .setUsername("testuser")
             .build()
 
@@ -116,13 +128,11 @@ class AuthControllerTests : BaseIntegrationTest() {
             .bodyValue(loginRequest)
             .exchange()
             .expectStatus().isOk
-            .expectBody(Map::class.java)
+            .expectBody(LoginResponse::class.java)
             .returnResult()
             .responseBody!!
 
-        val accessToken = loginResponse["accessToken"] as String
-        val refreshToken = loginResponse["refreshToken"] as String
-        val userId = loginResponse["userId"] as String
+        val refreshToken = loginResponse.refreshToken
 
         // Logout
         val logoutRequest = mapOf("userId" to userId, "refreshToken" to refreshToken)

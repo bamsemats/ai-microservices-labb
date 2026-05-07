@@ -9,6 +9,11 @@ const isValidColor = (color: string) => {
   return s.color !== '';
 };
 
+const safeNum = (val: any, fallback: number, min = 0, max = 100) => {
+  const n = typeof val === 'string' ? parseFloat(val) : val;
+  return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
+};
+
 export const useUIAdaptation = () => {
   const { currentTheme } = useUIStore();
   const controlsRef = useRef<AnimationPlaybackControls[]>([]);
@@ -21,14 +26,20 @@ export const useUIAdaptation = () => {
     controlsRef.current = [];
 
     // Animate Glow Intensity
-    const targetGlow = currentTheme.glowIntensity ?? currentTheme.intensity;
+    const currentGlow = safeNum(getComputedStyle(root).getPropertyValue('--accent-glow-intensity'), 0.5, 0, 1);
+    const targetGlow = safeNum(currentTheme.glowIntensity ?? currentTheme.intensity, 0.5, 0, 1);
+    
     const intensityAnim = animate(
-      parseFloat(getComputedStyle(root).getPropertyValue('--accent-glow-intensity') || "0.5"),
+      currentGlow,
       targetGlow,
       {
         duration: 0.8,
         ease: [0.4, 0, 0.2, 1],
-        onUpdate: (latest) => root.style.setProperty('--accent-glow-intensity', latest.toFixed(3))
+        onUpdate: (latest) => {
+          if (Number.isFinite(latest)) {
+            root.style.setProperty('--accent-glow-intensity', latest.toFixed(3));
+          }
+        }
       }
     );
     controlsRef.current.push(intensityAnim);
@@ -53,46 +64,56 @@ export const useUIAdaptation = () => {
     }
     
     // Animate Blur and Opacity
-    let targetBlur = currentTheme.blurAmount;
-    let targetOpacity = currentTheme.glassOpacity;
+    let targetBlurRaw = currentTheme.blurAmount;
+    let targetOpacityRaw = currentTheme.glassOpacity;
 
     // Fallback for old themes if tokens are missing
-    if (targetBlur === undefined || targetOpacity === undefined) {
+    if (targetBlurRaw === undefined || targetOpacityRaw === undefined) {
       switch (currentTheme.theme) {
         case 'emergency':
-          targetBlur = targetBlur ?? 24;
-          targetOpacity = targetOpacity ?? 0.15;
+          targetBlurRaw = targetBlurRaw ?? 24;
+          targetOpacityRaw = targetOpacityRaw ?? 0.15;
           break;
         case 'zen':
-          targetBlur = targetBlur ?? 8;
-          targetOpacity = targetOpacity ?? 0.02;
+          targetBlurRaw = targetBlurRaw ?? 8;
+          targetOpacityRaw = targetOpacityRaw ?? 0.02;
           break;
         case 'vibrant':
-          targetBlur = targetBlur ?? 16;
-          targetOpacity = targetOpacity ?? 0.08;
+          targetBlurRaw = targetBlurRaw ?? 16;
+          targetOpacityRaw = targetOpacityRaw ?? 0.08;
           break;
         case 'deep':
-          targetBlur = targetBlur ?? 20;
-          targetOpacity = targetOpacity ?? 0.12;
+          targetBlurRaw = targetBlurRaw ?? 20;
+          targetOpacityRaw = targetOpacityRaw ?? 0.12;
           break;
         default:
-          targetBlur = targetBlur ?? 12;
-          targetOpacity = targetOpacity ?? 0.05;
+          targetBlurRaw = targetBlurRaw ?? 12;
+          targetOpacityRaw = targetOpacityRaw ?? 0.05;
       }
     }
 
-    const currentBlur = parseFloat(getComputedStyle(root).getPropertyValue('--glass-blur-amount') || "12px");
+    const currentBlur = safeNum(getComputedStyle(root).getPropertyValue('--glass-blur-amount'), 12, 0, 100);
+    const targetBlur = safeNum(targetBlurRaw, 12, 0, 100);
     const blurAnim = animate(currentBlur, targetBlur, {
       duration: 1.0,
       ease: "backOut",
-      onUpdate: (latest) => root.style.setProperty('--glass-blur-amount', `${latest.toFixed(1)}px`)
+      onUpdate: (latest) => {
+        if (Number.isFinite(latest)) {
+          root.style.setProperty('--glass-blur-amount', `${latest.toFixed(1)}px`);
+        }
+      }
     });
     controlsRef.current.push(blurAnim);
 
-    const currentOpacity = parseFloat(getComputedStyle(root).getPropertyValue('--glass-opacity') || "0.05");
+    const currentOpacity = safeNum(getComputedStyle(root).getPropertyValue('--glass-opacity'), 0.05, 0, 1);
+    const targetOpacity = safeNum(targetOpacityRaw, 0.05, 0, 1);
     const opacityAnim = animate(currentOpacity, targetOpacity, {
       duration: 1.0,
-      onUpdate: (latest) => root.style.setProperty('--glass-opacity', latest.toFixed(3))
+      onUpdate: (latest) => {
+        if (Number.isFinite(latest)) {
+          root.style.setProperty('--glass-opacity', latest.toFixed(3));
+        }
+      }
     });
     controlsRef.current.push(opacityAnim);
 

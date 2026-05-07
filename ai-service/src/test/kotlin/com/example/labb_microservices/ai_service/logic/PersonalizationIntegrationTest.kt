@@ -15,10 +15,13 @@ import org.springframework.context.annotation.Import
 import reactor.test.StepVerifier
 import java.time.Duration
 import java.util.*
+import org.slf4j.LoggerFactory
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Import(RabbitMQConfig::class)
 class PersonalizationIntegrationTest : BaseIntegrationTest() {
+
+    private val logger = LoggerFactory.getLogger(PersonalizationIntegrationTest::class.java)
 
     @Autowired
     private lateinit var responseGenerator: ResponseGenerator
@@ -53,7 +56,7 @@ class PersonalizationIntegrationTest : BaseIntegrationTest() {
 
         StepVerifier.create(responseGenerator.generateResponse(message))
             .assertNext { response ->
-                println("AI Response: $response")
+                logger.info("AI Response: {}", response)
                 assertTrue(response.contains("React"), "Response should have mentioned React")
             }
             .expectComplete()

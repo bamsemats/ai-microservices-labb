@@ -17,12 +17,19 @@ object SingletonContainers {
     }
 
     val redisContainer: GenericContainer<*> by lazy {
-        GenericContainer("redis:7.2")
-            .withExposedPorts(6379)
-            .withReuse(true)
+        GenericContainer<Nothing>("redis:7.2")
+            .apply {
+                withExposedPorts(6379)
+                withReuse(true)
+            }
     }
 
     fun startAll() {
+        // Enable reuse programmatically if not already set
+        if (System.getProperty("testcontainers.reuse.enable") == null) {
+            System.setProperty("testcontainers.reuse.enable", "true")
+        }
+        
         Startables.deepStart(mongoDBContainer, rabbitMQContainer, redisContainer).join()
     }
 }

@@ -97,7 +97,10 @@ class MessageConsumer(
             .setOnInsert("timestamp", message.timestamp)
             .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
             .push("contentChunks", encryptedContent)
-            .addToSet("searchIndices").each(*hashes.toTypedArray())
+        
+        if (hashes.isNotEmpty()) {
+            update.addToSet("searchIndices").each(*hashes.toTypedArray())
+        }
         
         // Block to ensure persistence before delivery for consistency
         mongoTemplate.upsert(query, update, Message::class.java).block()

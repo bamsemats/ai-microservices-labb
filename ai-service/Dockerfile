@@ -15,20 +15,22 @@ COPY ai-service/pom.xml ai-service/
 COPY content-aggregator-service/pom.xml content-aggregator-service/
 
 # Install parent and shared modules
-RUN mvn install -N -B
+RUN --mount=type=cache,target=/root/.m2 mvn install -N -B -Dmaven.repo.local=/root/.m2
 COPY proto/src proto/src
 COPY common-security/src common-security/src
-RUN mvn install -pl proto,common-security,common-observability -DskipTests -B
+COPY common-observability/src common-observability/src
+RUN --mount=type=cache,target=/root/.m2 mvn install -pl proto,common-security,common-observability -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
 
 # Build the service
 COPY ai-service/src ai-service/src
-RUN mvn package -pl ai-service -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2 mvn package -pl ai-service -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
 
 # Run stage
 FROM eclipse-temurin:21-jre
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+RUN groupadd -g 1000 appgroup && useradd -u 1000 -g appgroup -s /bin/sh appuser
 WORKDIR /app
-COPY --from=build --chown=appuser:appgroup /app/ai-service/target/*.jar app.jar
+COPY --from=build /app/ai-service/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8084
 ENTRYPOINT ["java", "-jar", "app.jar"]

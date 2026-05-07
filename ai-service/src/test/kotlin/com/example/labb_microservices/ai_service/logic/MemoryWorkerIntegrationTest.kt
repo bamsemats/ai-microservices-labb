@@ -40,6 +40,8 @@ class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `should extract and save memory fragments from message`() {
+        memoryFragmentRepository.deleteAll().block(java.time.Duration.ofSeconds(5))
+        
         val message = Message(
             id = UUID.randomUUID().toString(),
             senderId = "user123",

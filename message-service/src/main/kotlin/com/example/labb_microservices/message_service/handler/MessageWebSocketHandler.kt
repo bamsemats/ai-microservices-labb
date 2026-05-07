@@ -23,12 +23,13 @@ import org.springframework.beans.factory.annotation.Value
 class MessageWebSocketHandler(
     private val jwtTokenValidator: JwtTokenValidator,
     private val userGrpcClient: UserGrpcClient,
-    private val presenceService: PresenceService
+    private val presenceService: PresenceService,
+    private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper
 ) : WebSocketHandler {
 
     private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
 
-    val policyViolations = java.util.concurrent.atomic.AtomicInteger(0)
+    internal val policyViolations = java.util.concurrent.atomic.AtomicInteger(0)
 
     @Value("\${auth.cache.ttl:60}")
     private var cacheTtlSeconds: Long = 60
@@ -36,7 +37,6 @@ class MessageWebSocketHandler(
     @Value("\${auth.validation.interval:10}")
     private var validationIntervalSeconds: Long = 10
 
-    private val objectMapper = com.fasterxml.jackson.databind.ObjectMapper()
     private val sessionSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
     private val sessionChannels = ConcurrentHashMap<String, String>()
     private val sessionTokens = ConcurrentHashMap<String, String>()

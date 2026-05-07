@@ -42,7 +42,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(username = "user1")
     fun `should encrypt message and find it via blind index search`() {
         val originalContent = "The quick brown fox jumps over the lazy dog"
         val message = Message(
@@ -99,7 +99,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(username = "user1")
     fun `should encrypt AI response and find it via blind index search`() {
         val originalChunk = "This is an AI response"
         val message = Message(

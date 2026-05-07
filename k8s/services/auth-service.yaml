@@ -75,7 +75,7 @@ spec:
               name: adapta-secrets
               key: redis-password
         - name: SPRING_DATA_REDIS_SSL
-          value: "true"
+          value: "false"
         volumeMounts:
         - name: tmp-volume
           mountPath: /tmp
