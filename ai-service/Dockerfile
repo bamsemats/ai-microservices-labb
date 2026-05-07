@@ -7,6 +7,7 @@ COPY pom.xml .
 COPY proto/pom.xml proto/
 COPY common-security/pom.xml common-security/
 COPY common-observability/pom.xml common-observability/
+COPY common-test/pom.xml common-test/
 COPY gateway/pom.xml gateway/
 COPY auth-service/pom.xml auth-service/
 COPY user-service/pom.xml user-service/
