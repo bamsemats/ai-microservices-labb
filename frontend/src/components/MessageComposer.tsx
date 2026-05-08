@@ -42,14 +42,17 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             className="ai-suggestions-bar"
+            role="group"
+            aria-label="AI message suggestions"
           >
             {AI_SUGGESTIONS.map((suggestion, index) => (
               <button 
                 key={index} 
                 className="suggestion-chip"
                 onClick={() => handleSuggestionClick(suggestion)}
+                aria-label={`Use suggestion: ${suggestion}`}
               >
-                <span className="sparkle">✨</span> {suggestion}
+                <span className="sparkle" aria-hidden="true">✨</span> {suggestion}
               </button>
             ))}
           </motion.div>
@@ -59,6 +62,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, 
       <form 
         className={`composer-form ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`} 
         onSubmit={handleSubmit}
+        role="search"
+        aria-label="Message composer"
       >
         <div className="input-wrapper glass-panel">
           <input
@@ -69,6 +74,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, 
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             disabled={disabled}
+            aria-label="Message content"
+            aria-required="true"
           />
           <button 
             type="submit" 

@@ -166,6 +166,7 @@ class AiMessageConsumer(
                     val aiChunk = Message(
                         id = responseId,
                         senderId = "ai-bot",
+                        senderName = "AdaptaChat AI",
                         receiverId = receiverId,
                         channelId = message.channelId,
                         content = chunk,

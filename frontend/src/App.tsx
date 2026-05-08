@@ -6,7 +6,9 @@ import RegisterPage from './pages/RegisterPage';
 import ChatPage from './pages/ChatPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import InsightsPage from './pages/InsightsPage';
+import ProfilePage from './pages/ProfilePage';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -17,6 +19,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 function App() {
   useUIAdaptation();
+  useKeyboardShortcuts();
   const initialize = useAuthStore((state) => state.initialize);
 
   React.useEffect(() => {
@@ -50,6 +53,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InsightsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             } 
           />

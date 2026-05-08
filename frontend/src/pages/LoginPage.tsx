@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuthStore } from '../store/useAuthStore';
 import logoWithName from '../assets/logo-with-name.png';
@@ -52,9 +52,18 @@ const LoginPage: React.FC = () => {
           />
         </div>
         <button className="lumina-button" type="submit">Login</button>
-        <p>
-          Don't have an account? <Link to="/register">Register here</Link>
-        </p>
+        
+        <div className="auth-footer">
+          <p>Don't have an account?</p>
+          <button 
+            type="button" 
+            className="lumina-button secondary" 
+            onClick={() => navigate('/register')}
+            style={{ width: '100%', marginTop: '0.5rem' }}
+          >
+            Create New Account
+          </button>
+        </div>
       </form>
     </div>
   );

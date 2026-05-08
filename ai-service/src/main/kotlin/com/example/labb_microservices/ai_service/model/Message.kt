@@ -8,6 +8,7 @@ enum class AuthorType { USER, BOT }
 data class Message(
     val id: String? = null,
     val senderId: String,
+    val senderName: String? = null,
     val receiverId: String,
     val channelId: String = "general",
     val content: String,

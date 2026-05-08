@@ -24,13 +24,32 @@
   --glass-border: rgba(255, 255, 255, var(--glass-border-opacity));
   --accent-glow: 0 0 calc(20px * var(--accent-glow-intensity)) rgba(139, 92, 246, 0.3);
 
+  /* Layout Sizing (De-bulked) */
+  --sidebar-width: 240px;
+  --navbar-height: 3.5rem;
+  --app-padding: 0.75rem;
+
   /* Status Colors */
   --error: #f43f5e;
   --success: #10b981;
 }
 
+[data-theme="light"] {
+  --bg-dark: #f8fafc;
+  --bg-darker: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --glass-bg: rgba(0, 0, 0, 0.05);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  
+  --accent-primary: #7c3aed;
+  --accent-secondary: #db2777;
+  --accent-tertiary: #0891b2;
+}
+
 :root {
-  /* ... existing vars ... */
   transition: --accent-glow-intensity 0.5s ease, 
               --glass-blur-amount 0.5s ease, 
               --glass-opacity 0.5s ease,
@@ -190,14 +209,20 @@ a:hover::after {
 }
 
 .auth-form {
-  padding: 3rem;
+  padding: 2rem;
   width: 100%;
-  max-width: 440px;
-  background: rgba(11, 19, 38, 0.85);
+  max-width: 400px;
+  background: var(--bg-dark);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.5rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--accent-glow);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), var(--accent-glow);
+}
+
+.auth-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--glass-border);
 }
 
 .auth-form h2 {
@@ -244,11 +269,11 @@ a:hover::after {
 .input-group input, 
 .composer-form input {
   width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--glass-border);
   border-radius: 0.75rem;
   padding: 0.875rem 1rem;
-  color: white;
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -257,14 +282,14 @@ a:hover::after {
 .composer-form input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.15);
   box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), var(--accent-glow);
 }
 
 .error {
   background: rgba(244, 63, 94, 0.1);
   border: 1px solid rgba(244, 63, 94, 0.2);
-  color: #fb7185;
+  color: var(--error);
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
@@ -278,7 +303,7 @@ a:hover::after {
 .success {
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #34d399;
+  color: var(--success);
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
@@ -311,18 +336,34 @@ a:hover::after {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1rem 1rem 1rem 0;
+  padding: var(--app-padding) var(--app-padding) var(--app-padding) 0;
   overflow: hidden;
+  transition: padding 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .chat-main-content {
+    padding: var(--app-padding);
+  }
 }
 
 .chat-navbar {
-  height: 4.5rem;
+  height: var(--navbar-height);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2rem;
-  margin-bottom: 1rem;
+  padding: 0 1.5rem;
+  margin-bottom: var(--app-padding);
   flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .chat-navbar {
+    padding: 0 1rem;
+  }
+  .username {
+    display: none;
+  }
 }
 
 .active-context {
@@ -341,12 +382,13 @@ a:hover::after {
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .user-controls {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .user-badge {
@@ -391,11 +433,11 @@ a:hover::after {
 
 .lumina-input {
   width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--glass-border);
   border-radius: 0.75rem;
   padding: 0.875rem 1rem;
-  color: white;
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -403,7 +445,7 @@ a:hover::after {
 .lumina-input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.15);
   box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), var(--accent-glow);
 }
 

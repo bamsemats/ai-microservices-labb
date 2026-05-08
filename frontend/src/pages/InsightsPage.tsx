@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
 const InsightsPage: React.FC = () => {
@@ -113,19 +114,7 @@ const InsightsPage: React.FC = () => {
       <Sidebar activeReceiver="insights" onSelectReceiver={handleSelectReceiver} />
 
       <main className="chat-main-content">
-        <header className="chat-navbar glass-panel">
-          <div className="active-context">
-            <span className="context-prefix">📊</span>
-            <span className="context-name">AI Insights & Profile</span>
-          </div>
-          <div className="user-controls">
-            <div className="user-badge glass-card">
-              <span className="username">{username}</span>
-              <div className="user-avatar">{username?.charAt(0).toUpperCase()}</div>
-            </div>
-            <button className="lumina-button secondary logout-btn" onClick={logout}>Logout</button>
-          </div>
-        </header>
+        <Navbar prefix="📊" contextName="AI Insights & Profile" />
 
         <section className="insights-content">
           <div className="insights-grid">
@@ -251,6 +240,16 @@ const InsightsPage: React.FC = () => {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+          .stats-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .insights-content {
+            padding: 1rem;
+          }
         }
 
         .stat-card {

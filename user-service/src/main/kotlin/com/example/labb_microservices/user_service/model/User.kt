@@ -15,5 +15,6 @@ data class User(
     val emailHash: String? = null, // Stores hashed email for searching
     val enabled: Boolean = true,
     val displayName: String? = null,
-    val bio: String? = null
+    val bio: String? = null,
+    val socialLinks: Map<String, String>? = null
 )

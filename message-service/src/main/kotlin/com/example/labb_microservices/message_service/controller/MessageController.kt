@@ -60,20 +60,25 @@ class MessageController(
                     return@flatMap Mono.error<String>(AccessDeniedException("Only admins can send broadcast messages"))
                 }
 
-                Mono.fromCallable {
-                    val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
-                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
-                    val message = Message(
-                        id = idPrefix + UUID.randomUUID().toString(),
-                        senderId = senderId,
-                        receiverId = request.receiverId,
-                        channelId = channelId,
-                        content = request.content,
-                        authorType = AuthorType.USER
-                    )
-                    processMessage(message)
-                    "Message sent to queue by $senderId in channel $channelId"
-                }
+                userGrpcClient.getUser(senderId)
+                    .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                    .flatMap { userResponse ->
+                        Mono.fromCallable {
+                            val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
+                            val message = Message(
+                                id = idPrefix + UUID.randomUUID().toString(),
+                                senderId = senderId,
+                                senderName = userResponse.username,
+                                receiverId = request.receiverId,
+                                channelId = channelId,
+                                content = request.content,
+                                authorType = AuthorType.USER
+                            )
+                            processMessage(message)
+                            "Message sent to queue by $senderId in channel $channelId"
+                        }
+                    }
                 .subscribeOn(Schedulers.boundedElastic())
             }
     }
@@ -85,19 +90,25 @@ class MessageController(
             .flatMap { context ->
                 val auth = context.authentication
                 val senderId = auth.name
-                Mono.fromCallable {
-                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "all"
-                    val message = Message(
-                        id = UUID.randomUUID().toString(),
-                        senderId = senderId,
-                        receiverId = "all",
-                        channelId = channelId,
-                        content = request.content,
-                        authorType = AuthorType.USER
-                    )
-                    processMessage(message)
-                    "Broadcast message sent by $senderId in channel $channelId"
-                }
+                
+                userGrpcClient.getUser(senderId)
+                    .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                    .flatMap { userResponse ->
+                        Mono.fromCallable {
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "all"
+                            val message = Message(
+                                id = UUID.randomUUID().toString(),
+                                senderId = senderId,
+                                senderName = userResponse.username,
+                                receiverId = "all",
+                                channelId = channelId,
+                                content = request.content,
+                                authorType = AuthorType.USER
+                            )
+                            processMessage(message)
+                            "Broadcast message sent by $senderId in channel $channelId"
+                        }
+                    }
                 .subscribeOn(Schedulers.boundedElastic())
             }
     }

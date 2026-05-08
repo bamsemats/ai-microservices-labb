@@ -10,7 +10,11 @@ import reactor.core.publisher.Mono
 
 import org.springframework.web.server.ResponseStatusException
 
-data class ProfileRequest(val displayName: String?, val bio: String?)
+data class ProfileRequest(
+    val displayName: String?, 
+    val bio: String?, 
+    val socialLinks: Map<String, String>? = null
+)
 data class RegisterUserRequest(val username: String, val email: String, val password: String)
 
 @RestController
@@ -40,7 +44,7 @@ class UserController(private val userService: UserService) {
         @RequestBody request: ProfileRequest,
         @AuthenticationPrincipal userId: String
     ): Mono<UserDto> {
-        return userService.updateProfile(userId, request.displayName, request.bio)
+        return userService.updateProfile(userId, request.displayName, request.bio, request.socialLinks)
             .map { it.toUserDto() }
             .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")))
     }
@@ -51,6 +55,7 @@ class UserController(private val userService: UserService) {
         email = this.email,
         enabled = this.enabled,
         displayName = this.displayName,
-        bio = this.bio
+        bio = this.bio,
+        socialLinks = this.socialLinks
     )
 }

@@ -9,6 +9,7 @@ import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
 import ContentWidget from '../components/ContentWidget';
 import ThinkingBubble from '../components/ThinkingBubble';
+import Navbar from '../components/Navbar';
 
 type DisplayItem = 
   | { type: 'msg'; data: Message }
@@ -75,21 +76,10 @@ const ChatPage: React.FC = () => {
       <Sidebar activeReceiver={receiverId} onSelectReceiver={setReceiverId} />
 
       <main className="chat-main-content">
-        <header className="chat-navbar glass-panel">
-          <div className="active-context">
-            <span className="context-prefix">{receiverId === 'all' || receiverId === 'home' ? '#' : '@'}</span>
-            <span className="context-name">
-              {receiverId === 'home' ? 'welcome' : (receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId))}
-            </span>
-          </div>
-          <div className="user-controls">
-            <div className="user-badge glass-card">
-              <span className="username">{username}</span>
-              <div className="user-avatar">{username?.charAt(0).toUpperCase()}</div>
-            </div>
-            <button className="lumina-button secondary logout-btn" onClick={logout}>Logout</button>
-          </div>
-        </header>
+        <Navbar 
+          prefix={receiverId === 'all' || receiverId === 'home' ? '#' : '@'}
+          contextName={receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId)}
+        />
 
         <section className="message-stream">
           <div className="message-list" ref={scrollRef}>

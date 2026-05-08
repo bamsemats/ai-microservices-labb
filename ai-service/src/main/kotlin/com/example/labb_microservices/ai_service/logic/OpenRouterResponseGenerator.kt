@@ -75,6 +75,11 @@ class OpenRouterResponseGenerator(
 
                 logger.debug("Sending streaming request to OpenRouter with model: {}", model)
 
+                if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
+                    logger.warn("OpenRouter API key is missing. Using simulation fallback.")
+                    return@flatMapMany generateSimulatedResponse(message)
+                }
+
                 webClient.post()
                     .uri(url)
                     .header("Authorization", "Bearer $apiKey")
@@ -99,13 +104,35 @@ class OpenRouterResponseGenerator(
                     }
                     .filter { it.isNotEmpty() }
                     .onErrorResume { e ->
-                        if (e is java.util.concurrent.TimeoutException) {
+                        if (e is org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized) {
+                            logger.error("Unauthorized call to OpenRouter. Switching to simulation mode.")
+                            generateSimulatedResponse(message)
+                        } else if (e is java.util.concurrent.TimeoutException) {
                             logger.error("Timeout calling OpenRouter: {}", e.message)
+                            Flux.just("I'm having trouble connecting to my brain right now. (Timeout)")
                         } else {
                             logger.error("Error calling OpenRouter: {}", e.message)
+                            Flux.just("Interference detected in the frequency. (Error: ${e.message})")
                         }
-                        Flux.just("I'm having trouble connecting to my brain right now.")
                     }
             }
+    }
+
+    private fun generateSimulatedResponse(message: Message): Flux<String> {
+        val content = message.content.lowercase()
+        val response = when {
+            content.contains("hello") || content.contains("hi") -> 
+                "Greetings! I am the AdaptaChat AI. I am currently running in simulation mode because my external uplink is unauthorized or missing. How can I help you navigate these frequencies today?"
+            content.contains("weather") -> 
+                "The climate in the digital realm is steady, with a 100% chance of data packets. For physical weather, please consult a atmospheric sensor."
+            content.contains("help") -> 
+                "I can assist with navigating the Discovery Hub, understanding your Insights, or just chatting. Note: I am currently in 'Offline Mode' due to API key issues."
+            else -> 
+                "I've received your transmission: '${message.content}'. I'm currently operating in limited capacity, but I am standing by for your next synchronization."
+        }
+        
+        // Split response into chunks to simulate streaming
+        return Flux.fromIterable(response.split(" ").map { "$it " })
+            .delayElements(java.time.Duration.ofMillis(100))
     }
 }
