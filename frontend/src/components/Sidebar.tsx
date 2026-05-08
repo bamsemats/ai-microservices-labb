@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
 import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
 import logoWithName from '../assets/logo-with-name.png';
 

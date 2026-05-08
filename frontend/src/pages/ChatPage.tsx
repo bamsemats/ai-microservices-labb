@@ -18,7 +18,7 @@ type DisplayItem =
 const ChatPage: React.FC = () => {
   const [receiverId, setReceiverId] = useState('home');
   const [error, setError] = useState<string | null>(null);
-  const { username, userId, isAdmin, logout } = useAuthStore();
+  const { userId, isAdmin } = useAuthStore();
   const { messages, injectedContent, aiStatus } = useChatStore();
   useWebSocket();
   const scrollRef = useRef<HTMLDivElement>(null);

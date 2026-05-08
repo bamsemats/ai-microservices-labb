@@ -19,7 +19,7 @@ const FEATURED_CREATORS = [
 ];
 
 const DiscoveryPage: React.FC = () => {
-  const { username, token, logout } = useAuthStore();
+  const { token } = useAuthStore();
   const navigate = useNavigate();
   const [trendingChannels, setTrendingChannels] = useState<TrendingChannel[]>([]);
 

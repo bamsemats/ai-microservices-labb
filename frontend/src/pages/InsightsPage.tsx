@@ -8,7 +8,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
 const InsightsPage: React.FC = () => {
-  const { username, token, logout } = useAuthStore();
+  const { username, token } = useAuthStore();
   const { currentTheme, setTheme } = useUIStore();
   const [accentGlow, setAccentGlow] = useState(currentTheme.intensity);
   const [displayName, setDisplayName] = useState(username || '');
