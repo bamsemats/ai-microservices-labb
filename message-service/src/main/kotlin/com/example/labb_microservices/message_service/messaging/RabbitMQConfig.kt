@@ -20,6 +20,8 @@ class RabbitMQConfig {
         const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
         const val CONTENT_INJECTION_EXCHANGE_NAME = "chat.content.injection.exchange"
         const val PRESENCE_EXCHANGE_NAME = "chat.presence.exchange"
+        const val DLX_NAME = "ai.dlx"
+        const val DLX_ROUTING_KEY = "dead-letter"
     }
 
     @Bean
@@ -74,12 +76,18 @@ class RabbitMQConfig {
 
     @Bean
     fun aiRequestQueue(): Queue {
-        return Queue(AI_REQUEST_QUEUE_NAME, true)
+        return QueueBuilder.durable(AI_REQUEST_QUEUE_NAME)
+            .withArgument("x-dead-letter-exchange", DLX_NAME)
+            .withArgument("x-dead-letter-routing-key", DLX_ROUTING_KEY)
+            .build()
     }
 
     @Bean
     fun aiResponseQueue(): Queue {
-        return Queue(AI_RESPONSE_QUEUE_NAME, true)
+        return QueueBuilder.durable(AI_RESPONSE_QUEUE_NAME)
+            .withArgument("x-dead-letter-exchange", DLX_NAME)
+            .withArgument("x-dead-letter-routing-key", DLX_ROUTING_KEY)
+            .build()
     }
 
     @Bean

@@ -20,7 +20,8 @@ RUN --mount=type=cache,target=/root/.m2 mvn install -N -B -Dmaven.repo.local=/ro
 COPY proto/src proto/src
 COPY common-security/src common-security/src
 COPY common-observability/src common-observability/src
-RUN --mount=type=cache,target=/root/.m2 mvn install -pl proto,common-security,common-observability -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
+COPY common-test/src common-test/src
+RUN --mount=type=cache,target=/root/.m2 mvn install -pl proto,common-security,common-observability,common-test -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
 
 # Build the service
 COPY ai-service/src ai-service/src

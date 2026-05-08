@@ -56,7 +56,8 @@ export const useWebSocket = () => {
             useChatStore.getState().addInjectedContent({
               type: 'CONTENT_INJECTION',
               contentType: data.contentType,
-              data: data.data
+              data: data.data,
+              timestamp: data.timestamp
             });
           }
         } else if (data.type === 'AI_STATUS') {

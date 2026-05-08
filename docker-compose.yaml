@@ -220,17 +220,13 @@ services:
     environment:
       - COLLECTOR_OTLP_ENABLED=true
       - SPAN_STORAGE_TYPE=badger
-      - BADGER_EPHEMERAL=false
-      - BADGER_DIRECTORY_VALUE=/badger/data
-      - BADGER_DIRECTORY_KEY=/badger/key
+      - BADGER_EPHEMERAL=true
     healthcheck:
       test: ["CMD-SHELL", "wget --spider http://localhost:16686 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
-    volumes:
-      - jaeger_data:/badger
 
 volumes:
   mongodb_data:

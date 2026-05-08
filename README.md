@@ -110,6 +110,20 @@ The WebSocket architecture has been evolved from user-keyed sinks to **session-k
 
 ## 🏁 How to Run
 
+### Prerequisites
+The system requires several environment variables for security and inter-service communication. For local development, create a `.env` file in the root directory:
+
+```env
+JWT_SECRET=your-256-bit-secret
+ENCRYPTION_SECRET=your-32-char-encryption-key
+OPENROUTER_API_KEY=your-api-key
+
+# gRPC Keystore Passwords (default is 'password')
+GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
+GRPC_SERVER_SECURITY_KEY_PASSWORD=password
+GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
+```
+
 ### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
 ```bash
 docker-compose up --build
