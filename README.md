@@ -9,7 +9,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **API Gateway**: Entry point for all clients. Handles routing and coarse-grained JWT validation.
 - **Auth Service**: Manages user sessions and issues JWTs upon successful login.
 - **User Service**: Handles user registration and profile management. Provides gRPC endpoints for metadata lookups.
-- **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.        
+- **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
 - **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
@@ -61,7 +61,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#43 Adapta-Memory: Fact Extraction**: Persistent preference storage in MongoDB.
 - [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
 - [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
-- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.       
+- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
 - [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
 - [x] **#48 Infrastructure Noise Reduction**: Singleton containers and fast-fail test settings.
 - [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
@@ -88,7 +88,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 ### Full-Stack Security & Reliability Sweep
 A comprehensive sweep was performed to harden the system's production readiness:
-- **Non-root Docker images**: All microservices now run as unprivileged users (UID 1000) to mitigate container breakout risks.
+- **Non-root Docker images**: All microservices now run as unprivileged users (UID 10001) to mitigate container breakout risks.
 - **Kubernetes Hardening**: Enforced `seccompProfile: RuntimeDefault` across all pods to limit syscall access.
 - **Multi-Token Blind Indexing**: Evolved the search architecture from full-string hashing to tokenized hashing. This allows for rich, multi-word search queries over AES-encrypted content without sacrificing privacy or performance.
 - **Admin-Only Broadcasts**: Enforced strict authorization for system-wide announcements (`receiverId="all"`), preventing unauthorized users from bypassing channel isolation.
@@ -118,7 +118,7 @@ JWT_SECRET=your-256-bit-secret
 ENCRYPTION_SECRET=your-32-char-encryption-key
 OPENROUTER_API_KEY=your-api-key
 
-# gRPC Keystore Passwords (default is 'password')
+# gRPC Keystore Passwords (local development only; override in non-local environments)
 GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
 GRPC_SERVER_SECURITY_KEY_PASSWORD=password
 GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
