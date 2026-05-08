@@ -14,8 +14,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import java.time.Duration
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 import org.springframework.beans.factory.annotation.Value
 
@@ -24,7 +22,8 @@ class MessageWebSocketHandler(
     private val jwtTokenValidator: JwtTokenValidator,
     private val userGrpcClient: UserGrpcClient,
     private val presenceService: PresenceService,
-    private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper
+    private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
+    private val sessionRegistry: com.example.labb_microservices.message_service.session.SessionRegistry
 ) : WebSocketHandler {
 
     private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
@@ -36,12 +35,6 @@ class MessageWebSocketHandler(
 
     @Value("\${auth.validation.interval:10}")
     private var validationIntervalSeconds: Long = 10
-
-    private val sessionSinks = ConcurrentHashMap<String, Sinks.Many<String>>()
-    private val sessionChannels = ConcurrentHashMap<String, String>()
-    private val sessionTokens = ConcurrentHashMap<String, String>()
-    private val sessionUsers = ConcurrentHashMap<String, String>()
-    private val userSessions = ConcurrentHashMap<String, MutableSet<String>>()
 
     private val userStatusCache: Cache<String, com.example.labb_microservices.proto.UserResponse> by lazy {
         Caffeine.newBuilder()
@@ -59,14 +52,19 @@ class MessageWebSocketHandler(
         val disconnectSink = Sinks.empty<Void>()
         val sink = Sinks.many().multicast().directBestEffort<String>()
 
-        sessionSinks[sessionId] = sink
-        sessionChannels[sessionId] = channelId
+        val chatSession = com.example.labb_microservices.message_service.session.ChatSession(
+            sessionId = sessionId,
+            channelId = channelId,
+            sink = sink,
+            disconnectSink = disconnectSink
+        )
+
+        sessionRegistry.register(chatSession)
 
         if (initialToken != null && jwtTokenValidator.validateToken(initialToken)) {
             val userId = jwtTokenValidator.getUserIdFromToken(initialToken)
             if (userId != null) {
-                sessionTokens[sessionId] = initialToken
-                registerSession(sessionId, userId, channelId)
+                sessionRegistry.promoteSession(sessionId, userId, initialToken)
                 authenticatedUserId.tryEmitValue(userId)
             }
         }
@@ -82,8 +80,7 @@ class MessageWebSocketHandler(
                             val userId = jwtTokenValidator.getUserIdFromToken(token)
                             if (userId != null) {
                                 logger.info("User {} authenticated via message in session {}", userId, sessionId)
-                                sessionTokens[sessionId] = token
-                                registerSession(sessionId, userId, channelId)
+                                sessionRegistry.promoteSession(sessionId, userId, token)
                                 authenticatedUserId.tryEmitValue(userId)
                             }
                         }
@@ -93,23 +90,16 @@ class MessageWebSocketHandler(
                 }
             }
             .doFinally {
-                val userId = sessionUsers[sessionId]
+                val unregisteredSession = sessionRegistry.unregister(sessionId)
+                val userId = unregisteredSession?.userId
                 logger.info("WebSocket session ending for user: {}, session: {}", userId ?: "anonymous", sessionId)
                 disconnectSink.tryEmitEmpty()
-                sessionSinks.remove(sessionId)
-                sessionChannels.remove(sessionId)
-                sessionTokens.remove(sessionId)
-                sessionUsers.remove(sessionId)
-                if (userId != null) {
-                    val sessions = userSessions[userId]
-                    sessions?.remove(sessionId)
-                    if (sessions?.isEmpty() == true) {
-                        userSessions.remove(userId)
-                        presenceService.setUserOffline(userId)
-                            .doOnError { e -> logger.error("Failed to set user offline: $userId", e) }
-                            .onErrorResume { Mono.empty() }
-                            .subscribe()
-                    }
+                
+                if (userId != null && !sessionRegistry.isUserOnline(userId)) {
+                    presenceService.setUserOffline(userId)
+                        .doOnError { e -> logger.error("Failed to set user offline: $userId", e) }
+                        .onErrorResume { Mono.empty() }
+                        .subscribe()
                 }
             }
             .then()
@@ -128,7 +118,8 @@ class MessageWebSocketHandler(
             .flatMap { userId ->
                 val validation = Flux.interval(Duration.ofSeconds(validationIntervalSeconds))
                     .flatMap {
-                        val token = sessionTokens[sessionId]
+                        val currentSession = sessionRegistry.getSession(sessionId)
+                        val token = currentSession?.token
                         if (token != null && !jwtTokenValidator.validateToken(token)) {
                             Mono.error<Void>(PolicyViolationException("Token invalid"))
                         } else {
@@ -167,20 +158,8 @@ class MessageWebSocketHandler(
         return Mono.`when`(input, output, securityTask)
     }
 
-    private fun registerSession(sessionId: String, userId: String, channelId: String) {
-        val oldUserId = sessionUsers[sessionId]
-        if (oldUserId != null && oldUserId != userId) {
-            val oldSessions = userSessions[oldUserId]
-            oldSessions?.remove(sessionId)
-            if (oldSessions?.isEmpty() == true) {
-                userSessions.remove(oldUserId)
-            }
-        }
-        sessionUsers[sessionId] = userId
-        userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
-    }
-
     private fun checkUserStatus(userId: String): Mono<Void> {
+        // ... (unchanged)
         if (cacheTtlSeconds > 0) {
             val cached = userStatusCache.getIfPresent(userId)
             if (cached != null) {
@@ -227,26 +206,6 @@ class MessageWebSocketHandler(
         return query.split("&")
             .find { it.startsWith("channel=") }
             ?.substringAfter("channel=")
-    }
-
-    fun broadcastMessage(message: String) {
-        sessionSinks.values.forEach { it.tryEmitNext(message) }
-    }
-
-    fun broadcastToChannel(channelId: String, message: String) {
-        sessionSinks.forEach { (sessionId, sink) ->
-            if (sessionChannels[sessionId] == channelId || channelId == "all") {
-                sink.tryEmitNext(message)
-            }
-        }
-    }
-
-    fun sendMessageToUser(userId: String, channelId: String, message: String) {
-        userSessions[userId]?.forEach { sessionId ->
-            if (sessionChannels[sessionId] == channelId || channelId == "all") {
-                sessionSinks[sessionId]?.tryEmitNext(message)
-            }
-        }
     }
 
     private class PolicyViolationException(message: String) : RuntimeException(message)

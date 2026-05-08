@@ -1,7 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
 import com.example.labb_microservices.common.security.EncryptionUtils
-import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.model.PresenceUpdateEvent
@@ -20,7 +19,7 @@ import reactor.core.publisher.Mono
 class MessageConsumer(
     private val messageRepository: MessageRepository,
     private val mongoTemplate: ReactiveMongoTemplate,
-    private val webSocketHandler: MessageWebSocketHandler,
+    private val deliveryService: com.example.labb_microservices.message_service.service.MessageDeliveryService,
     private val objectMapper: ObjectMapper,
     private val messageProducer: MessageProducer,
     private val encryptionUtils: EncryptionUtils
@@ -63,14 +62,14 @@ class MessageConsumer(
 
         try {
             if (message.receiverId == "all") {
-                webSocketHandler.broadcastToChannel(message.channelId, jsonMessage)
+                deliveryService.broadcastToChannel(message.channelId, jsonMessage)
             } else {
                 val recipients = setOfNotNull(
                     message.receiverId.takeIf { it.isNotBlank() },
                     message.senderId.takeIf { it.isNotBlank() }
                 )
                 recipients.forEach { userId ->
-                    webSocketHandler.sendMessageToUser(userId, message.channelId, jsonMessage)
+                    deliveryService.sendMessageToUser(userId, message.channelId, jsonMessage)
                 }
             }
         } catch (e: Exception) {
@@ -129,7 +128,7 @@ class MessageConsumer(
         }
 
         try {
-            webSocketHandler.broadcastMessage(jsonEvent)
+            deliveryService.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting generic event", e)
         }
@@ -146,7 +145,7 @@ class MessageConsumer(
         }
 
         try {
-            webSocketHandler.broadcastMessage(jsonEvent)
+            deliveryService.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting content injection event", e)
         }
@@ -164,7 +163,7 @@ class MessageConsumer(
 
         try {
             // Broadcast presence to all users as it affects the sidebar
-            webSocketHandler.broadcastMessage(jsonEvent)
+            deliveryService.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting presence update for user ${event.userId}", e)
         }

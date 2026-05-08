@@ -67,7 +67,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
 - [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
 - [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
-- [ ] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession`.
+- [x] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession` and `SessionRegistry`.
 - [x] **#53 AI-Driven Design Tokens**: Deepen Analytical Seam by moving design logic to `ai-service`.
 - [ ] **#54 Global Cross-Channel Search**: Searchable encrypted history (Phase 4).
 - [ ] **#55 Direct File Transfers**: Media sharing service foundation.
@@ -95,27 +95,14 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 ## 🏗 Design Decisions & Trade-offs
 
+### High-Availability WebSockets (Session-based)
+The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks** managed by a dedicated `SessionRegistry`. 
+- **Multi-Device Support**: A single user can maintain multiple active connections (tabs/devices) without message collisions.
+- **Decoupled Delivery**: A new `MessageDeliveryService` abstracts the routing logic, allowing the `MessageWebSocketHandler` to focus solely on the reactive connection pipeline.
+- **Resource Integrity**: `ChatSession` objects encapsulate all session-specific state (tokens, sinks, channels), ensuring robust cleanup and preventing memory leaks when connections drop.
+
 ### Full-Stack Security & Reliability Sweep
 A comprehensive sweep was performed to harden the system's production readiness:
-- **Non-root Docker images**: All microservices now run as unprivileged users (UID 10001) to mitigate container breakout risks.
-- **Kubernetes Hardening**: Enforced `seccompProfile: RuntimeDefault` across all pods to limit syscall access.
-- **Multi-Token Blind Indexing**: Evolved the search architecture from full-string hashing to tokenized hashing. This allows for rich, multi-word search queries over AES-encrypted content without sacrificing privacy or performance.
-- **Admin-Only Broadcasts**: Enforced strict authorization for system-wide announcements (`receiverId="all"`), preventing unauthorized users from bypassing channel isolation.
-- **Test Isolation & Hermeticity**: Resolved flakiness in the CI/CD pipeline by ensuring deterministic test data (unique IDs), programmatic infrastructure reuse, and explicit queue purging between test runs.
-
-### Stabilization & Polish (Phase 2)
-The system underwent a major UX and aesthetic refinement to move beyond a prototype:
-- **Dynamic Theme Engine**: Global Dark/Light toggle with full glassmorphic adaptation.
-- **Profile Hub**: Comprehensive identity management including `displayName`, `bio`, and social link integration.
-- **Accessibility & Keyboard Flow**: Implemented ARIA roles and labels along with global navigation shortcuts (e.g., `Alt+H` for Home, `/` for focus) to support diverse user needs.
-- **Mobile-First Responsive Design**: Introduced a collapsible mobile sidebar and adaptive layout grids to ensure the "Lumina Fluid" experience scales from desktop to smartphone.
-- **Functional Discovery & Insights**: Transitioned hubs from static placeholders to data-ready interfaces with functional navigation and live pulses.
-
-### Deepened Analytical Seam (AI-Driven UI)
-The system has moved from a "Shallow" to a "Deep" Analytical Seam for UI adaptation. Instead of the AI service sending raw sentiment themes for the frontend to interpret, the `ai-service` now calculates and publishes specific **Design Tokens** (primaryColor, blurAmount, glassOpacity, glowIntensity). This allows the UI to evolve its visual language dynamically without requiring frontend redeployments.
-
-### High-Availability WebSockets (Session-based)
-The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions.
 
 ---
 
