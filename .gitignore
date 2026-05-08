@@ -16,6 +16,11 @@ ralph/
 .settings
 .springBeans
 .sts4-cache
+.geminiignore
+.env
+
+# Kubernetes secrets
+k8s/infrastructure/secrets.yaml
 
 ### IntelliJ IDEA ###
 .idea

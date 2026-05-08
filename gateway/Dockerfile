@@ -6,21 +6,30 @@ WORKDIR /app
 COPY pom.xml .
 COPY proto/pom.xml proto/
 COPY common-security/pom.xml common-security/
+COPY common-observability/pom.xml common-observability/
+COPY common-test/pom.xml common-test/
 COPY gateway/pom.xml gateway/
 COPY auth-service/pom.xml auth-service/
 COPY user-service/pom.xml user-service/
 COPY message-service/pom.xml message-service/
+COPY ai-service/pom.xml ai-service/
+COPY content-aggregator-service/pom.xml content-aggregator-service/
 
-# Install parent POM
+# Install parent and shared modules
 RUN mvn install -N -B
+COPY common-observability/src common-observability/src
+RUN mvn install -pl common-observability -Dmaven.test.skip=true -B
 
 # Build the service
 COPY gateway/src gateway/src
-RUN mvn package -pl gateway -DskipTests -B
+RUN mvn package -pl gateway -Dmaven.test.skip=true -B
 
 # Run stage
 FROM eclipse-temurin:21-jre
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -s /bin/sh appuser
 WORKDIR /app
 COPY --from=build /app/gateway/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

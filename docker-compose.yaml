@@ -5,12 +5,37 @@ services:
       - "27018:27017"
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   user-service:
     build:
@@ -19,21 +44,62 @@ services:
     ports:
       - "8082:8082"
       - "9090:9090"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/userdb
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - GRPC_SERVER_SECURITY_ENABLED=true
+      - GRPC_SERVER_SECURITY_KEY_STORE=file:/app/certs/user-service.jks
+      - GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=${GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD}
+      - GRPC_SERVER_SECURITY_KEY_PASSWORD=${GRPC_SERVER_SECURITY_KEY_PASSWORD}
+      - GRPC_SERVER_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=${GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD}
+      - GRPC_SERVER_SECURITY_CLIENT_AUTH=REQUIRE
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
 
   auth-service:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
     ports:
-      - "8081:8081"
+      - "8091:8081"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
-      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
+      - SPRING_DATA_REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/auth-service.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
     depends_on:
-      - user-service
+      user-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
 
   message-service:
     build:
@@ -41,14 +107,35 @@ services:
       dockerfile: message-service/Dockerfile
     ports:
       - "8083:8083"
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/messagedb
       - SPRING_RABBITMQ_HOST=rabbitmq
-      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE=tls
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_ENABLED=true
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE=file:/app/certs/message-service.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD}
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE=file:/app/certs/truststore.jks
+      - GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD=${GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+      - SPRING_DATA_REDIS_HOST=redis
     depends_on:
-      - mongodb
-      - rabbitmq
-      - user-service
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      user-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   gateway:
     build:
@@ -60,17 +147,88 @@ services:
       - SERVICES_AUTH=http://auth-service:8081
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
+      - JWT_SECRET=${JWT_SECRET}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
     depends_on:
-      - auth-service
-      - user-service
-      - message-service
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      message-service:
+        condition: service_started
+      jaeger:
+        condition: service_started
 
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
     depends_on:
-      - gateway
+      gateway:
+        condition: service_started
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/aidb
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
+
+  content-aggregator-service:
+    build:
+      context: .
+      dockerfile: content-aggregator-service/Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
+      - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=true
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:16686 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   mongodb_data:
+  redis_data:
+  jaeger_data:

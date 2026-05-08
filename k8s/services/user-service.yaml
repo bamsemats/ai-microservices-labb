@@ -12,16 +12,92 @@ spec:
       labels:
         app: user-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
       containers:
       - name: user-service
-        image: user-service:latest
-        imagePullPolicy: Never
+        image: user-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         ports:
-        - containerPort: 8080
+        - containerPort: 8082
         - containerPort: 9090
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "384Mi"
+          limits:
+            cpu: "300m"
+            memory: "768Mi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: jwt-secret
+        - name: ENCRYPTION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: encryption-secret
         - name: SPRING_DATA_MONGODB_URI
           value: mongodb://mongodb:27017/userdb
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: SPRING_RABBITMQ_HOST
+          value: rabbitmq
+        - name: GRPC_SERVER_SECURITY_ENABLED
+          value: "true"
+        - name: GRPC_SERVER_SECURITY_KEYSTORE_PATH
+          value: /app/certs/user-service.jks
+        - name: GRPC_SERVER_SECURITY_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-keystore-password
+        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PATH
+          value: /app/certs/truststore.jks
+        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-truststore-password
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: certs-volume
+          mountPath: /app/certs
+          readOnly: true
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      - name: certs-volume
+        secret:
+          secretName: user-service-certs
 ---
 apiVersion: v1
 kind: Service
@@ -33,7 +109,7 @@ spec:
   ports:
   - name: http
     port: 8080
-    targetPort: 8080
+    targetPort: 8082
   - name: grpc
     port: 9090
     targetPort: 9090

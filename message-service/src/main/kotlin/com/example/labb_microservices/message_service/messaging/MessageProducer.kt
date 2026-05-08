@@ -9,8 +9,24 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
 
     fun sendMessage(message: Message) {
         rabbitTemplate.convertAndSend(
-            RabbitMQConfig.EXCHANGE_NAME,
-            RabbitMQConfig.ROUTING_KEY,
+            RabbitMQConfig.STORAGE_EXCHANGE_NAME,
+            "",
+            message
+        )
+    }
+
+    fun deliverMessage(message: Message) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.DELIVERY_EXCHANGE_NAME,
+            "",
+            message
+        )
+    }
+
+    fun sendAiRequest(message: Message) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.AI_EXCHANGE_NAME,
+            "ai.request",
             message
         )
     }

@@ -5,12 +5,19 @@ import org.springframework.data.mongodb.core.mapping.Document
 import java.io.Serializable
 import java.time.LocalDateTime
 
+enum class AuthorType { USER, BOT }
+
 @Document(collection = "messages")
 data class Message(
     @Id
     val id: String? = null,
     val senderId: String,
     val receiverId: String,
+    val channelId: String = "general",
     val content: String,
-    val timestamp: LocalDateTime = LocalDateTime.now()
+    val authorType: AuthorType = AuthorType.USER,
+    val metadata: Map<String, String> = emptyMap(),
+    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val contentChunks: List<String> = emptyList(),
+    val searchIndices: Set<String> = emptySet()
 ) : Serializable

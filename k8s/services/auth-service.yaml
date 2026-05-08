@@ -12,15 +12,76 @@ spec:
       labels:
         app: auth-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
       containers:
       - name: auth-service
-        image: auth-service:latest
-        imagePullPolicy: Never
+        image: auth-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         ports:
-        - containerPort: 8080
+        - containerPort: 8081
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "384Mi"
+          limits:
+            cpu: "300m"
+            memory: "768Mi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
         env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: jwt-secret
+        - name: ENCRYPTION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: encryption-secret
         - name: GRPC_CLIENT_USER_SERVICE_ADDRESS
           value: static://user-service:9090
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: SPRING_DATA_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: redis-password
+        - name: SPRING_DATA_REDIS_SSL
+          value: "false"
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -31,4 +92,4 @@ spec:
     app: auth-service
   ports:
   - port: 8080
-    targetPort: 8080
+    targetPort: 8081

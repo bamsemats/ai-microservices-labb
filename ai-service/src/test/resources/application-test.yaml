@@ -1,0 +1,6 @@
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: false

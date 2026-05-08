@@ -1,0 +1,125 @@
+package com.example.labb_microservices.user_service
+
+import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.proto.CredentialsRequest
+import com.example.labb_microservices.proto.UserServiceGrpc
+import io.grpc.StatusRuntimeException
+import net.devh.boot.grpc.client.inject.GrpcClient
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Test
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+
+@SpringBootTest(properties = [
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
+    "grpc.server.port=0"
+])
+@DirtiesContext
+class UserGrpcSecurityTests : BaseIntegrationTest() {
+
+    companion object {
+        private var dynamicGrpcPort: Int = 0
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerGrpcProperties(registry: DynamicPropertyRegistry) {
+            dynamicGrpcPort = java.net.ServerSocket(0).use { it.localPort }
+            registry.add("grpc.server.port") { dynamicGrpcPort }
+
+            val certsDir = findCertsDir(java.nio.file.Paths.get(".").toAbsolutePath())
+            val trustStorePath = "file:${certsDir.resolve("truststore.jks")}"
+            val userServiceKeystorePath = "file:${certsDir.resolve("user-service.jks")}"
+            val authServiceKeystorePath = "file:${certsDir.resolve("auth-service.jks")}"
+
+            // Server Security
+            registry.add("grpc.server.security.enabled") { "true" }
+            registry.add("grpc.server.security.key-store") { userServiceKeystorePath }
+            registry.add("grpc.server.security.key-store-format") { "PKCS12" }
+            registry.add("grpc.server.security.key-store-password") { "password" }
+            registry.add("grpc.server.security.key-password") { "password" }
+            registry.add("grpc.server.security.trust-store") { trustStorePath }
+            registry.add("grpc.server.security.trust-store-format") { "PKCS12" }
+            registry.add("grpc.server.security.trust-store-password") { "password" }
+            registry.add("grpc.server.security.client-auth") { "REQUIRE" }
+
+            // Secure Client
+            registry.add("grpc.client.secure-client.address") { "static://localhost:$dynamicGrpcPort" }
+            registry.add("grpc.client.secure-client.negotiation-type") { "TLS" }
+            registry.add("grpc.client.secure-client.security.enabled") { "true" }
+            registry.add("grpc.client.secure-client.security.client-auth-enabled") { "true" }
+            registry.add("grpc.client.secure-client.security.key-store") { authServiceKeystorePath }
+            registry.add("grpc.client.secure-client.security.key-store-format") { "PKCS12" }
+            registry.add("grpc.client.secure-client.security.key-store-password") { "password" }
+            registry.add("grpc.client.secure-client.security.key-password") { "password" }
+            registry.add("grpc.client.secure-client.security.trust-store") { trustStorePath }
+            registry.add("grpc.client.secure-client.security.trust-store-format") { "PKCS12" }
+            registry.add("grpc.client.secure-client.security.trust-store-password") { "password" }
+
+            // Insecure Client
+            registry.add("grpc.client.insecure-client.address") { "static://localhost:$dynamicGrpcPort" }
+            registry.add("grpc.client.insecure-client.negotiation-type") { "TLS" }
+            registry.add("grpc.client.insecure-client.security.enabled") { "true" }
+            registry.add("grpc.client.insecure-client.security.client-auth-enabled") { "false" }
+            registry.add("grpc.client.insecure-client.security.trust-store") { trustStorePath }
+            registry.add("grpc.client.insecure-client.security.trust-store-format") { "PKCS12" }
+            registry.add("grpc.client.insecure-client.security.trust-store-password") { "password" }
+        }
+
+        private fun findCertsDir(start: java.nio.file.Path): java.nio.file.Path {
+            // 1. Try classpath/resource
+            val resource = this::class.java.classLoader.getResource("certs")
+            if (resource != null) {
+                return java.nio.file.Paths.get(resource.toURI())
+            }
+
+            // 2. Try system property
+            val baseDir = System.getProperty("project.basedir") ?: System.getProperty("MAVEN_PROJECT_DIR")
+            if (baseDir != null) {
+                val candidate = java.nio.file.Paths.get(baseDir).resolve("certs")
+                if (java.nio.file.Files.exists(candidate)) return candidate
+            }
+
+            // 3. Fallback to upward traversal
+            var curr: java.nio.file.Path? = start
+            while (curr != null) {
+                val candidate = curr.resolve("certs")
+                if (java.nio.file.Files.exists(candidate)) return candidate
+                curr = curr.parent
+            }
+            throw IllegalStateException("certs directory not found in any parent of $start")
+        }
+    }
+
+    @GrpcClient("secure-client")
+    private lateinit var secureStub: UserServiceGrpc.UserServiceBlockingStub
+
+    @GrpcClient("insecure-client")
+    private lateinit var insecureStub: UserServiceGrpc.UserServiceBlockingStub
+
+    @Test
+    fun `should allow connection with valid client certificate`() {
+        val request = CredentialsRequest.newBuilder()
+            .setUsername("test")
+            .setPassword("test")
+            .build()
+            
+        val response = secureStub.validateCredentials(request)
+        assertNotNull(response)
+    }
+
+    @Test
+    fun `should reject connection without client certificate`() {
+        val request = CredentialsRequest.newBuilder()
+            .setUsername("test")
+            .setPassword("test")
+            .build()
+            
+        assertThrows(StatusRuntimeException::class.java) {
+            insecureStub.validateCredentials(request)
+        }
+    }
+}

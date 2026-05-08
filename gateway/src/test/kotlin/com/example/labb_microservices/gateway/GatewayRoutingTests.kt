@@ -9,7 +9,13 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
+    "services.auth=http://localhost:12345",
+    "services.user=http://localhost:12346",
+    "services.message=http://localhost:12347",
+    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
+    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
+])
 class GatewayRoutingTests {
 
     @Autowired
@@ -23,15 +29,14 @@ class GatewayRoutingTests {
         webTestClient.post()
             .uri("/login")
             .exchange()
-            // We expect 404 or 500 because the downstream service isn't actually there,
-            // but NOT 401 from the filter.
+            // We expect 503 or 504 because the downstream service isn't there
             .expectStatus().is5xxServerError
     }
 
     @Test
     fun `should reject protected route without token`() {
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .exchange()
             .expectStatus().isUnauthorized
     }
@@ -39,7 +44,7 @@ class GatewayRoutingTests {
     @Test
     fun `should reject protected route with invalid token`() {
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
             .exchange()
             .expectStatus().isUnauthorized
@@ -49,15 +54,55 @@ class GatewayRoutingTests {
     fun `should allow protected route with valid token`() {
         val token = Jwts.builder()
             .subject("testuser")
+            .claim("tokenType", "access")
             .expiration(Date(System.currentTimeMillis() + 3600000))
             .signWith(key)
             .compact()
 
         webTestClient.get()
-            .uri("/some-protected-route")
+            .uri("/users/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
             .exchange()
-            // Again, 404/500 is fine as long as it's not 401.
+            // We expect 503 or 504 because the downstream service isn't there
             .expectStatus().is5xxServerError
+    }
+
+    @Test
+    fun `should allow protected route with valid token in query param`() {
+        val token = Jwts.builder()
+            .subject("testuser")
+            .claim("tokenType", "access")
+            .expiration(Date(System.currentTimeMillis() + 3600000))
+            .signWith(key)
+            .compact()
+
+        webTestClient.get()
+            .uri("/ws/messages?token=$token")
+            .exchange()
+            // We expect 503 or 504 because the downstream service isn't there
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    fun `should reject protected route with invalid token in query param`() {
+        webTestClient.get()
+            .uri("/ws/messages?token=invalid-token")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `should reject query param token for non-ws routes`() {
+        val token = Jwts.builder()
+            .subject("testuser")
+            .claim("tokenType", "access")
+            .expiration(Date(System.currentTimeMillis() + 3600000))
+            .signWith(key)
+            .compact()
+
+        webTestClient.get()
+            .uri("/users/me?token=$token")
+            .exchange()
+            .expectStatus().isUnauthorized
     }
 }

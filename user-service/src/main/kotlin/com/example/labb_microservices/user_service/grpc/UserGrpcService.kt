@@ -6,9 +6,11 @@ import io.grpc.stub.StreamObserver
 import net.devh.boot.grpc.server.service.GrpcService
 import org.springframework.security.crypto.password.PasswordEncoder
 
+import com.example.labb_microservices.user_service.service.UserService
+
 @GrpcService
 class UserGrpcService(
-    private val userRepository: UserRepository,
+    private val userService: UserService,
     private val passwordEncoder: PasswordEncoder
 ) : UserServiceGrpc.UserServiceImplBase() {
 
@@ -16,7 +18,7 @@ class UserGrpcService(
         request: CredentialsRequest,
         responseObserver: StreamObserver<CredentialsResponse>
     ) {
-        userRepository.findByUsername(request.username)
+        userService.findByUsername(request.username)
             .map { user ->
                 if (passwordEncoder.matches(request.password, user.password)) {
                     CredentialsResponse.newBuilder()
@@ -41,12 +43,13 @@ class UserGrpcService(
         request: UserLookupRequest,
         responseObserver: StreamObserver<UserResponse>
     ) {
-        userRepository.findById(request.userId)
+        userService.findById(request.userId)
             .map { user ->
                 UserResponse.newBuilder()
                     .setUserId(user.id ?: "")
                     .setUsername(user.username)
                     .setEmail(user.email ?: "")
+                    .setEnabled(user.enabled)
                     .build()
             }
             .subscribe({ response ->

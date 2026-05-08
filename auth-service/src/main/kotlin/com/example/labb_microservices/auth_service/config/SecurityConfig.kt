@@ -12,14 +12,15 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 @Configuration
 @EnableWebFluxSecurity
 @ComponentScan("com.example.labb_microservices.common.security")
-class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
+class AuthServiceSecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
 
     @Bean
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http
             .csrf { it.disable() }
+            .logout { it.disable() }
             .authorizeExchange { it
-                .pathMatchers("/login", "/register").permitAll()
+                .pathMatchers("/login", "/register", "/refresh", "/logout").permitAll()
                 .anyExchange().authenticated()
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)

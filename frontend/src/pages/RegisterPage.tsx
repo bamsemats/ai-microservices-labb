@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
+import logoWithName from '../assets/logo-with-name.png';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -16,7 +17,8 @@ const RegisterPage: React.FC = () => {
       await api.post('/register', { username, password, email });
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error('Registration failed', err);
       setError('Registration failed. Username might be taken.');
     }
   };
@@ -24,6 +26,9 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleRegister}>
+        <div className="auth-logo-wrapper">
+          <img src={logoWithName} alt="AdaptaChat" className="auth-logo" />
+        </div>
         <h2>Register</h2>
         {error && <p className="error">{error}</p>}
         {success && <p className="success">Registration successful! Redirecting to login...</p>}
