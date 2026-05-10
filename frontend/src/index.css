@@ -338,14 +338,14 @@ a:hover::after {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: var(--app-padding) var(--app-padding) var(--app-padding) 0;
+  padding: 0;
   overflow: hidden;
   transition: padding 0.3s ease;
 }
 
 @media (max-width: 768px) {
   .chat-main-content {
-    padding: var(--app-padding);
+    padding: 0;
   }
 }
 
@@ -355,7 +355,11 @@ a:hover::after {
   justify-content: space-between;
   align-items: center;
   padding: 0 1.5rem;
-  margin-bottom: var(--app-padding);
+  margin-bottom: 0;
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
   flex-shrink: 0;
 }
 

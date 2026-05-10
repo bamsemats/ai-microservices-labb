@@ -144,12 +144,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
       <style href="Sidebar" precedence="default">{`
         .sidebar {
           width: var(--sidebar-width);
-          height: calc(100vh - (2 * var(--app-padding)));
-          margin: var(--app-padding);
+          height: 100vh;
+          margin: 0;
           display: flex;
           flex-direction: column;
           padding: 1.25rem;
-          border-radius: 1.25rem;
+          border-radius: 0;
+          border-top: none;
+          border-bottom: none;
+          border-left: none;
           background: rgba(var(--bg-rgb, 2, 6, 23), 0.4);
           flex-shrink: 0;
           overflow-y: auto;

@@ -19,11 +19,11 @@ const getSafeStorageItem = (key: string) => {
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  token: null, // Keep only in memory
+  token: getSafeStorageItem('authToken'),
   userId: getSafeStorageItem('userId'),
   username: getSafeStorageItem('username'),
   role: getSafeStorageItem('role'),
-  isAuthenticated: !!getSafeStorageItem('username'),
+  isAuthenticated: !!getSafeStorageItem('authToken'),
   isAdmin: getSafeStorageItem('role') === 'ROLE_ADMIN',
   
   setAuth: (token, userId, username, role = 'ROLE_USER') => {
@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.warn('Auth attempt failed: missing required credentials', { hasToken: !!token, hasUserId: !!userId, hasUsername: !!username });
       return false;
     }
-    // We don't store token in localStorage for security
+    localStorage.setItem('authToken', token);
     localStorage.setItem('userId', userId);
     localStorage.setItem('username', username);
     localStorage.setItem('role', role);
@@ -40,6 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   logout: () => {
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
@@ -47,15 +48,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    const { isAuthenticated, token } = get();
-    if (isAuthenticated && !token) {
-      console.log('Detected active session without token. Attempting recovery...');
-      // In a real app, we would call a /refresh endpoint here.
-      // For this lab, we'll force logout if we can't recover, 
-      // as the token is only in memory and lost on refresh.
-      // Alternatively, we could use a HttpOnly cookie for the token.
+    const token = getSafeStorageItem('authToken');
+    const username = getSafeStorageItem('username');
+    
+    if (token && username) {
+      console.log('Restoring session for user:', username);
+      set({ isAuthenticated: true });
+    } else {
       get().logout();
-      window.location.href = '/login';
     }
   }
 }));

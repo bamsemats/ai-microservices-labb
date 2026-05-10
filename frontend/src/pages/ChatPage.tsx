@@ -194,6 +194,106 @@ const ChatPage: React.FC = () => {
       </AnimatePresence>
 
       <style>{`
+        .chat-page-layout {
+          display: flex;
+          width: 100vw;
+          height: 100vh;
+        }
+
+        .chat-main-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                      radial-gradient(circle at bottom left, rgba(244, 63, 92, 0.05) 0%, transparent 40%);
+        }
+
+        .message-stream {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .message-list {
+          flex: 1;
+          padding: 1rem 2rem;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .empty-state {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.5;
+        }
+
+        .empty-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .message-bubble {
+          max-width: 75%;
+          padding: 1rem 1.25rem;
+          border-radius: 1.25rem;
+          background: var(--glass-bg);
+          backdrop-filter: blur(var(--glass-blur-amount));
+          border: 1px solid var(--glass-border);
+          align-self: flex-start;
+          position: relative;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-bubble.own {
+          align-self: flex-end;
+          background: var(--accent-gradient);
+          border: none;
+          color: white;
+          box-shadow: var(--accent-glow);
+        }
+
+        .sender-info {
+          font-size: 0.75rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: var(--accent-tertiary);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .message-bubble.own .sender-info {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .bot-tag {
+          background: var(--accent-tertiary);
+          color: var(--bg-dark);
+          padding: 0.1rem 0.3rem;
+          border-radius: 4px;
+          font-size: 0.65rem;
+        }
+
+        .bubble-content {
+          font-size: 1rem;
+          line-height: 1.5;
+        }
+
+        .message-time {
+          font-size: 0.65rem;
+          opacity: 0.5;
+          margin-top: 0.5rem;
+          text-align: right;
+        }
+
         .typing-indicator-wrapper {
           padding: 0.5rem 2rem;
           display: flex;

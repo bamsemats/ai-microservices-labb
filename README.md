@@ -85,56 +85,56 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 
 ## 🛠 Technology Stack
 
-- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin
-- **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS
-- **Messaging**: RabbitMQ, gRPC, WebSockets
-- **Persistence**: MongoDB, Redis
-- **Orchestration**: Docker Compose, Kubernetes
-- **Security**: Zero-Trust JWT, AES-256 PII Encryption, mTLS
+- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin, Micrometer (Tracing/Metrics)
+- **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS (Prism Aura)
+- **Messaging**: RabbitMQ (Real-time Events), gRPC (mTLS), WebSockets
+- **Persistence**: MongoDB (Reactive), Redis (Presence/Tokens)
+- **Observability**: OTLP/Jaeger, Prometheus, Actuator
 
 ---
 
 ## 🏗 Design Decisions & Trade-offs
 
-### High-Availability WebSockets (Session-based)
-The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks** managed by a dedicated `SessionRegistry`. 
-- **Multi-Device Support**: A single user can maintain multiple active connections (tabs/devices) without message collisions.
-- **Decoupled Delivery**: A new `MessageDeliveryService` abstracts the routing logic, allowing the `MessageWebSocketHandler` to focus solely on the reactive connection pipeline.
-- **Resource Integrity**: `ChatSession` objects encapsulate all session-specific state (tokens, sinks, channels), ensuring robust cleanup and preventing memory leaks when connections drop.
+### Prism Aura: Edge-to-Edge UI
+The visual identity has been evolved from a fragmented component-based layout to the **Prism Aura** system. 
+- **Edge-to-Edge Layout**: Sidebar and Navbar are now flush with the viewport, maximizing information density while maintaining high-fidelity glassmorphism.
+- **Scalable SVG Branding**: Replaced all raster logos with a themeable SVG `BrandLogo` component, supporting smooth scaling and AI-driven aesthetic transitions.
+- **Session Continuity**: Authentication state is persisted via `localStorage` with a robust recovery pipeline, preventing session loss on page refreshes.
 
-### Full-Stack Security & Reliability Sweep
-A comprehensive sweep was performed to harden the system's production readiness:
+### Unified Observability
+Monitoring logic has been centralized into the `common-observability` module:
+- **Trace-Enriched Logging**: Every log entry now includes `traceId` and `spanId` for seamless cross-service correlation in Jaeger.
+- **Shared Infrastructure**: Services inherit production-ready monitoring defaults via a single `spring.config.import`, ensuring consistent metric collection across the monorepo.
 
----
-
-## ⚠️ Known Limitations
-- **Binary Coupling**: Services depend on `common-security`, `common-observability`, and `proto`.
-- **Coordinated Rollouts**: Shared library updates require full-stack redeployment.
+### Synchronized Bot Identities
+"Living Bots" now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution), ensuring high-fidelity username and profile metadata throughout the UI.
 
 ---
 
 ## 🏁 How to Run
 
 ### Prerequisites
-The system requires several environment variables for security and inter-service communication. For local development, create a `.env` file in the root directory:
+The system requires several environment variables. For local development, create a `.env` file in the root directory:
 
 ```env
 JWT_SECRET=your-256-bit-secret
 ENCRYPTION_SECRET=your-32-char-encryption-key
 OPENROUTER_API_KEY=your-api-key
 
-# gRPC Keystore Passwords (local development only; override in non-local environments)
+# gRPC Keystore Passwords (local development only)
 GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
 GRPC_SERVER_SECURITY_KEY_PASSWORD=password
 GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
 ```
 
-### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
+### Infrastructure & Frontend (Docker Compose)
 ```bash
 docker-compose up --build
 ```
 - **Frontend UI**: [http://localhost:3000](http://localhost:3000)
 - **API Gateway**: [http://localhost:8080](http://localhost:8080)
+- **Jaeger UI**: [http://localhost:16686](http://localhost:16686)
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
 
 ## Author
 - [Bamsemats](https://github.com/bamsemats)

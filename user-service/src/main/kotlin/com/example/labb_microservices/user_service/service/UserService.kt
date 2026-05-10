@@ -6,8 +6,9 @@ import com.example.labb_microservices.user_service.repository.UserRepository
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-
+import reactor.core.publisher.Flux
 import org.slf4j.LoggerFactory
+import java.util.*
 
 @Service
 class UserService(
@@ -133,5 +134,24 @@ class UserService(
                 user.copy(email = null)
             }
         }
+    }
+
+    fun seedBots(bots: List<Pair<String, String>>): Mono<Void> {
+        return Flux.fromIterable(bots)
+            .flatMap { (name, role) ->
+                userRepository.findById(name)
+                    .switchIfEmpty(
+                        userRepository.save(
+                            User(
+                                id = name,
+                                username = name,
+                                displayName = name,
+                                password = passwordEncoder.encode(UUID.randomUUID().toString()),
+                                bio = "Official AdaptaChat $role Bot"
+                            )
+                        )
+                    )
+            }
+            .then()
     }
 }
