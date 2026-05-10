@@ -79,6 +79,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#61 UX: Discovery Hub Polish**: Improved visual states and functional sidebar actions.
 - [x] **#62 UX: Accessibility Polish**: ARIA labels, roles, and keyboard navigation shortcuts.
 - [x] **#63 UX: Mobile Optimization**: Responsive design, mobile sidebar, and adaptive grids.
+- [ ] **#64 Branding & Identity Update**: Refresh logotype and global design language.
 
 ---
 

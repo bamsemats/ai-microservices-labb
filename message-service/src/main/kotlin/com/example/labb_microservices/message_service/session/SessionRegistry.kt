@@ -26,9 +26,9 @@ class SessionRegistry {
         // If it was already registered to another user (unlikely but possible), clean up
         session.userId?.let { oldUserId ->
             if (oldUserId != userId) {
-                userSessions[oldUserId]?.remove(sessionId)
-                if (userSessions[oldUserId]?.isEmpty() == true) {
-                    userSessions.remove(oldUserId)
+                userSessions.computeIfPresent(oldUserId) { _, sessions ->
+                    sessions.remove(sessionId)
+                    if (sessions.isEmpty()) null else sessions
                 }
             }
         }
@@ -43,10 +43,9 @@ class SessionRegistry {
         val session = sessions.remove(sessionId)
         if (session != null) {
             session.userId?.let { userId ->
-                val userSessionSet = userSessions[userId]
-                userSessionSet?.remove(sessionId)
-                if (userSessionSet?.isEmpty() == true) {
-                    userSessions.remove(userId)
+                userSessions.computeIfPresent(userId) { _, sessions ->
+                    sessions.remove(sessionId)
+                    if (sessions.isEmpty()) null else sessions
                 }
             }
             logger.debug("Unregistered session {} for user {}", sessionId, session.userId ?: "anonymous")

@@ -63,7 +63,10 @@ class UserService(
     fun updateProfile(userId: String, displayName: String?, bio: String?, socialLinks: Map<String, String>? = null): Mono<User> {
         return userRepository.findById(userId)
             .flatMap { user ->
-                userRepository.save(user.copy(displayName = displayName, bio = bio, socialLinks = socialLinks))
+                val newDisplayName = displayName ?: user.displayName
+                val newBio = bio ?: user.bio
+                val newSocialLinks = socialLinks ?: user.socialLinks
+                userRepository.save(user.copy(displayName = newDisplayName, bio = newBio, socialLinks = newSocialLinks))
             }
             .map { decryptUser(it) }
     }

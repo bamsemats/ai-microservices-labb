@@ -61,6 +61,13 @@ class MessageController(
                 }
 
                 userGrpcClient.getUser(senderId)
+                    .onErrorResume { e ->
+                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                            Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                        } else {
+                            Mono.error(e)
+                        }
+                    }
                     .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     .flatMap { userResponse ->
                         Mono.fromCallable {
@@ -92,6 +99,13 @@ class MessageController(
                 val senderId = auth.name
                 
                 userGrpcClient.getUser(senderId)
+                    .onErrorResume { e ->
+                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                            Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                        } else {
+                            Mono.error(e)
+                        }
+                    }
                     .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     .flatMap { userResponse ->
                         Mono.fromCallable {
@@ -179,6 +193,13 @@ class MessageController(
                 val isSelf = auth.name == userId
                 
                 userGrpcClient.getUser(userId)
+                    .onErrorResume { e ->
+                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                            Mono.empty()
+                        } else {
+                            Mono.error(e)
+                        }
+                    }
                     .map { user ->
                         if (isAdmin || isSelf) {
                             "User: ${user.username}, Email: ${user.email}"

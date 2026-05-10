@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuthStore } from '../store/useAuthStore';
 import logoWithName from '../assets/logo-with-name.png';
@@ -34,8 +34,9 @@ const LoginPage: React.FC = () => {
         <h2>Login</h2>
         {error && <p className="error">{error}</p>}
         <div className="input-group">
-          <label>Username</label>
+          <label htmlFor="username">Username</label>
           <input 
+            id="username"
             type="text" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
@@ -43,8 +44,9 @@ const LoginPage: React.FC = () => {
           />
         </div>
         <div className="input-group">
-          <label>Password</label>
+          <label htmlFor="password">Password</label>
           <input 
+            id="password"
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
@@ -55,16 +57,24 @@ const LoginPage: React.FC = () => {
         
         <div className="auth-footer">
           <p>Don't have an account?</p>
-          <button 
-            type="button" 
-            className="lumina-button secondary" 
-            onClick={() => navigate('/register')}
-            style={{ width: '100%', marginTop: '0.5rem' }}
+          <Link 
+            to="/register" 
+            className="lumina-button secondary auth-footer-cta"
           >
             Create New Account
-          </button>
+          </Link>
         </div>
       </form>
+
+      <style>{`
+        .auth-footer-cta {
+          width: 100%;
+          margin-top: 0.5rem;
+          display: inline-block;
+          text-align: center;
+          text-decoration: none;
+        }
+      `}</style>
     </div>
   );
 };

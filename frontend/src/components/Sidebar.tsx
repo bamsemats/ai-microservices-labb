@@ -94,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
         <h3 id="channels-label">Channels</h3>
         <button 
           className={`channel-item ${activeReceiver === 'all' ? 'active' : ''}`}
-          onClick={() => onSelectReceiver('all')}
+          onClick={() => { onSelectReceiver('all'); toggleSidebar(false); }}
           aria-current={activeReceiver === 'all' ? 'true' : undefined}
         >
           <span className="hash" aria-hidden="true">#</span> general
@@ -105,7 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
         <h3 id="dm-label">Direct Messages</h3>
         <button 
           className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
-          onClick={() => userId && onSelectReceiver(userId)}
+          onClick={() => { if (userId) { onSelectReceiver(userId); toggleSidebar(false); } }}
           disabled={!userId}
           aria-current={activeReceiver === userId ? 'true' : undefined}
           aria-label="Me (Notes)"
@@ -122,7 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
                 <button 
                   key={presence.userId}
                   className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
-                  onClick={() => onSelectReceiver(presence.userId)}
+                  onClick={() => { onSelectReceiver(presence.userId); toggleSidebar(false); }}
                   aria-current={activeReceiver === presence.userId ? 'true' : undefined}
                   aria-label={`Chat with ${presence.username}, status: ${presence.status.toLowerCase()}`}
                 >

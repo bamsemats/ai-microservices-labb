@@ -39,19 +39,26 @@ class SeedingService(
                 presenceService.setUserOnline(bot.name)
                     .then(Mono.defer {
                         // Create a welcome message from the bot if it doesn't exist
-                        val welcomeMessage = Message(
-                            id = "seed-${bot.name}-welcome",
-                            senderId = bot.name,
-                            senderName = bot.name,
-                            receiverId = "all",
-                            channelId = "general",
-                            content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?",
-                            authorType = AuthorType.BOT,
-                            timestamp = LocalDateTime.now()
-                        )
-                        // Save and then deliver
-                        messageRepository.save(welcomeMessage)
-                            .doOnSuccess { messageProducer.deliverMessage(it) }
+                        val messageId = "seed-${bot.name}-welcome"
+                        messageRepository.existsById(messageId)
+                            .flatMap { exists ->
+                                if (exists) {
+                                    Mono.empty()
+                                } else {
+                                    val welcomeMessage = Message(
+                                        id = messageId,
+                                        senderId = bot.name,
+                                        senderName = bot.name,
+                                        receiverId = "all",
+                                        channelId = "general",
+                                        content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?",
+                                        authorType = AuthorType.BOT,
+                                        timestamp = LocalDateTime.now()
+                                    )
+                                    messageRepository.save(welcomeMessage)
+                                        .doOnSuccess { messageProducer.deliverMessage(it) }
+                                }
+                            }
                             .then()
                     })
             }
@@ -64,6 +71,9 @@ class SeedingService(
         // Delay slightly to ensure infrastructure is ready
         Mono.delay(java.time.Duration.ofSeconds(5))
             .flatMap { seedData() }
-            .subscribe()
+            .subscribe(
+                { logger.info("Seeding runner finished successfully") },
+                { e -> logger.error("Seeding runner failed", e) }
+            )
     }
 }

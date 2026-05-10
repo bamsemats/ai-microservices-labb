@@ -112,7 +112,7 @@ class OpenRouterResponseGenerator(
                             Flux.just("I'm having trouble connecting to my brain right now. (Timeout)")
                         } else {
                             logger.error("Error calling OpenRouter: {}", e.message)
-                            Flux.just("Interference detected in the frequency. (Error: ${e.message})")
+                            Flux.just("Interference detected in the frequency. Please try again later.")
                         }
                     }
             }

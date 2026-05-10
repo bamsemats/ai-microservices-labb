@@ -6,8 +6,10 @@ export const useKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Use Alt key for navigation shortcuts
-      if (event.altKey) {
+      if (event.isComposing) return;
+
+      // Use Alt key for navigation shortcuts (tighten guard)
+      if (event.altKey && !event.ctrlKey && !event.metaKey && !event.getModifierState('AltGraph')) {
         switch (event.key.toLowerCase()) {
           case 'h':
             event.preventDefault();
@@ -25,17 +27,19 @@ export const useKeyboardShortcuts = () => {
             event.preventDefault();
             navigate('/profile');
             break;
-          case 't':
-            event.preventDefault();
-            // This is a bit tricky since it's in useUIStore, 
-            // but we can trigger the theme toggle if we wanted to.
-            // For now, let's stick to navigation.
-            break;
         }
       }
 
-      // Focus search/message composer with '/' if not already typing in an input
-      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      // Focus search/message composer with '/' if not already typing in an input/editable context
+      const active = document.activeElement;
+      const isEditable = active && (
+        active.tagName === 'INPUT' || 
+        active.tagName === 'TEXTAREA' || 
+        active.tagName === 'SELECT' || 
+        (active as HTMLElement).isContentEditable
+      );
+
+      if (event.key === '/' && !isEditable) {
         event.preventDefault();
         const composer = document.querySelector('.composer-form input') as HTMLInputElement;
         if (composer) composer.focus();

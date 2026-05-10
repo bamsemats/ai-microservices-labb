@@ -4,9 +4,9 @@ import reactor.core.publisher.Sinks
 
 data class ChatSession(
     val sessionId: String,
-    var userId: String? = null,
+    @Volatile var userId: String? = null,
     val channelId: String,
-    var token: String? = null,
+    @Volatile var token: String? = null,
     val sink: Sinks.Many<String>,
     val disconnectSink: Sinks.Empty<Void>
 )

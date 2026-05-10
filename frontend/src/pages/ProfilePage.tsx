@@ -11,15 +11,20 @@ interface SocialLinks {
   website?: string;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 const ProfilePage: React.FC = () => {
   const { username, token } = useAuthStore();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('');
+  // ... rest of state ...
   const [bio, setBio] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
+    // ... rest of useEffect ...
     const fetchProfile = async () => {
       try {
         const response = await api.get('/users/me');
@@ -35,6 +40,7 @@ const ProfilePage: React.FC = () => {
   }, [token]);
 
   const handleSave = async () => {
+    // ... rest of handleSave ...
     setIsSaving(true);
     setFeedback(null);
     try {
@@ -53,9 +59,13 @@ const ProfilePage: React.FC = () => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleSelectReceiver = (id: string) => {
+    navigate(`/?receiver=${encodeURIComponent(id)}`);
+  };
+
   return (
     <div className="chat-page-layout">
-      <Sidebar activeReceiver="profile" onSelectReceiver={() => {}} />
+      <Sidebar activeReceiver="profile" onSelectReceiver={handleSelectReceiver} />
 
       <main className="chat-main-content">
         <Navbar prefix="👤" contextName="User Profile" />
@@ -79,8 +89,9 @@ const ProfilePage: React.FC = () => {
                 <div className="editor-section">
                   <h3>Basic Identity</h3>
                   <div className="settings-group">
-                    <label>Display Name</label>
+                    <label htmlFor="displayName">Display Name</label>
                     <input 
+                      id="displayName"
                       type="text" 
                       value={displayName} 
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -89,8 +100,9 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div className="settings-group">
-                    <label>Bio (AI Context)</label>
+                    <label htmlFor="bio">Bio (AI Context)</label>
                     <textarea 
+                      id="bio"
                       value={bio} 
                       onChange={(e) => setBio(e.target.value)}
                       placeholder="Tell the community and AI about yourself..."
@@ -104,10 +116,11 @@ const ProfilePage: React.FC = () => {
                 <div className="editor-section">
                   <h3>Social Frequencies</h3>
                   <div className="settings-group">
-                    <label>Twitter / X</label>
+                    <label htmlFor="twitter">Twitter / X</label>
                     <div className="input-with-icon">
                       <span className="input-icon">🐦</span>
                       <input 
+                        id="twitter"
                         type="text" 
                         value={socialLinks.twitter || ''} 
                         onChange={(e) => handleSocialChange('twitter', e.target.value)}
@@ -117,10 +130,11 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="settings-group">
-                    <label>GitHub</label>
+                    <label htmlFor="github">GitHub</label>
                     <div className="input-with-icon">
                       <span className="input-icon">🐙</span>
                       <input 
+                        id="github"
                         type="text" 
                         value={socialLinks.github || ''} 
                         onChange={(e) => handleSocialChange('github', e.target.value)}
@@ -130,10 +144,11 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="settings-group">
-                    <label>Personal Frequency (Website)</label>
+                    <label htmlFor="website">Personal Frequency (Website)</label>
                     <div className="input-with-icon">
                       <span className="input-icon">🌐</span>
                       <input 
+                        id="website"
                         type="text" 
                         value={socialLinks.website || ''} 
                         onChange={(e) => handleSocialChange('website', e.target.value)}

@@ -7,14 +7,20 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-
 import org.springframework.web.server.ResponseStatusException
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
+import jakarta.validation.constraints.Size
 
 data class ProfileRequest(
-    val displayName: String?, 
-    val bio: String?, 
+    @field:Size(max = 50)
+    val displayName: String?,
+    @field:Size(max = 500)
+    val bio: String?,
+    @field:Size(max = 10)
     val socialLinks: Map<String, String>? = null
 )
+
 data class RegisterUserRequest(val username: String, val email: String, val password: String)
 
 @RestController
@@ -41,7 +47,7 @@ class UserController(private val userService: UserService) {
 
     @PutMapping("/users/profile")
     fun updateProfile(
-        @RequestBody request: ProfileRequest,
+        @Valid @RequestBody request: ProfileRequest,
         @AuthenticationPrincipal userId: String
     ): Mono<UserDto> {
         return userService.updateProfile(userId, request.displayName, request.bio, request.socialLinks)

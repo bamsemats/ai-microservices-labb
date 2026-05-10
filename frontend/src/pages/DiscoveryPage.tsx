@@ -362,6 +362,12 @@ const DiscoveryPage: React.FC = () => {
           50% { opacity: 0.5; }
         }
 
+        @media (prefers-reduced-motion: reduce) {
+          .live-indicator, .pulse-bar {
+            animation: none !important;
+          }
+        }
+
         .pulse-viz {
           display: flex;
           align-items: flex-end;

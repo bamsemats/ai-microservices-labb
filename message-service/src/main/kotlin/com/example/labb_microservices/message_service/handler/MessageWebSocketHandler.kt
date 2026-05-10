@@ -115,6 +115,7 @@ class MessageWebSocketHandler(
             .onErrorMap(java.util.concurrent.TimeoutException::class.java) {
                 PolicyViolationException("Authentication timeout - please send auth token")
             }
+            .takeUntilOther(disconnectSink.asMono())
             .flatMap { userId ->
                 val validation = Flux.interval(Duration.ofSeconds(validationIntervalSeconds))
                     .flatMap {

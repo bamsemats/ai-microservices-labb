@@ -17,15 +17,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return (isAuthenticated && token) ? <>{children}</> : <Navigate to="/login" />;
 };
 
-function App() {
-  useUIAdaptation();
+function AppContent() {
   useKeyboardShortcuts();
-  const initialize = useAuthStore((state) => state.initialize);
-
-  React.useEffect(() => {
-    initialize();
-  }, [initialize]);
-
   return (
     <div className="app-container">
       <Routes>
@@ -66,6 +59,17 @@ function App() {
       </Routes>
     </div>
   );
+}
+
+function App() {
+  useUIAdaptation();
+  const initialize = useAuthStore((state) => state.initialize);
+
+  React.useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  return <AppContent />;
 }
 
 export default App;
