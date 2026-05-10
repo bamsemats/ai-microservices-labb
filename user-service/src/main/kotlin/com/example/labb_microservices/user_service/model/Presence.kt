@@ -8,5 +8,6 @@ data class PresenceUpdateEvent(
     val userId: String,
     val username: String,
     val status: PresenceStatus,
+    val type: String = "PRESENCE_UPDATE",
     val timestamp: Long = System.currentTimeMillis()
 )

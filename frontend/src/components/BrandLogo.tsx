@@ -32,14 +32,14 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         try {
           animateR?.endElement();
           animateOpacity?.endElement();
-        } catch (e) {
+        } catch {
           // Fallback for browsers that don't support endElement
         }
       } else {
         try {
           animateR?.beginElement();
           animateOpacity?.beginElement();
-        } catch (e) {
+        } catch {
           // Fallback for browsers that don't support beginElement
         }
       }

@@ -15,7 +15,7 @@ class PresenceService(
 
     fun setUserOnline(userId: String): Mono<Boolean> {
         return redisTemplate.opsForValue()
-            .set("${presenceKeyPrefix}$userId", "online", Duration.ofMinutes(2))
+            .set("${presenceKeyPrefix}$userId", "ONLINE", Duration.ofDays(7))
     }
 
     fun setUserOffline(userId: String): Mono<Long> {

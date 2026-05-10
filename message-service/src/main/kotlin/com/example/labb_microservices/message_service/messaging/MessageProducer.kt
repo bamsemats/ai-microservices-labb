@@ -23,6 +23,14 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
         )
     }
 
+    fun sendSentimentRequest(message: Message) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.STORAGE_EXCHANGE_NAME,
+            "sentiment",
+            message
+        )
+    }
+
     fun sendAiRequest(message: Message) {
         rabbitTemplate.convertAndSend(
             RabbitMQConfig.AI_EXCHANGE_NAME,

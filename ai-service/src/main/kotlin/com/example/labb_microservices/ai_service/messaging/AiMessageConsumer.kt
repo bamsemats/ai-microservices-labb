@@ -144,7 +144,8 @@ class AiMessageConsumer(
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()
-        val receiverId = if (message.receiverId == "ai-bot") message.senderId else message.receiverId
+        val isAiBot = message.receiverId == "ai-bot" || message.receiverId == "AdaptaAI"
+        val receiverId = if (isAiBot) message.senderId else message.receiverId
 
         // Notify UI that AI is thinking
         val startNotify = Mono.fromRunnable<Unit> {

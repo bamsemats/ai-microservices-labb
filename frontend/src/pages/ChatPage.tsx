@@ -26,6 +26,14 @@ const ChatPage: React.FC = () => {
   const activeChannelId = receiverId === 'home' ? 'general' : receiverId;
   const currentTypingUsers = typingUsers[activeChannelId] || [];
 
+  const filteredMessages = messages.filter(msg => {
+    if (receiverId === 'all' || receiverId === 'home') {
+      return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
+    }
+    return (msg.senderId === userId && msg.receiverId === receiverId) || 
+           (msg.senderId === receiverId && msg.receiverId === userId);
+  });
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -36,7 +44,7 @@ const ChatPage: React.FC = () => {
     unreadMessages.forEach(m => {
       if (m.id) sendReadReceipt(m.id, m.channelId || activeChannelId);
     });
-  }, [messages, injectedContent, aiStatus, receiverId]);
+  }, [messages, injectedContent, aiStatus, receiverId, activeChannelId, filteredMessages, sendReadReceipt, userId]);
 
   const handleSend = async (content: string) => {
     setError(null);
@@ -63,14 +71,6 @@ const ChatPage: React.FC = () => {
   const handleTyping = (isTyping: boolean) => {
     sendTyping(activeChannelId, isTyping);
   };
-
-  const filteredMessages = messages.filter(msg => {
-    if (receiverId === 'all' || receiverId === 'home') {
-      return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
-    }
-    return (msg.senderId === userId && msg.receiverId === receiverId) || 
-           (msg.senderId === receiverId && msg.receiverId === userId);
-  });
 
   const filteredInjectedContent = (receiverId === 'all' || receiverId === 'home') ? injectedContent : [];
 

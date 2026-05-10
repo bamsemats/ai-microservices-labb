@@ -174,8 +174,10 @@ class MessageController(
 
     private fun processMessage(message: Message) {
         messageProducer.sendMessage(message)
+        messageProducer.sendSentimentRequest(message)
 
-        if (AI_MENTION_REGEX.containsMatchIn(message.content)) {
+        val isAiRecipient = message.receiverId == "AdaptaAI" || message.receiverId == "ai-bot"
+        if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {
             try {
                 messageProducer.sendAiRequest(message)
             } catch (e: Exception) {
@@ -268,7 +270,6 @@ class MessageController(
     }
 
     @GetMapping("/presence")
-    @PreAuthorize("hasRole('ADMIN')") // Restrict global presence to admins for now
     fun getOnlineUsers(): Flux<String> {
         return presenceService.getAllOnlineUsers()
     }
