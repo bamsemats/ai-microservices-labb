@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
-import logoWithName from '../assets/logo-with-name.png';
+import BrandLogo from './BrandLogo';
 
 interface SidebarProps {
   activeReceiver: string;
@@ -41,8 +41,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
 
   return (
     <aside className={`sidebar glass-panel ${sidebarOpen ? 'mobile-open' : ''}`} role="navigation" aria-label="Main navigation">
-      <div className="sidebar-header">
-        <img src={logoWithName} alt="AdaptaChat Logo" className="sidebar-logo" />
+      <div className="sidebar-header" onClick={() => handleNav('/')} style={{ cursor: 'pointer' }}>
+        <BrandLogo size="md" />
       </div>
 
       <div className="sidebar-section" role="group" aria-labelledby="main-nav-label">
@@ -150,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           flex-direction: column;
           padding: 1.25rem;
           border-radius: 1.25rem;
-          background: rgba(11, 19, 38, 0.4);
+          background: rgba(var(--bg-rgb, 2, 6, 23), 0.4);
           flex-shrink: 0;
           overflow-y: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -164,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
             margin: 0;
             height: 100vh;
             border-radius: 0 1.25rem 1.25rem 0;
-            background: rgba(11, 19, 38, 0.95);
+            background: rgba(var(--bg-rgb, 2, 6, 23), 0.95);
             backdrop-filter: blur(20px);
             width: 280px;
           }

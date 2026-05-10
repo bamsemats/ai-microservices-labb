@@ -19,15 +19,24 @@ const ChatPage: React.FC = () => {
   const [receiverId, setReceiverId] = useState('home');
   const [error, setError] = useState<string | null>(null);
   const { userId, isAdmin } = useAuthStore();
-  const { messages, injectedContent, aiStatus } = useChatStore();
-  useWebSocket();
+  const { messages, injectedContent, aiStatus, typingUsers } = useChatStore();
+  const { sendTyping, sendReadReceipt } = useWebSocket();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const activeChannelId = receiverId === 'home' ? 'general' : receiverId;
+  const currentTypingUsers = typingUsers[activeChannelId] || [];
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, injectedContent, aiStatus]);
+    
+    // Read receipt logic: mark visible messages as read when they arrive
+    const unreadMessages = filteredMessages.filter(m => m.senderId !== userId && !(m.readBy || []).includes(userId || ''));
+    unreadMessages.forEach(m => {
+      if (m.id) sendReadReceipt(m.id, activeChannelId);
+    });
+  }, [messages, injectedContent, aiStatus, receiverId]);
 
   const handleSend = async (content: string) => {
     setError(null);
@@ -51,9 +60,13 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  const handleTyping = (isTyping: boolean) => {
+    sendTyping(activeChannelId, isTyping);
+  };
+
   const filteredMessages = messages.filter(msg => {
     if (receiverId === 'all' || receiverId === 'home') {
-      return !msg.receiverId || msg.receiverId === 'all';
+      return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
     }
     return (msg.senderId === userId && msg.receiverId === receiverId) || 
            (msg.senderId === receiverId && msg.receiverId === userId);
@@ -136,8 +149,29 @@ const ChatPage: React.FC = () => {
             </AnimatePresence>
           </div>
 
+          <AnimatePresence>
+            {currentTypingUsers.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="typing-indicator-wrapper"
+              >
+                <div className="typing-dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <span className="typing-text">
+                  {currentTypingUsers.length === 1 
+                    ? `${currentTypingUsers[0]} is typing...` 
+                    : `${currentTypingUsers.length} users are typing...`}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <MessageComposer 
             onSend={handleSend} 
+            onTyping={handleTyping}
             placeholder={`Message ${receiverId === 'home' ? 'general' : (receiverId === 'all' ? '#general' : 'this frequency')}...`}
             disabled={(receiverId === 'all' || receiverId === 'home') && !isAdmin}
           />
@@ -160,126 +194,35 @@ const ChatPage: React.FC = () => {
       </AnimatePresence>
 
       <style>{`
-        .error-toast {
-          position: fixed;
-          bottom: 2rem;
-          right: 2rem;
+        .typing-indicator-wrapper {
+          padding: 0.5rem 2rem;
           display: flex;
           align-items: center;
-          gap: 1rem;
-          padding: 1rem 1.5rem;
-          background: rgba(244, 63, 94, 0.1) !important;
-          border-color: rgba(244, 63, 94, 0.3) !important;
-          color: var(--error);
-          z-index: 1000;
-          box-shadow: 0 10px 30px rgba(244, 63, 94, 0.2);
-        }
-
-        .error-icon {
-          font-size: 1.25rem;
-        }
-
-        .error-message {
-          font-weight: 600;
-          font-size: 0.9rem;
-        }
-
-        .close-toast {
-          background: none;
-          border: none;
-          color: var(--error);
-          font-size: 1.5rem;
-          cursor: pointer;
-          padding: 0 0.5rem;
-          opacity: 0.5;
-        }
-
-        .close-toast:hover {
-          opacity: 1;
-        }
-
-        .message-stream {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .message-list {
-          flex: 1;
-          padding: 1rem 2rem;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .empty-state {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          opacity: 0.5;
-        }
-
-        .empty-icon {
-          font-size: 4rem;
-          margin-bottom: 1rem;
-        }
-
-        .message-bubble {
-          max-width: 65%;
-          padding: 1rem 1.25rem;
-          border-radius: 1.25rem;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          align-self: flex-start;
-          backdrop-filter: blur(8px);
-          position: relative;
-        }
-
-        .message-bubble.own {
-          align-self: flex-end;
-          background: var(--accent-gradient);
-          border: none;
-          color: white;
-          box-shadow: var(--accent-glow);
-        }
-
-        .sender-info {
+          gap: 0.75rem;
           font-size: 0.75rem;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-          color: var(--accent-tertiary);
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+
+        .typing-dots {
           display: flex;
-          align-items: center;
-          gap: 0.5rem;
+          gap: 3px;
         }
 
-        .message-bubble.own .sender-info {
-          color: rgba(255, 255, 255, 0.8);
+        .typing-dots span {
+          width: 4px;
+          height: 4px;
+          background: var(--accent-primary);
+          border-radius: 50%;
+          animation: typing-bounce 1.4s infinite ease-in-out both;
         }
 
-        .bot-tag {
-          background: var(--accent-tertiary);
-          color: var(--bg-dark);
-          padding: 0.1rem 0.3rem;
-          border-radius: 4px;
-          font-size: 0.65rem;
-        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
 
-        .bubble-content {
-          font-size: 1rem;
-          line-height: 1.5;
-        }
-
-        .message-time {
-          font-size: 0.65rem;
-          opacity: 0.5;
-          margin-top: 0.5rem;
-          text-align: right;
+        @keyframes typing-bounce {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
         }
       `}</style>
     </div>

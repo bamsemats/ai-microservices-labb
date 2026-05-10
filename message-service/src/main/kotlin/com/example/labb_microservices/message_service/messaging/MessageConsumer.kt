@@ -119,7 +119,9 @@ class MessageConsumer(
     @RabbitListener(queues = ["#{adaptationQueue.name}"])
     fun consumeGenericEvent(eventData: Map<String, Any>) {
         val type = eventData["type"] as? String ?: "UI_ADAPTATION"
-        logger.info("Received real-time event: $type")
+        val channelId = eventData["channelId"] as? String
+        
+        logger.info("Received real-time event: $type for channel: ${channelId ?: "global"}")
         val jsonEvent = try {
             objectMapper.writeValueAsString(eventData)
         } catch (e: Exception) {
@@ -128,9 +130,39 @@ class MessageConsumer(
         }
 
         try {
-            deliveryService.broadcastMessage(jsonEvent)
+            if (channelId != null) {
+                deliveryService.broadcastToChannel(channelId, jsonEvent)
+            } else {
+                deliveryService.broadcastMessage(jsonEvent)
+            }
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting generic event", e)
+        }
+    }
+
+    @RabbitListener(queues = [RabbitMQConfig.EVENT_STORAGE_QUEUE_NAME])
+    fun consumeEventStorage(eventData: Map<String, Any>) {
+        val type = eventData["type"] as? String ?: return
+        
+        when (type) {
+            "READ_RECEIPT" -> {
+                val messageId = eventData["messageId"] as? String ?: return
+                val userId = eventData["userId"] as? String ?: return
+                val channelId = eventData["channelId"] as? String ?: "general"
+                
+                logger.info("Processing read receipt for message $messageId by user $userId")
+                
+                val query = Query(Criteria.where("id").`is`(messageId))
+                val update = Update().addToSet("readBy", userId)
+                
+                mongoTemplate.updateFirst(query, update, Message::class.java)
+                    .doOnSuccess {
+                        // Broadcast the update back to the channel
+                        val jsonEvent = objectMapper.writeValueAsString(eventData)
+                        deliveryService.broadcastToChannel(channelId, jsonEvent)
+                    }
+                    .block()
+            }
         }
     }
 

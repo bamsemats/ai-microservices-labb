@@ -3,6 +3,7 @@ package com.example.labb_microservices.ai_service.logic
 import com.example.labb_microservices.ai_service.model.*
 import com.example.labb_microservices.ai_service.repository.MemoryFragmentRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Primary
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono
 
 @Primary
 @Service
+@Observed(name = "ai.response.generation")
 class OpenRouterResponseGenerator(
     private val memoryFragmentRepository: MemoryFragmentRepository,
     private val piiRedactor: PiiRedactor,

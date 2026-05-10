@@ -72,14 +72,14 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [ ] **#54 Global Cross-Channel Search**: Searchable encrypted history (Phase 4).
 - [ ] **#55 Direct File Transfers**: Media sharing service foundation.
 - [ ] **#56 Voice/Video Integration**: WebRTC-based real-time media.
-- [ ] **#57 Observability Refactoring**: Consolidate monitoring logic.
+- [x] **#57 Observability Refactoring**: Consolidated monitoring, tracing (Jaeger/OTLP), and metrics (Prometheus) logic.
 - [x] **#58 Full-Stack Security & Reliability Sweep**: Non-root Docker execution, mTLS hardening, and multi-token search.
 - [x] **#59 Fix: Docker Build & Startup Stabilization**: Resolved dependency and permission issues.
 - [x] **#60 UX: Theme Toggle & Profile Hub**: Added Dark/Light mode and dedicated profile editing with social links.
-- [x] **#61 UX: Discovery Hub Polish**: Improved visual states and functional sidebar actions.
+- [x] **#61 UX: Typing Indicators & Read Receipts**: Implemented real-time typing detection and persistent read status tracking.
 - [x] **#62 UX: Accessibility Polish**: ARIA labels, roles, and keyboard navigation shortcuts.
 - [x] **#63 UX: Mobile Optimization**: Responsive design, mobile sidebar, and adaptive grids.
-- [ ] **#64 Branding & Identity Update**: Refresh logotype and global design language.
+- [x] **#64 Branding & Identity Update**: Refresh logotype and global design language.
 
 ---
 

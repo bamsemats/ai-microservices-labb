@@ -20,7 +20,7 @@ class SessionRegistry {
         logger.debug("Registered session {} for user {}", session.sessionId, session.userId ?: "anonymous")
     }
 
-    fun promoteSession(sessionId: String, userId: String, token: String) {
+    fun promoteSession(sessionId: String, userId: String, token: String, username: String? = null) {
         val session = sessions[sessionId] ?: return
         
         // If it was already registered to another user (unlikely but possible), clean up
@@ -34,9 +34,10 @@ class SessionRegistry {
         }
 
         session.userId = userId
+        session.username = username
         session.token = token
         userSessions.computeIfAbsent(userId) { CopyOnWriteArraySet() }.add(sessionId)
-        logger.debug("Promoted session {} to user {}", sessionId, userId)
+        logger.debug("Promoted session {} to user {} ({})", sessionId, userId, username ?: "no-name")
     }
 
     fun unregister(sessionId: String): ChatSession? {

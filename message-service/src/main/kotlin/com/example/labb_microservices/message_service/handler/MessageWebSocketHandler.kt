@@ -23,7 +23,8 @@ class MessageWebSocketHandler(
     private val userGrpcClient: UserGrpcClient,
     private val presenceService: PresenceService,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
-    private val sessionRegistry: com.example.labb_microservices.message_service.session.SessionRegistry
+    private val sessionRegistry: com.example.labb_microservices.message_service.session.SessionRegistry,
+    private val messageProducer: com.example.labb_microservices.message_service.messaging.MessageProducer
 ) : WebSocketHandler {
 
     private val logger = LoggerFactory.getLogger(MessageWebSocketHandler::class.java)
@@ -63,8 +64,9 @@ class MessageWebSocketHandler(
 
         if (initialToken != null && jwtTokenValidator.validateToken(initialToken)) {
             val userId = jwtTokenValidator.getUserIdFromToken(initialToken)
+            val username = jwtTokenValidator.getAuthentication(initialToken)
             if (userId != null) {
-                sessionRegistry.promoteSession(sessionId, userId, initialToken)
+                sessionRegistry.promoteSession(sessionId, userId, initialToken, username)
                 authenticatedUserId.tryEmitValue(userId)
             }
         }
@@ -74,14 +76,48 @@ class MessageWebSocketHandler(
                 val payload = message.payloadAsText
                 try {
                     val json = objectMapper.readTree(payload)
-                    if (json.has("type") && json.get("type").asText() == "auth" && json.has("token")) {
-                        val token = json.get("token").asText()
-                        if (jwtTokenValidator.validateToken(token)) {
-                            val userId = jwtTokenValidator.getUserIdFromToken(token)
+                    val type = json.get("type")?.asText()
+
+                    when (type) {
+                        "auth" -> {
+                            val token = json.get("token")?.asText()
+                            if (token != null && jwtTokenValidator.validateToken(token)) {
+                                val userId = jwtTokenValidator.getUserIdFromToken(token)
+                                val username = jwtTokenValidator.getAuthentication(token)
+                                if (userId != null) {
+                                    logger.info("User {} authenticated via message in session {}", userId, sessionId)
+                                    sessionRegistry.promoteSession(sessionId, userId, token, username)
+                                    authenticatedUserId.tryEmitValue(userId)
+                                }
+                            }
+                        }
+                        "TYPING" -> {
+                            val currentSession = sessionRegistry.getSession(sessionId)
+                            val userId = currentSession?.userId
                             if (userId != null) {
-                                logger.info("User {} authenticated via message in session {}", userId, sessionId)
-                                sessionRegistry.promoteSession(sessionId, userId, token)
-                                authenticatedUserId.tryEmitValue(userId)
+                                val isTyping = json.get("isTyping")?.asBoolean() ?: false
+                                val typingChannelId = json.get("channelId")?.asText() ?: currentSession.channelId
+                                val typingEvent = com.example.labb_microservices.message_service.model.TypingEvent(
+                                    userId = userId,
+                                    username = currentSession.username,
+                                    channelId = typingChannelId,
+                                    isTyping = isTyping
+                                )
+                                messageProducer.broadcastEvent(typingEvent)
+                            }
+                        }
+                        "READ_RECEIPT" -> {
+                            val currentSession = sessionRegistry.getSession(sessionId)
+                            val userId = currentSession?.userId
+                            val messageId = json.get("messageId")?.asText()
+                            if (userId != null && messageId != null) {
+                                val readChannelId = json.get("channelId")?.asText() ?: currentSession.channelId
+                                val readReceipt = com.example.labb_microservices.message_service.model.ReadReceiptEvent(
+                                    messageId = messageId,
+                                    userId = userId,
+                                    channelId = readChannelId
+                                )
+                                messageProducer.storeEvent(readReceipt)
                             }
                         }
                     }

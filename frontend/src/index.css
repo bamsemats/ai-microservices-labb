@@ -1,52 +1,54 @@
 :root {
-  /* Core Foundation */
-  --bg-dark: #0B1326;
-  --bg-darker: #050810;
+  /* Core Foundation - Prism Aura */
+  --bg-dark: #020617;
+  --bg-darker: #000000;
+  --bg-rgb: 2, 6, 23;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   
-  /* Lumina Accents */
-  --accent-primary: #8b5cf6; /* Violet */
-  --accent-secondary: #ec4899; /* Fuchsia */
-  --accent-tertiary: #06b6d4; /* Cyan */
+  /* Lumina Accents (Refreshed) */
+  --accent-primary: #6366f1; /* Indigo */
+  --accent-secondary: #10b981; /* Emerald */
+  --accent-tertiary: #f43f5e; /* Rose */
   --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
   
   /* AI-Driven Style Tokens (Dynamic) */
-  --accent-glow-intensity: 0.5;
-  --glass-blur-amount: 12px;
-  --glass-opacity: 0.05;
-  --glass-border-opacity: 0.1;
+  --accent-glow-intensity: 0.6;
+  --glass-blur-amount: 16px;
+  --glass-opacity: 0.04;
+  --glass-border-opacity: 0.08;
   --border-glow-width: 1px;
   
   /* Computed Values */
   --glass-bg: rgba(255, 255, 255, var(--glass-opacity));
   --glass-border: rgba(255, 255, 255, var(--glass-border-opacity));
-  --accent-glow: 0 0 calc(20px * var(--accent-glow-intensity)) rgba(139, 92, 246, 0.3);
+  --accent-glow: 0 0 calc(25px * var(--accent-glow-intensity)) rgba(99, 102, 241, 0.3);
 
-  /* Layout Sizing (De-bulked) */
-  --sidebar-width: 240px;
-  --navbar-height: 3.5rem;
-  --app-padding: 0.75rem;
+  /* Layout Sizing (Sleek) */
+  --sidebar-width: 260px;
+  --navbar-height: 4rem;
+  --app-padding: 1rem;
 
   /* Status Colors */
-  --error: #f43f5e;
+  --error: #ef4444;
   --success: #10b981;
+  --warning: #f59e0b;
 }
 
 [data-theme="light"] {
-  --bg-dark: #f8fafc;
-  --bg-darker: #f1f5f9;
+  --bg-dark: #f1f5f9;
+  --bg-darker: #e2e8f0;
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   
-  --glass-bg: rgba(0, 0, 0, 0.05);
-  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
   
-  --accent-primary: #7c3aed;
-  --accent-secondary: #db2777;
-  --accent-tertiary: #0891b2;
+  --accent-primary: #4f46e5;
+  --accent-secondary: #059669;
+  --accent-tertiary: #e11d48;
 }
 
 :root {

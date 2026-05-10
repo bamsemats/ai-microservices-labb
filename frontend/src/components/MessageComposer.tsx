@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface MessageComposerProps {
   onSend: (content: string) => void;
+  onTyping?: (isTyping: boolean) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -14,14 +15,51 @@ const AI_SUGGESTIONS = [
   "Help me with code"
 ];
 
-const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, disabled }) => {
+const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, placeholder, disabled }) => {
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setValue(newValue);
+
+    if (onTyping && !disabled) {
+      if (!isTypingRef.current && newValue.trim().length > 0) {
+        isTypingRef.current = true;
+        onTyping(true);
+      } else if (isTypingRef.current && newValue.trim().length === 0) {
+        isTypingRef.current = false;
+        onTyping(false);
+      }
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      if (isTypingRef.current) {
+        typingTimeoutRef.current = setTimeout(() => {
+          isTypingRef.current = false;
+          onTyping(false);
+        }, 3000);
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
     if (trimmed && !disabled) {
+      if (isTypingRef.current && onTyping) {
+        isTypingRef.current = false;
+        onTyping(false);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      }
       onSend(trimmed);
       setValue('');
     }
@@ -70,7 +108,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, placeholder, 
             type="text"
             placeholder={disabled ? "Broadcast disabled (Admin only)" : (placeholder || "Type a message...")}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={handleInputChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             disabled={disabled}

@@ -22,5 +22,6 @@ data class Message(
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     val timestamp: LocalDateTime = LocalDateTime.now(),
     val contentChunks: List<String> = emptyList(),
-    val searchIndices: Set<String> = emptySet()
+    val searchIndices: Set<String> = emptySet(),
+    val readBy: Set<String> = emptySet()
 ) : Serializable

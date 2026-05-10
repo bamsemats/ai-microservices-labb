@@ -20,8 +20,19 @@ class RabbitMQConfig {
         const val ADAPTATION_EXCHANGE_NAME = "chat.adaptation.exchange"
         const val CONTENT_INJECTION_EXCHANGE_NAME = "chat.content.injection.exchange"
         const val PRESENCE_EXCHANGE_NAME = "chat.presence.exchange"
+        const val EVENT_STORAGE_QUEUE_NAME = "chat.event.storage.queue"
         const val DLX_NAME = "ai.dlx"
         const val DLX_ROUTING_KEY = "dead-letter"
+    }
+
+    @Bean
+    fun eventStorageQueue(): Queue {
+        return Queue(EVENT_STORAGE_QUEUE_NAME, true)
+    }
+
+    @Bean
+    fun eventStorageBinding(eventStorageQueue: Queue, storageExchange: DirectExchange): Binding {
+        return BindingBuilder.bind(eventStorageQueue).to(storageExchange).with("event.storage")
     }
 
     @Bean

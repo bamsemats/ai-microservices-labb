@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuthStore } from '../store/useAuthStore';
-import logoWithName from '../assets/logo-with-name.png';
+import BrandLogo from '../components/BrandLogo';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleLogin}>
         <div className="auth-logo-wrapper">
-          <img src={logoWithName} alt="AdaptaChat" className="auth-logo" />
+          <BrandLogo size="lg" />
         </div>
         <h2>Login</h2>
         {error && <p className="error">{error}</p>}

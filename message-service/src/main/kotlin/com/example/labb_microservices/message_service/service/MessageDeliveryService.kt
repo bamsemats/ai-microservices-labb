@@ -1,11 +1,13 @@
 package com.example.labb_microservices.message_service.service
 
 import com.example.labb_microservices.message_service.session.SessionRegistry
+import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Sinks
 
 @Service
+@Observed(name = "message.delivery")
 class MessageDeliveryService(
     private val sessionRegistry: SessionRegistry
 ) {

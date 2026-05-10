@@ -27,7 +27,7 @@
     transform: scale(0);
   } 40% { 
     transform: scale(1.0);
-    background: var(--accent-primary, #8b5cf6);
+    background: var(--accent-primary, #6366f1);
   }
 }
 

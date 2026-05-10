@@ -86,6 +86,16 @@ export const useWebSocket = () => {
             console.log('Received Presence Update:', userId, normalizedStatus);
             setPresence(userId, username, statusMap[normalizedStatus]);
           }
+        } else if (data.type === 'TYPING') {
+          const { userId, username, channelId, isTyping } = data;
+          if (typeof userId === 'string' && typeof username === 'string' && typeof channelId === 'string') {
+            useChatStore.getState().setTyping(userId, username, channelId, !!isTyping);
+          }
+        } else if (data.type === 'READ_RECEIPT') {
+          const { messageId, userId } = data;
+          if (typeof messageId === 'string' && typeof userId === 'string') {
+            useChatStore.getState().markMessageRead(messageId, userId);
+          }
         } else {
           const isValidMessage = (m: unknown): m is Message => {
             if (typeof m !== 'object' || m === null) return false;
@@ -175,5 +185,27 @@ export const useWebSocket = () => {
     }
   }, []);
 
-  return { sendMessage };
+  const sendTyping = useCallback((channelId: string, isTyping: boolean) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
+        type: 'TYPING',
+        channelId,
+        isTyping
+      };
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  const sendReadReceipt = useCallback((messageId: string, channelId: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
+        type: 'READ_RECEIPT',
+        messageId,
+        channelId
+      };
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  return { sendMessage, sendTyping, sendReadReceipt };
 };

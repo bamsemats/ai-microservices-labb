@@ -30,4 +30,20 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
             message
         )
     }
+
+    fun broadcastEvent(event: Any) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+            "",
+            event
+        )
+    }
+
+    fun storeEvent(event: Any) {
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.STORAGE_EXCHANGE_NAME,
+            "event.storage",
+            event
+        )
+    }
 }
