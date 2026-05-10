@@ -87,10 +87,11 @@ export const useWebSocket = () => {
             setPresence(userId, username, statusMap[normalizedStatus]);
           }
         } else if (data.type === 'TYPING') {
-          const { userId, username, channelId, isTyping } = data;
-          if (typeof userId === 'string' && typeof username === 'string' && typeof channelId === 'string') {
-            useChatStore.getState().setTyping(userId, username, channelId, !!isTyping);
+          const { username, channelId, isTyping } = data;
+          if (typeof username === 'string' && typeof channelId === 'string') {
+            useChatStore.getState().setTyping(username, channelId, !!isTyping);
           }
+
         } else if (data.type === 'READ_RECEIPT') {
           const { messageId, userId } = data;
           if (typeof messageId === 'string' && typeof userId === 'string') {

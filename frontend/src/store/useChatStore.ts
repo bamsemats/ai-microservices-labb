@@ -19,12 +19,6 @@ export interface InjectedContent {
   timestamp: number;
 }
 
-export interface TypingUser {
-  userId: string;
-  username: string;
-  channelId: string;
-}
-
 interface ChatState {
   messages: Message[];
   injectedContent: InjectedContent[];
@@ -35,7 +29,7 @@ interface ChatState {
   setAiStatus: (status: 'IDLE' | 'THINKING' | 'ERROR') => void;
   setMessages: (messages: Message[]) => void;
   clearMessages: () => void;
-  setTyping: (userId: string, username: string, channelId: string, isTyping: Boolean) => void;
+  setTyping: (username: string, channelId: string, isTyping: boolean) => void;
   markMessageRead: (messageId: string, userId: string) => void;
 }
 
@@ -63,7 +57,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setAiStatus: (status) => set({ aiStatus: status }),
   setMessages: (messages) => set({ messages, injectedContent: [] }),
   clearMessages: () => set({ messages: [], injectedContent: [] }),
-  setTyping: (_userId, username, channelId, isTyping) => set((state) => {
+  setTyping: (username, channelId, isTyping) => set((state) => {
     const channelTyping = state.typingUsers[channelId] || [];
     const newChannelTyping = isTyping 
       ? Array.from(new Set([...channelTyping, username]))

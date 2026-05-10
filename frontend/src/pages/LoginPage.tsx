@@ -41,6 +41,7 @@ const LoginPage: React.FC = () => {
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
             required 
+            autoComplete="username"
           />
         </div>
         <div className="input-group">
@@ -51,6 +52,7 @@ const LoginPage: React.FC = () => {
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
             required 
+            autoComplete="current-password"
           />
         </div>
         <button className="lumina-button" type="submit">Login</button>
@@ -65,16 +67,6 @@ const LoginPage: React.FC = () => {
           </Link>
         </div>
       </form>
-
-      <style>{`
-        .auth-footer-cta {
-          width: 100%;
-          margin-top: 0.5rem;
-          display: inline-block;
-          text-align: center;
-          text-decoration: none;
-        }
-      `}</style>
     </div>
   );
 };

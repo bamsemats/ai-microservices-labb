@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import styles from './BrandLogo.module.css';
 
 interface BrandLogoProps {
   className?: string;
@@ -20,8 +21,40 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
 
   const { icon, font } = sizes[size];
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    const handleMotionPreference = () => {
+      const animateR = document.getElementById('pulse-r') as unknown as SVGAnimateElement;
+      const animateOpacity = document.getElementById('pulse-opacity') as unknown as SVGAnimateElement;
+      
+      if (mediaQuery.matches) {
+        try {
+          animateR?.endElement();
+          animateOpacity?.endElement();
+        } catch (e) {
+          // Fallback for browsers that don't support endElement
+        }
+      } else {
+        try {
+          animateR?.beginElement();
+          animateOpacity?.beginElement();
+        } catch (e) {
+          // Fallback for browsers that don't support beginElement
+        }
+      }
+    };
+
+    handleMotionPreference();
+    mediaQuery.addEventListener('change', handleMotionPreference);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleMotionPreference);
+    };
+  }, []);
+
   return (
-    <div className={`brand-logo-container ${className}`} style={{ 
+    <div className={`${styles.container} ${className}`} style={{ 
       display: 'flex', 
       alignItems: 'center', 
       gap: '0.75rem',
@@ -67,16 +100,20 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         {/* Pulse Dot */}
         <circle cx="16" cy="8" r="2" fill="var(--accent-tertiary)">
           <animate 
+            id="pulse-r"
             attributeName="r" 
             values="1.5;2.5;1.5" 
             dur="2s" 
             repeatCount="indefinite" 
+            begin="indefinite"
           />
           <animate 
+            id="pulse-opacity"
             attributeName="opacity" 
             values="1;0.5;1" 
             dur="2s" 
             repeatCount="indefinite" 
+            begin="indefinite"
           />
         </circle>
       </svg>
@@ -94,15 +131,6 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
           AdaptaChat
         </span>
       )}
-
-      <style>{`
-        .brand-logo-container {
-          transition: transform 0.3s ease;
-        }
-        .brand-logo-container:hover {
-          transform: scale(1.02);
-        }
-      `}</style>
     </div>
   );
 };

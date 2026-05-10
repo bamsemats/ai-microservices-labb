@@ -34,7 +34,7 @@ const ChatPage: React.FC = () => {
     // Read receipt logic: mark visible messages as read when they arrive
     const unreadMessages = filteredMessages.filter(m => m.senderId !== userId && !(m.readBy || []).includes(userId || ''));
     unreadMessages.forEach(m => {
-      if (m.id) sendReadReceipt(m.id, activeChannelId);
+      if (m.id) sendReadReceipt(m.id, m.channelId || activeChannelId);
     });
   }, [messages, injectedContent, aiStatus, receiverId]);
 

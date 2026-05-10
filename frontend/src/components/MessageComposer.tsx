@@ -24,8 +24,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current && onTyping) {
+        onTyping(false);
+      }
     };
-  }, []);
+  }, [onTyping]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;

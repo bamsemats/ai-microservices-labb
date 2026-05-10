@@ -130,7 +130,7 @@ class MessageConsumer(
         }
 
         try {
-            if (channelId != null) {
+            if (!channelId.isNullOrBlank()) {
                 deliveryService.broadcastToChannel(channelId, jsonEvent)
             } else {
                 deliveryService.broadcastMessage(jsonEvent)
@@ -148,18 +148,31 @@ class MessageConsumer(
             "READ_RECEIPT" -> {
                 val messageId = eventData["messageId"] as? String ?: return
                 val userId = eventData["userId"] as? String ?: return
-                val channelId = eventData["channelId"] as? String ?: "general"
+                val channelId = eventData["channelId"] as? String
                 
-                logger.info("Processing read receipt for message $messageId by user $userId")
+                if (channelId.isNullOrBlank()) {
+                    logger.warn("Dropping READ_RECEIPT event with missing/blank channelId. MessageId: $messageId, UserId: $userId")
+                    return
+                }
+                
+                logger.info("Processing read receipt for message $messageId by user $userId in channel $channelId")
                 
                 val query = Query(Criteria.where("id").`is`(messageId))
                 val update = Update().addToSet("readBy", userId)
                 
                 mongoTemplate.updateFirst(query, update, Message::class.java)
-                    .doOnSuccess {
-                        // Broadcast the update back to the channel
-                        val jsonEvent = objectMapper.writeValueAsString(eventData)
-                        deliveryService.broadcastToChannel(channelId, jsonEvent)
+                    .doOnSuccess { result ->
+                        if (result.matchedCount > 0) {
+                            try {
+                                // Broadcast the update back to the channel
+                                val jsonEvent = objectMapper.writeValueAsString(eventData)
+                                deliveryService.broadcastToChannel(channelId!!, jsonEvent)
+                            } catch (e: Exception) {
+                                logger.error("Failed to broadcast read receipt for message $messageId", e)
+                            }
+                        } else {
+                            logger.warn("Read receipt ignored: message $messageId not found")
+                        }
                     }
                     .block()
             }
