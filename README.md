@@ -83,10 +83,16 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#63 UX: Mobile Optimization**: Responsive design, mobile sidebar, and adaptive grids.
 - [x] **#64 Branding & Identity Update**: Refresh logotype and global design language.
 - [x] **#65 Logic Centralization & Hardening**:
-    - Centralized bot identities in `ai-service` via `BotRegistry`.
+    - Centralized bot identities in `ai-service` via `BotRegistry` and externalized configuration.
+    - Resolved WebSocket emission conflicts via buffered sinks (`onBackpressureBuffer`).
+    - Hardened frontend Auth state initialization to prevent unauthorized admin UI elevation.
     - Hardened `PresenceService` with explicit Redis TTLs for bot states.
     - Refined `MessageDeliveryService` API for strict interface contracts.
     - Optimized frontend `ChatPage` with memoization and secure read-receipt guards.
+- [ ] **#66 Semantic UI Adaptation**: 
+    - Transition from keyword-based triggers to semantic sentiment analysis using a lightweight AI model.
+    - Implement a "grace period" (debounce/stabilization) to prevent rapid theme flickering.
+    - Refine design tokens for more subtle, non-distracting transitions.
 
 ---
 
