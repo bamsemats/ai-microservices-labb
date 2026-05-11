@@ -23,11 +23,7 @@ class MessageDeliveryService(
     }
 
     fun broadcastToChannel(channelId: String, message: String) {
-        val targetSessions = if (channelId == "all") {
-            sessionRegistry.getAllSessions()
-        } else {
-            sessionRegistry.getSessionsForChannel(channelId)
-        }
+        val targetSessions = sessionRegistry.getSessionsForChannel(channelId)
 
         targetSessions.forEach { session ->
             val result = session.sink.tryEmitNext(message)
@@ -37,7 +33,7 @@ class MessageDeliveryService(
         }
     }
 
-    fun sendMessageToUser(userId: String, channelId: String, message: String) {
+    fun sendMessageToUser(userId: String, message: String) {
         sessionRegistry.getSessionsForUser(userId).forEach { session ->
             val result = session.sink.tryEmitNext(message)
             if (result.isFailure) {

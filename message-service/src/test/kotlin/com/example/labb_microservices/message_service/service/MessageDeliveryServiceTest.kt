@@ -31,7 +31,7 @@ class MessageDeliveryServiceTest {
         // Start verification before emitting
         val verifier = reactor.test.StepVerifier.create(sink.asFlux())
             .then {
-                deliveryService.sendMessageToUser(userId, "target-channel", message)
+                deliveryService.sendMessageToUser(userId, message)
             }
             .expectNext(message)
             .thenCancel()

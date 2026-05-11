@@ -25,7 +25,7 @@ class UserServiceApplication {
         
         try {
             logger.info("Synchronizing bot accounts...")
-            userService.seedBots(bots).block()
+            userService.seedBots(bots).block(java.time.Duration.ofSeconds(30))
             logger.info("Bot accounts synchronization completed.")
         } catch (e: Exception) {
             logger.error("Bot accounts synchronization failed", e)

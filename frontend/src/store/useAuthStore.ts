@@ -65,24 +65,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
     initialize: async () => {
       const username = getSafeStorageItem('username');
       const userId = getSafeStorageItem('userId');
+      const role = getSafeStorageItem('role');
       
-      // Since token is not in localStorage, we can't fully restore authenticated state 
-      // here without a refresh token flow or cookie. For now, we follow the mandate 
-      // to remove token from localStorage and only set isAuthenticated if all are present.
-      // If we had a token here (e.g. from an initial in-memory state), we'd check it.
-      const { token } = get();
-      
-      if (token && username && userId) {
-        console.log('Restoring session for user:', username);
-        set({ isAuthenticated: true, isAdmin: get().role === 'ROLE_ADMIN' });
-      } else {
-        // If we don't have a token, we aren't truly authenticated in this tab yet
-        // but we might want to keep the username/userId for UX if the server 
-        // will provide a token via HttpOnly cookie.
-        if (!token) {
-          set({ isAuthenticated: false });
-        }
-      }
+      // Hydrate basic user info from storage for UX (e.g. showing name in sidebar)
+      // but explicitly set isAuthenticated: false since we don't store JWTs in localStorage.
+      // Full authentication requires a fresh login or refresh token flow.
+      set({ 
+        username, 
+        userId, 
+        role, 
+        isAuthenticated: false, 
+        isAdmin: role === 'ROLE_ADMIN' 
+      });
     }
   };
 });

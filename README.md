@@ -4,6 +4,8 @@ A high-performance, resilient, and secure distributed chat system built with Spr
 
 ## 🏗 Architecture Overview
 
+For a deep dive into the system's roles, data flows, and security rationale, see the [Detailed Architectural Overview](docs/overview.md).
+
 The system follows a **Database-per-Service** pattern and utilizes a **Monorepo** structure for streamlined development and orchestration.
 
 - **API Gateway**: Entry point for all clients. Handles routing and coarse-grained JWT validation.

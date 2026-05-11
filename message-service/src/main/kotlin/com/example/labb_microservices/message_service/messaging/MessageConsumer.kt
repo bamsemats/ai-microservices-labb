@@ -69,7 +69,7 @@ class MessageConsumer(
                     message.senderId.takeIf { it.isNotBlank() }
                 )
                 recipients.forEach { userId ->
-                    deliveryService.sendMessageToUser(userId, message.channelId, jsonMessage)
+                    deliveryService.sendMessageToUser(userId, jsonMessage)
                 }
             }
         } catch (e: Exception) {

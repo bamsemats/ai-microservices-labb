@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message, type InjectedContent } from '../store/useChatStore';
@@ -26,13 +26,15 @@ const ChatPage: React.FC = () => {
   const activeChannelId = receiverId === 'home' ? 'general' : receiverId;
   const currentTypingUsers = typingUsers[activeChannelId] || [];
 
-  const filteredMessages = messages.filter(msg => {
-    if (receiverId === 'all' || receiverId === 'home') {
-      return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
-    }
-    return (msg.senderId === userId && msg.receiverId === receiverId) || 
-           (msg.senderId === receiverId && msg.receiverId === userId);
-  });
+  const filteredMessages = useMemo(() => {
+    return messages.filter(msg => {
+      if (receiverId === 'all' || receiverId === 'home') {
+        return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
+      }
+      return (msg.senderId === userId && msg.receiverId === receiverId) || 
+             (msg.senderId === receiverId && msg.receiverId === userId);
+    });
+  }, [messages, receiverId, userId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -40,6 +42,8 @@ const ChatPage: React.FC = () => {
     }
     
     // Read receipt logic: mark visible messages as read when they arrive
+    if (!userId) return;
+
     const unreadMessages = filteredMessages.filter(m => m.senderId !== userId && !(m.readBy || []).includes(userId || ''));
     unreadMessages.forEach(m => {
       if (m.id) sendReadReceipt(m.id, m.channelId || activeChannelId);

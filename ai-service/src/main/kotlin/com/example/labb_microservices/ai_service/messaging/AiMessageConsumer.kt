@@ -16,20 +16,20 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
-
 @Service
 class AiMessageConsumer(
     private val rabbitTemplate: RabbitTemplate,
     private val responseGenerator: ResponseGenerator,
     private val memoryWorker: MemoryWorker,
-    private val readinessIndicator: AiReadinessIndicator
+    private val readinessIndicator: AiReadinessIndicator,
+    private val botRegistry: com.example.labb_microservices.ai_service.logic.BotRegistry
 ) {
 
     private val logger = LoggerFactory.getLogger(AiMessageConsumer::class.java)
 
     @RabbitListener(queues = [RabbitMQConfig.SENTIMENT_QUEUE_NAME])
     fun processSentimentAnalysis(message: Message) {
-        if (message.authorType == AuthorType.BOT) return
+        if (message.authorType == AuthorType.BOT || botRegistry.isAiBot(message.senderId)) return
 
         logger.info("Analyzing sentiment and entities for messageId: {}", message.id)
         
@@ -146,17 +146,9 @@ class AiMessageConsumer(
         val responseId = UUID.randomUUID().toString()
         
         // Dynamic bot identification
-        val livingBots = listOf("ai-bot", "AdaptaAI", "NexusPrime", "EchoFlow", "VibeCheck", "HelpDesk")
-        val isAiBot = message.receiverId in livingBots
-        val botId = if (isAiBot) message.receiverId else "ai-bot"
-        val botName = when (botId) {
-            "NexusPrime" -> "NexusPrime (Architect)"
-            "AdaptaAI" -> "AdaptaAI (Assistant)"
-            "EchoFlow" -> "EchoFlow (Curator)"
-            "VibeCheck" -> "VibeCheck (Moderator)"
-            "HelpDesk" -> "HelpDesk (Support)"
-            else -> "AdaptaChat AI"
-        }
+        val isAiBot = botRegistry.isAiBot(message.receiverId)
+        val botId = botRegistry.getBotId(message.receiverId)
+        val botName = botRegistry.getBotDisplayName(botId)
         
         val receiverId = if (isAiBot) message.senderId else message.receiverId
 
