@@ -23,12 +23,14 @@ class UserServiceApplication {
             "HelpDesk" to "Support"
         )
         
-        Mono.delay(java.time.Duration.ofSeconds(2))
-            .flatMap { userService.seedBots(bots) }
-            .subscribe(
-                { logger.info("Bot accounts synchronization completed.") },
-                { e -> logger.error("Bot accounts synchronization failed", e) }
-            )
+        try {
+            logger.info("Synchronizing bot accounts...")
+            userService.seedBots(bots).block()
+            logger.info("Bot accounts synchronization completed.")
+        } catch (e: Exception) {
+            logger.error("Bot accounts synchronization failed", e)
+            throw e
+        }
     }
 }
 

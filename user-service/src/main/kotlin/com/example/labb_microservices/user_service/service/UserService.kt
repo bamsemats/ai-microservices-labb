@@ -147,7 +147,8 @@ class UserService(
                                 username = name,
                                 displayName = name,
                                 password = passwordEncoder.encode(UUID.randomUUID().toString()),
-                                bio = "Official AdaptaChat $role Bot"
+                                bio = "Official AdaptaChat $role Bot",
+                                isBot = true
                             )
                         )
                     )

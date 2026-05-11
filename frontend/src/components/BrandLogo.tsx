@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import styles from './BrandLogo.module.css';
 
 interface BrandLogoProps {
@@ -12,6 +12,16 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md', 
   showText = true 
 }) => {
+  const instanceId = useId().replace(/:/g, '');
+  const svgRef = useRef<SVGSVGElement>(null);
+  
+  const ids = {
+    gradient: `logo-gradient-${instanceId}`,
+    glow: `glow-${instanceId}`,
+    pulseR: `pulse-r-${instanceId}`,
+    pulseOpacity: `pulse-opacity-${instanceId}`
+  };
+
   const sizes = {
     sm: { icon: 24, font: '1rem' },
     md: { icon: 32, font: '1.25rem' },
@@ -25,22 +35,24 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     
     const handleMotionPreference = () => {
-      const animateR = document.getElementById('pulse-r') as unknown as SVGAnimateElement;
-      const animateOpacity = document.getElementById('pulse-opacity') as unknown as SVGAnimateElement;
+      if (!svgRef.current) return;
+      
+      const animateR = svgRef.current.querySelector(`#${ids.pulseR}`) as unknown as SVGAnimateElement;
+      const animateOpacity = svgRef.current.querySelector(`#${ids.pulseOpacity}`) as unknown as SVGAnimateElement;
       
       if (mediaQuery.matches) {
         try {
           animateR?.endElement();
           animateOpacity?.endElement();
         } catch {
-          // Fallback for browsers that don't support endElement
+          // Fallback
         }
       } else {
         try {
           animateR?.beginElement();
           animateOpacity?.beginElement();
         } catch {
-          // Fallback for browsers that don't support beginElement
+          // Fallback
         }
       }
     };
@@ -51,7 +63,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
     return () => {
       mediaQuery.removeEventListener('change', handleMotionPreference);
     };
-  }, []);
+  }, [ids.pulseR, ids.pulseOpacity]);
 
   return (
     <div className={`${styles.container} ${className}`} style={{ 
@@ -61,6 +73,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       userSelect: 'none'
     }}>
       <svg 
+        ref={svgRef}
         width={icon} 
         height={icon} 
         viewBox="0 0 32 32" 
@@ -69,11 +82,11 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         style={{ filter: 'drop-shadow(0 0 8px var(--accent-primary))' }}
       >
         <defs>
-          <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <linearGradient id={ids.gradient} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
             <stop stopColor="var(--accent-primary)" />
             <stop offset="1" stopColor="var(--accent-secondary)" />
           </linearGradient>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <filter id={ids.glow} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
@@ -83,7 +96,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         <path 
           d="M16 2L28 9V23L16 30L4 23V9L16 2Z" 
           fill="rgba(255, 255, 255, 0.05)" 
-          stroke="url(#logo-gradient)" 
+          stroke={`url(#${ids.gradient})`} 
           strokeWidth="1.5"
         />
         
@@ -94,13 +107,13 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
           strokeWidth="2.5" 
           strokeLinecap="round" 
           strokeLinejoin="round"
-          style={{ filter: 'url(#glow)' }}
+          style={{ filter: `url(#${ids.glow})` }}
         />
         
         {/* Pulse Dot */}
         <circle cx="16" cy="8" r="2" fill="var(--accent-tertiary)">
           <animate 
-            id="pulse-r"
+            id={ids.pulseR}
             attributeName="r" 
             values="1.5;2.5;1.5" 
             dur="2s" 
@@ -108,7 +121,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
             begin="indefinite"
           />
           <animate 
-            id="pulse-opacity"
+            id={ids.pulseOpacity}
             attributeName="opacity" 
             values="1;0.5;1" 
             dur="2s" 

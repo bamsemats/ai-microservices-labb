@@ -63,10 +63,11 @@ class MessageController(
                 userGrpcClient.getUser(senderId)
                     .onErrorResume { e ->
                         if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                            Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                            logger.debug("User $senderId not found in user-service, using ID as name")
                         } else {
-                            Mono.error(e)
+                            logger.error("Failed to lookup user $senderId via gRPC: ${e.message}")
                         }
+                        Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     }
                     .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     .flatMap { userResponse ->
@@ -101,10 +102,11 @@ class MessageController(
                 userGrpcClient.getUser(senderId)
                     .onErrorResume { e ->
                         if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                            Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                            logger.debug("User $senderId not found in user-service, using ID as name")
                         } else {
-                            Mono.error(e)
+                            logger.error("Failed to lookup user $senderId via gRPC: ${e.message}")
                         }
+                        Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     }
                     .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     .flatMap { userResponse ->
@@ -174,7 +176,12 @@ class MessageController(
 
     private fun processMessage(message: Message) {
         messageProducer.sendMessage(message)
-        messageProducer.sendSentimentRequest(message)
+        
+        try {
+            messageProducer.sendSentimentRequest(message)
+        } catch (e: Exception) {
+            logger.error("Failed to trigger sentiment request for message ${message.id}", e)
+        }
 
         val isAiRecipient = message.receiverId == "AdaptaAI" || message.receiverId == "ai-bot"
         if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {

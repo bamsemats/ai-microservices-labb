@@ -36,7 +36,7 @@ class SeedingService(
         return Flux.fromIterable(bots)
             .flatMap { bot ->
                 // Set bot online in presence service (Redis)
-                presenceService.setUserOnline(bot.name)
+                presenceService.setBotOnline(bot.name)
                     .then(Mono.defer {
                         // Create a welcome message from the bot if it doesn't exist
                         val messageId = "seed-${bot.name}-welcome"

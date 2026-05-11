@@ -16,5 +16,6 @@ data class User(
     val enabled: Boolean = true,
     val displayName: String? = null,
     val bio: String? = null,
-    val socialLinks: Map<String, String>? = null
+    val socialLinks: Map<String, String>? = null,
+    val isBot: Boolean = false
 )
