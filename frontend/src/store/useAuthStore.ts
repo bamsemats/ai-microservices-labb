@@ -18,7 +18,7 @@ const getSafeStorageItem = (key: string) => {
   return value;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => {
+export const useAuthStore = create<AuthState>((set) => {
   const initialToken = null; // Token is now in-memory only
   const initialUserId = getSafeStorageItem('userId');
   const initialUsername = getSafeStorageItem('username');
