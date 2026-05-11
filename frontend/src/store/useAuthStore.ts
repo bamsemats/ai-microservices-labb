@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState>((set) => {
         userId, 
         role, 
         isAuthenticated: false, 
-        isAdmin: role === 'ROLE_ADMIN' 
+        isAdmin: false 
       });
     }
   };

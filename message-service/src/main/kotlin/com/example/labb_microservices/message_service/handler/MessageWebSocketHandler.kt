@@ -51,7 +51,7 @@ class MessageWebSocketHandler(
 
         val authenticatedUserId = Sinks.one<String>()
         val disconnectSink = Sinks.empty<Void>()
-        val sink = Sinks.many().multicast().directBestEffort<String>()
+        val sink = Sinks.many().multicast().onBackpressureBuffer<String>()
 
         val chatSession = com.example.labb_microservices.message_service.session.ChatSession(
             sessionId = sessionId,

@@ -82,6 +82,11 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#62 UX: Accessibility Polish**: ARIA labels, roles, and keyboard navigation shortcuts.
 - [x] **#63 UX: Mobile Optimization**: Responsive design, mobile sidebar, and adaptive grids.
 - [x] **#64 Branding & Identity Update**: Refresh logotype and global design language.
+- [x] **#65 Logic Centralization & Hardening**:
+    - Centralized bot identities in `ai-service` via `BotRegistry`.
+    - Hardened `PresenceService` with explicit Redis TTLs for bot states.
+    - Refined `MessageDeliveryService` API for strict interface contracts.
+    - Optimized frontend `ChatPage` with memoization and secure read-receipt guards.
 
 ---
 
@@ -96,6 +101,12 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 ---
 
 ## 🏗 Design Decisions & Trade-offs
+
+### Centralized Bot Ecosystem
+To prevent logic drift, bot metadata and identification has been moved from ad-hoc mappings in individual services to a canonical **BotRegistry** in the `ai-service`. This ensures that sentiment analysis and response generation always follow consistent naming and identity rules.
+
+### Service Interface Hardening
+The `MessageDeliveryService` has been refactored to remove ambiguous magic strings (like the "all" channel special-case) and unused parameters. This enforces a stricter API contract and ensures that message routing is explicit and maintainable.
 
 ### Prism Aura: Edge-to-Edge UI
 The visual identity has been evolved from a fragmented component-based layout to the **Prism Aura** system. 

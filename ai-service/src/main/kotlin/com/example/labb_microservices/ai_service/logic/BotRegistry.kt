@@ -1,16 +1,12 @@
 package com.example.labb_microservices.ai_service.logic
 
+import com.example.labb_microservices.ai_service.config.BotProperties
 import org.springframework.stereotype.Component
 
 @Component
-class BotRegistry {
-    private val botMetadata = mapOf(
-        "NexusPrime" to "NexusPrime (Architect)",
-        "AdaptaAI" to "AdaptaAI (Assistant)",
-        "EchoFlow" to "EchoFlow (Curator)",
-        "VibeCheck" to "VibeCheck (Moderator)",
-        "HelpDesk" to "Support (HelpDesk)"
-    )
+class BotRegistry(private val botProperties: BotProperties) {
+    private val botMetadata: Map<String, String>
+        get() = botProperties.metadata
 
     fun isAiBot(id: String): Boolean = id in botMetadata || id == "ai-bot"
 
