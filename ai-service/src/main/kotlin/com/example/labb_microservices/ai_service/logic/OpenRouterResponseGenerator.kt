@@ -75,7 +75,7 @@ class OpenRouterResponseGenerator(
                     stream = true
                 )
 
-                logger.debug("Sending streaming request to OpenRouter with model: {}", model)
+                logger.info("Sending streaming request to OpenRouter using model: {} at URL: {}", model, url)
 
                 if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
                     logger.warn("OpenRouter API key is missing. Using simulation fallback.")
@@ -85,7 +85,7 @@ class OpenRouterResponseGenerator(
                 webClient.post()
                     .uri(url)
                     .header("Authorization", "Bearer $apiKey")
-                    .header("HTTP-Referer", "https://github.com/adapta-chat")
+                    .header("HTTP-Referer", "http://localhost:3000")
                     .header("X-Title", "AdaptaChat")
                     .accept(MediaType.TEXT_EVENT_STREAM)
                     .contentType(MediaType.APPLICATION_JSON)

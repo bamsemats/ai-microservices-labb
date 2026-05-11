@@ -144,7 +144,20 @@ class AiMessageConsumer(
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()
-        val isAiBot = message.receiverId == "ai-bot" || message.receiverId == "AdaptaAI"
+        
+        // Dynamic bot identification
+        val livingBots = listOf("ai-bot", "AdaptaAI", "NexusPrime", "EchoFlow", "VibeCheck", "HelpDesk")
+        val isAiBot = message.receiverId in livingBots
+        val botId = if (isAiBot) message.receiverId else "ai-bot"
+        val botName = when (botId) {
+            "NexusPrime" -> "NexusPrime (Architect)"
+            "AdaptaAI" -> "AdaptaAI (Assistant)"
+            "EchoFlow" -> "EchoFlow (Curator)"
+            "VibeCheck" -> "VibeCheck (Moderator)"
+            "HelpDesk" -> "HelpDesk (Support)"
+            else -> "AdaptaChat AI"
+        }
+        
         val receiverId = if (isAiBot) message.senderId else message.receiverId
 
         // Notify UI that AI is thinking
@@ -166,8 +179,8 @@ class AiMessageConsumer(
                 Mono.fromRunnable<Unit> {
                     val aiChunk = Message(
                         id = responseId,
-                        senderId = "ai-bot",
-                        senderName = "AdaptaChat AI",
+                        senderId = botId,
+                        senderName = botName,
                         receiverId = receiverId,
                         channelId = message.channelId,
                         content = chunk,

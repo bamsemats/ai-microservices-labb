@@ -169,7 +169,7 @@ class MessageController(
     }
 
     companion object {
-        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@ai(?:\\W|$)")
+        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai|ai-bot|AdaptaAI|NexusPrime|EchoFlow|VibeCheck|HelpDesk)(?:\\W|$)")
     }
 
     private fun processMessage(message: Message) {

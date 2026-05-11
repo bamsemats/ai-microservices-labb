@@ -39,11 +39,9 @@ class MessageDeliveryService(
 
     fun sendMessageToUser(userId: String, channelId: String, message: String) {
         sessionRegistry.getSessionsForUser(userId).forEach { session ->
-            if (session.channelId == channelId || channelId == "all") {
-                val result = session.sink.tryEmitNext(message)
-                if (result.isFailure) {
-                    logger.warn("Failed to emit private message to user {} session {}: {}", userId, session.sessionId, result)
-                }
+            val result = session.sink.tryEmitNext(message)
+            if (result.isFailure) {
+                logger.warn("Failed to emit private message to user {} session {}: {}", userId, session.sessionId, result)
             }
         }
     }

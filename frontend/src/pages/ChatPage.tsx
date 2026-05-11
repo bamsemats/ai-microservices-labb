@@ -59,7 +59,8 @@ const ChatPage: React.FC = () => {
       } else {
         await api.post('/messages', {
           receiverId,
-          content
+          content,
+          channelId: activeChannelId
         });
       }
     } catch (err) {
