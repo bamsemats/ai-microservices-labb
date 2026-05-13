@@ -75,7 +75,8 @@ class MessageController(
                     .flatMap { userResponse ->
                         Mono.fromCallable {
                             val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
-                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() }
+                                ?: if (request.receiverId == "all") "global" else "general"
                             val message = Message(
                                 id = idPrefix + UUID.randomUUID().toString(),
                                 senderId = senderId,
@@ -113,7 +114,7 @@ class MessageController(
                     .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
                     .flatMap { userResponse ->
                         Mono.fromCallable {
-                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "all"
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
                             val message = Message(
                                 id = UUID.randomUUID().toString(),
                                 senderId = senderId,
