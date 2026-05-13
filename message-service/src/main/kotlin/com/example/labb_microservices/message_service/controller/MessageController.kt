@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
 
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
@@ -171,13 +173,14 @@ class MessageController(
     }
 
     companion object {
-        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai|ai-bot|AdaptaAI|NexusPrime|EchoFlow|VibeCheck|HelpDesk)(?:\\W|$)")
+        private val AI_BOT_IDS = setOf("ai", "ai-bot", "adaptaai", "nexusprime", "echoflow", "vibecheck", "helpdesk")
+        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
     }
 
     private fun processMessage(message: Message) {
         messageProducer.sendMessage(message)
         
-        val isAiRecipient = message.receiverId == "AdaptaAI" || message.receiverId == "ai-bot"
+        val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
         if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {
             try {
                 messageProducer.sendAiRequest(message)
@@ -198,7 +201,7 @@ class MessageController(
                 userGrpcClient.getUser(userId)
                     .onErrorResume { e ->
                         if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                            Mono.empty()
+                            Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
                         } else {
                             Mono.error(e)
                         }
@@ -271,6 +274,7 @@ class MessageController(
     }
 
     @GetMapping("/presence")
+    @PreAuthorize("hasRole('ADMIN')")
     fun getOnlineUsers(): Flux<String> {
         return presenceService.getAllOnlineUsers()
     }

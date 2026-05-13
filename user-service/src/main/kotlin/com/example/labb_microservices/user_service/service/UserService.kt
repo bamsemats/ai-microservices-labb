@@ -145,16 +145,18 @@ class UserService(
             .flatMap { (name, role) ->
                 userRepository.findById(name)
                     .switchIfEmpty(
-                        userRepository.save(
-                            User(
-                                id = name,
-                                username = name,
-                                displayName = name,
-                                password = passwordEncoder.encode(UUID.randomUUID().toString()),
-                                bio = "Official AdaptaChat $role Bot",
-                                isBot = true
+                        Mono.defer {
+                            userRepository.save(
+                                User(
+                                    id = name,
+                                    username = name,
+                                    displayName = name,
+                                    password = passwordEncoder.encode(UUID.randomUUID().toString()),
+                                    bio = "Official AdaptaChat $role Bot",
+                                    isBot = true
+                                )
                             )
-                        )
+                        }
                     )
             }
             .then()
