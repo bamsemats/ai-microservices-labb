@@ -55,6 +55,12 @@ class UserController(private val userService: UserService) {
             .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")))
     }
 
+    @DeleteMapping("/users/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteMe(@AuthenticationPrincipal userId: String): Mono<Void> {
+        return userService.deleteUser(userId)
+    }
+
     private fun User.toUserDto() = UserDto(
         id = this.id,
         username = this.username,

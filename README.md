@@ -93,6 +93,10 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
     - Transition from keyword-based triggers to semantic sentiment analysis using a lightweight AI model.
     - Implement a "grace period" (debounce/stabilization) to prevent rapid theme flickering.
     - Refine design tokens for more subtle, non-distracting transitions.
+- [ ] **#67 Public Hosting & Feedback Loop**:
+    - Deploy the system to a public cloud environment (e.g., AWS/GCP or managed K8s).
+    - Configure public Ingress with SSL/TLS and global CDN for frontend assets.
+    - Implement a lightweight feedback mechanism for visitors to report UX/AI issues directly.
 
 ---
 

@@ -118,6 +118,10 @@ class UserService(
             .map { decryptUser(it) }
     }
 
+    fun deleteUser(userId: String): Mono<Void> {
+        return userRepository.deleteById(userId)
+    }
+
     private fun decryptUser(user: User): User {
         val encryptedEmail = user.email ?: return user
         return try {

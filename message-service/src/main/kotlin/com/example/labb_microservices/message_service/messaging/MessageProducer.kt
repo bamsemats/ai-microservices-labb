@@ -10,7 +10,7 @@ class MessageProducer(private val rabbitTemplate: RabbitTemplate) {
     fun sendMessage(message: Message) {
         rabbitTemplate.convertAndSend(
             RabbitMQConfig.STORAGE_EXCHANGE_NAME,
-            "",
+            "message-published",
             message
         )
     }

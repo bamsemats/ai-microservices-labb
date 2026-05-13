@@ -133,7 +133,7 @@ class RabbitMQConfig {
 
     @Bean
     fun storageBinding(storageQueue: Queue, storageExchange: DirectExchange): Binding {
-        return BindingBuilder.bind(storageQueue).to(storageExchange).with("")
+        return BindingBuilder.bind(storageQueue).to(storageExchange).with("message-published")
     }
 
     @Bean

@@ -177,12 +177,6 @@ class MessageController(
     private fun processMessage(message: Message) {
         messageProducer.sendMessage(message)
         
-        try {
-            messageProducer.sendSentimentRequest(message)
-        } catch (e: Exception) {
-            logger.error("Failed to trigger sentiment request for message ${message.id}", e)
-        }
-
         val isAiRecipient = message.receiverId == "AdaptaAI" || message.receiverId == "ai-bot"
         if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {
             try {
