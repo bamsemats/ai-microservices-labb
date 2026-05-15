@@ -52,7 +52,7 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
     private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
 
     @MockitoBean
-    private lateinit var sentimentAnalyzer: com.example.labb_microservices.ai_service.logic.SentimentAnalyzer
+    private lateinit var sentimentAnalyzer: com.example.labb_microservices.ai_service.logic.LlmSentimentAnalyzer
 
     @Autowired
     private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Import(RabbitMQConfig::class)
+@org.springframework.test.annotation.DirtiesContext
 class PersonalizationIntegrationTest : BaseIntegrationTest() {
 
     private val logger = LoggerFactory.getLogger(PersonalizationIntegrationTest::class.java)
