@@ -39,10 +39,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         <div className="message-time">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           {isOwn && message.readBy && message.readBy.length > 0 && (
-            <span className="read-status" style={{ marginLeft: '0.5rem', opacity: 0.8 }}>✓ Seen</span>
+            <span className="read-status">✓ Seen</span>
           )}
         </div>
       )}
+
     </motion.div>
   );
 };

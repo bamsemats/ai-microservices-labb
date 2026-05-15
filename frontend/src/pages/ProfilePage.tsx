@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 interface SocialLinks {
   twitter?: string;
@@ -11,20 +12,16 @@ interface SocialLinks {
   website?: string;
 }
 
-import { useNavigate } from 'react-router-dom';
-
 const ProfilePage: React.FC = () => {
   const { username, token } = useAuthStore();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('');
-  // ... rest of state ...
   const [bio, setBio] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    // ... rest of useEffect ...
     const fetchProfile = async () => {
       try {
         const response = await api.get('/users/me');
@@ -40,7 +37,6 @@ const ProfilePage: React.FC = () => {
   }, [token]);
 
   const handleSave = async () => {
-    // ... rest of handleSave ...
     setIsSaving(true);
     setFeedback(null);
     try {
@@ -182,133 +178,6 @@ const ProfilePage: React.FC = () => {
           </div>
         </section>
       </main>
-
-      <style>{`
-        .profile-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 2rem;
-          display: flex;
-          justify-content: center;
-        }
-
-        .profile-card-wrapper {
-          width: 100%;
-          max-width: 900px;
-        }
-
-        .profile-editor {
-          padding: 3rem !important;
-        }
-
-        .editor-header {
-          display: flex;
-          align-items: center;
-          gap: 2rem;
-          margin-bottom: 3rem;
-          padding-bottom: 2rem;
-          border-bottom: 1px solid var(--glass-border);
-        }
-
-        .profile-avatar-large {
-          width: 6rem;
-          height: 6rem;
-          background: var(--accent-gradient);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: white;
-          box-shadow: var(--accent-glow);
-        }
-
-        .header-text h2 {
-          font-size: 2rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .header-text p {
-          color: var(--text-secondary);
-        }
-
-        .editor-grid {
-          display: grid;
-          grid-template-columns: 1.5fr 1fr;
-          gap: 3rem;
-        }
-
-        @media (max-width: 768px) {
-          .editor-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .editor-section h3 {
-          font-size: 1.1rem;
-          margin-bottom: 1.5rem;
-          color: var(--accent-primary);
-        }
-
-        .settings-group {
-          margin-bottom: 1.5rem;
-        }
-
-        .settings-group label {
-          display: block;
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 0.5rem;
-        }
-
-        .helper-text {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-top: 0.5rem;
-        }
-
-        .input-with-icon {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 1rem;
-          font-size: 1.1rem;
-        }
-
-        .input-with-icon .lumina-input {
-          padding-left: 3rem;
-        }
-
-        .editor-footer {
-          margin-top: 3rem;
-          padding-top: 2rem;
-          border-top: 1px solid var(--glass-border);
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .feedback-toast {
-          font-weight: 600;
-          font-size: 0.9rem;
-        }
-
-        .feedback-toast.success {
-          color: var(--success);
-        }
-
-        .feedback-toast.error {
-          color: var(--error);
-        }
-      `}</style>
     </div>
   );
 };

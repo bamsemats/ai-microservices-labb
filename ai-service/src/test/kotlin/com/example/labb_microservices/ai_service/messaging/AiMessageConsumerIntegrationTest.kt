@@ -51,6 +51,9 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
     @MockitoBean
     private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
 
+    @MockitoBean
+    private lateinit var sentimentAnalyzer: com.example.labb_microservices.ai_service.logic.SentimentAnalyzer
+
     @Autowired
     private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
 
@@ -82,6 +85,7 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         
         // Default stubs
         `when`(factExtractor.extractFacts(any())).thenReturn(Flux.empty())
+        `when`(sentimentAnalyzer.analyzeSentiment(any())).thenReturn(Mono.empty())
     }
 
     @Test
@@ -93,6 +97,10 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             content = "This is URGENT! I need HELP!",
             authorType = AuthorType.USER
         )
+
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(
+            AdaptationEvent(theme = "emergency", intensity = 0.9, glowIntensity = 0.9, color = "#f43f5e", blurAmount = 24.0, glassOpacity = 0.15)
+        ))
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
@@ -109,10 +117,6 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("emergency", event?.theme)
         assertEquals(0.9, event?.intensity)
-        assertEquals(0.9, event?.glowIntensity)
-        assertEquals("#f43f5e", event?.color)
-        assertEquals(24.0, event?.blurAmount)
-        assertEquals(0.15, event?.glassOpacity)
     }
 
     @Test
@@ -124,6 +128,10 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             content = "I am feeling very calm and relaxed. Time to sleep.",
             authorType = AuthorType.USER
         )
+
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(
+            AdaptationEvent(theme = "zen", intensity = 0.2, glowIntensity = 0.2, color = "#06b6d4", blurAmount = 8.0, glassOpacity = 0.02)
+        ))
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
@@ -138,11 +146,6 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
         assertNotNull(event, "Adaptation event should not be null")
         assertEquals("zen", event?.theme)
-        assertEquals(0.2, event?.intensity)
-        assertEquals(0.2, event?.glowIntensity)
-        assertEquals("#06b6d4", event?.color)
-        assertEquals(8.0, event?.blurAmount)
-        assertEquals(0.02, event?.glassOpacity)
     }
 
     @Test

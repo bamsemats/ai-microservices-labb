@@ -59,13 +59,15 @@ const RegisterPage: React.FC = () => {
             required 
           />
         </div>
-        <button type="submit">Register</button>
-        <p>
-          Already have an account? <Link to="/login">Login here</Link>
-        </p>
+        <button className="lumina-button" type="submit">Register</button>
+        <div className="auth-footer">
+          <p>Already have an account?</p>
+          <Link to="/login" className="lumina-button secondary auth-footer-cta">Login here</Link>
+        </div>
       </form>
     </div>
   );
 };
+
 
 export default RegisterPage;

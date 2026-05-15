@@ -58,36 +58,6 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
         
         <button className="lumina-button secondary logout-btn" onClick={logout} aria-label="Logout of your account">Logout</button>
       </div>
-
-      <style>{`
-        .clickable {
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .clickable:hover {
-          background: rgba(255, 255, 255, 0.1) !important;
-          border-color: var(--accent-primary) !important;
-        }
-        .icon-only {
-          width: 2.5rem;
-          height: 2.5rem;
-          padding: 0 !important;
-          border-radius: 50% !important;
-          font-size: 1.25rem;
-        }
-        .theme-toggle {
-          margin-right: 0.5rem;
-        }
-        .hamburger-menu {
-          display: none;
-          margin-right: 0.75rem;
-        }
-        @media (max-width: 768px) {
-          .hamburger-menu {
-            display: flex;
-          }
-        }
-      `}</style>
     </header>
   );
 };

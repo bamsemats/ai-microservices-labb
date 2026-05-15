@@ -66,12 +66,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
   }, [ids.pulseR, ids.pulseOpacity]);
 
   return (
-    <div className={`${styles.container} ${className}`} style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '0.75rem',
-      userSelect: 'none'
-    }}>
+    <div className={`brand-logo-container ${styles.container} ${className}`}>
       <svg 
         ref={svgRef}
         width={icon} 
@@ -79,12 +74,12 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         viewBox="0 0 32 32" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
-        style={{ filter: 'drop-shadow(0 0 8px var(--accent-primary))' }}
+        className="brand-logo-svg"
       >
         <defs>
           <linearGradient id={ids.gradient} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop stopColor="var(--accent-primary)" />
-            <stop offset="1" stopColor="var(--accent-secondary)" />
+            <stop stopColor="var(--color-accent-primary)" />
+            <stop offset="1" stopColor="var(--color-accent-secondary)" />
           </linearGradient>
           <filter id={ids.glow} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur" />
@@ -95,7 +90,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         {/* Geometric Hexagon Base */}
         <path 
           d="M16 2L28 9V23L16 30L4 23V9L16 2Z" 
-          fill="rgba(255, 255, 255, 0.05)" 
+          fill="rgb(from white r g b / 0.05)" 
           stroke={`url(#${ids.gradient})`} 
           strokeWidth="1.5"
         />
@@ -111,7 +106,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         />
         
         {/* Pulse Dot */}
-        <circle cx="16" cy="8" r="2" fill="var(--accent-tertiary)">
+        <circle cx="16" cy="8" r="2" fill="var(--color-accent-tertiary)">
           <animate 
             id={ids.pulseR}
             attributeName="r" 
@@ -132,20 +127,13 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       </svg>
       
       {showText && (
-        <span style={{ 
-          fontSize: font, 
-          fontWeight: 800, 
-          letterSpacing: '-0.03em',
-          background: 'var(--accent-gradient)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontFamily: 'Plus Jakarta Sans, Inter, sans-serif'
-        }}>
+        <span className="brand-logo-text" style={{ fontSize: font }}>
           AdaptaChat
         </span>
       )}
     </div>
   );
+
 };
 
 export default BrandLogo;

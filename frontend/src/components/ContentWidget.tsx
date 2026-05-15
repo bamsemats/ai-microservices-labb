@@ -148,7 +148,6 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card youtube-widget"
       >
-        {commonStyles}
         <div className="widget-badge youtube">YOUTUBE VIDEO</div>
         <div className="youtube-header">
           <div className="video-info">

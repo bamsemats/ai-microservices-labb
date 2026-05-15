@@ -27,13 +27,14 @@
     transform: scale(0);
   } 40% { 
     transform: scale(1.0);
-    background: var(--accent-primary, #6366f1);
+    background: var(--color-accent-primary);
   }
 }
 
 .message-bubble.thinking {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgb(from white r g b / 0.05);
+  border: 1px dashed rgb(from white r g b / 0.2);
   backdrop-filter: blur(5px);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
