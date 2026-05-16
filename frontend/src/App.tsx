@@ -7,6 +7,7 @@ import ChatPage from './pages/ChatPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import InsightsPage from './pages/InsightsPage';
 import ProfilePage from './pages/ProfilePage';
+import FeedbackWidget from './components/FeedbackWidget';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './index.css';
@@ -57,6 +58,7 @@ function AppContent() {
           } 
         />
       </Routes>
+      <FeedbackWidget />
     </div>
   );
 }

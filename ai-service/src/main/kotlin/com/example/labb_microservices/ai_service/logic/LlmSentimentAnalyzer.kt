@@ -26,6 +26,16 @@ class LlmSentimentAnalyzer(
 ) : SentimentAnalyzer {
     private val logger = LoggerFactory.getLogger(LlmSentimentAnalyzer::class.java)
     private val webClient = webClientBuilder.build()
+
+    // Typed response for LLM output
+    data class SentimentResponse(
+        val theme: String = "neutral",
+        val intensity: Double = 0.5,
+        val color: String? = null,
+        val blurAmount: Double? = null,
+        val glassOpacity: Double? = null,
+        val glowIntensity: Double? = null
+    )
     
     // Using a fast, small model for sentiment analysis
     private val sentimentModel = "mistralai/mistral-7b-instruct:free"
@@ -84,26 +94,21 @@ class LlmSentimentAnalyzer(
                     val root = objectMapper.readTree(json)
                     val contentResponse = root.path("choices").get(0).path("message").path("content").asText()
                     
-                    // Extract JSON from response (sometimes LLMs wrap it in markdown blocks)
-                    val jsonMatch = if (contentResponse.contains("{") && contentResponse.contains("}")) {
-                        contentResponse.substring(contentResponse.indexOf("{"), contentResponse.lastIndexOf("}") + 1)
-                    } else {
-                        contentResponse
-                    }
+                    // Robust JSON extraction
+                    val jsonMatch = extractJson(contentResponse)
+                    if (jsonMatch.isEmpty()) return@map null
 
+                    val response = objectMapper.readValue(jsonMatch, SentimentResponse::class.java)
                     
-                    val map = objectMapper.readValue(jsonMatch, Map::class.java)
-                    
-                    val theme = map["theme"] as? String ?: "neutral"
-                    if (theme == "neutral") return@map null
+                    if (response.theme == "neutral") return@map null
                     
                     AdaptationEvent(
-                        theme = theme,
-                        intensity = (map["intensity"] as? Number)?.toDouble() ?: 0.5,
-                        color = map["color"] as? String,
-                        blurAmount = (map["blurAmount"] as? Number)?.toDouble(),
-                        glassOpacity = (map["glassOpacity"] as? Number)?.toDouble(),
-                        glowIntensity = (map["glowIntensity"] as? Number)?.toDouble()
+                        theme = response.theme,
+                        intensity = response.intensity,
+                        color = response.color,
+                        blurAmount = response.blurAmount,
+                        glassOpacity = response.glassOpacity,
+                        glowIntensity = response.glowIntensity
                     )
                 } catch (e: Exception) {
                     logger.warn("Failed to parse semantic sentiment JSON: {}", json, e)
@@ -114,5 +119,28 @@ class LlmSentimentAnalyzer(
                 logger.error("Error calling semantic sentiment analysis: {}", e.message)
                 Mono.empty()
             }
+    }
+
+    private fun extractJson(content: String): String {
+        // 1. Try to find fenced code blocks
+        val fencedMatch = Regex("```json\\s*([\\s\\S]*?)\\s*```").find(content)
+        if (fencedMatch != null) return fencedMatch.groupValues[1].trim()
+
+        // 2. Fallback to balanced braces
+        var braceCount = 0
+        var startIndex = -1
+        for (i in content.indices) {
+            if (content[i] == '{') {
+                if (startIndex == -1) startIndex = i
+                braceCount++
+            } else if (content[i] == '}') {
+                braceCount--
+                if (braceCount == 0 && startIndex != -1) {
+                    return content.substring(startIndex, i + 1)
+                }
+            }
+        }
+
+        return ""
     }
 }

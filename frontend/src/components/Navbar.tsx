@@ -44,17 +44,15 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           {isDark ? '☀️' : '🌙'}
         </button>
         
-        <div 
+        <button 
           className="user-badge glass-card clickable" 
           onClick={() => navigate('/profile')}
-          role="link"
           aria-label="View your profile"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/profile')}
+          style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}
         >
           <span className="username">{username}</span>
           <div className="user-avatar" aria-hidden="true">{username?.charAt(0).toUpperCase()}</div>
-        </div>
+        </button>
         
         <button className="lumina-button secondary logout-btn" onClick={logout} aria-label="Logout of your account">Logout</button>
       </div>

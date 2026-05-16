@@ -59,6 +59,8 @@ spec:
           value: http://user-service:8080
         - name: SERVICES_MESSAGE
           value: http://message-service:8080
+        - name: SERVICES_FEEDBACK
+          value: http://feedback-service:8080
         - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
           value: http://jaeger:4318/v1/traces
         volumeMounts:
@@ -85,6 +87,7 @@ kind: Ingress
 metadata:
   name: gateway-ingress
   annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
@@ -142,6 +145,13 @@ spec:
             port:
               number: 8080
       - path: /logout
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 8080
+      - path: /feedback
         pathType: Prefix
         backend:
           service:

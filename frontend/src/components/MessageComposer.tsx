@@ -20,27 +20,32 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
   const [isFocused, setIsFocused] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+  const onTypingRef = useRef(onTyping);
+
+  useEffect(() => {
+    onTypingRef.current = onTyping;
+  }, [onTyping]);
 
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      if (isTypingRef.current && onTyping) {
-        onTyping(false);
+      if (isTypingRef.current && onTypingRef.current) {
+        onTypingRef.current(false);
       }
     };
-  }, [onTyping]);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
 
-    if (onTyping && !disabled) {
+    if (onTypingRef.current && !disabled) {
       if (!isTypingRef.current && newValue.trim().length > 0) {
         isTypingRef.current = true;
-        onTyping(true);
+        onTypingRef.current(true);
       } else if (isTypingRef.current && newValue.trim().length === 0) {
         isTypingRef.current = false;
-        onTyping(false);
+        onTypingRef.current(false);
       }
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -48,7 +53,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
       if (isTypingRef.current) {
         typingTimeoutRef.current = setTimeout(() => {
           isTypingRef.current = false;
-          onTyping(false);
+          if (onTypingRef.current) onTypingRef.current(false);
         }, 3000);
       }
     }
@@ -58,9 +63,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
     e.preventDefault();
     const trimmed = value.trim();
     if (trimmed && !disabled) {
-      if (isTypingRef.current && onTyping) {
+      if (isTypingRef.current && onTypingRef.current) {
         isTypingRef.current = false;
-        onTyping(false);
+        onTypingRef.current(false);
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       }
       onSend(trimmed);
@@ -103,7 +108,6 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
       <form 
         className={`composer-form ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`} 
         onSubmit={handleSubmit}
-        role="search"
         aria-label="Message composer"
       >
         <div className="input-wrapper glass-panel">
@@ -116,7 +120,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             disabled={disabled}
             aria-label="Message content"
-            aria-required="true"
+            required
           />
           <button 
             type="submit" 

@@ -42,6 +42,7 @@ class MessageController(
     private val presenceService: PresenceService,
     private val messageRepository: MessageRepository,
     private val encryptionUtils: EncryptionUtils,
+    private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate,
     @org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
 ) {
 
@@ -133,7 +134,11 @@ class MessageController(
     }
 
     @GetMapping("/search")
-    fun searchMessages(@RequestParam q: String): Flux<Message> {
+    fun searchMessages(
+        @RequestParam q: String,
+        @RequestParam(required = false) channelId: String?,
+        @RequestParam(required = false) senderId: String?
+    ): Flux<Message> {
         if (q.isBlank() || q.length < 2) return Flux.empty()
         
         val tokens = q.lowercase()
@@ -155,19 +160,35 @@ class MessageController(
                     val principal = auth.name
                     val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
                     
-                    messageRepository.findAllBySearchIndicesContainingAll(hashes)
+                    val query = org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("searchIndices").all(hashes)
+                    )
+
+                    if (!isAdmin) {
+                        val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                            org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                        )
+                        query.addCriteria(visibilityCriteria)
+                    }
+
+                    if (!channelId.isNullOrBlank()) {
+                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId))
+                    }
+
+                    if (!senderId.isNullOrBlank()) {
+                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(senderId))
+                    }
+
+                    // Limit results for safety and sort by newest
+                    query.limit(100)
+                    query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
+
+                    mongoTemplate.find(query, Message::class.java)
                         .flatMap { encryptedMessage ->
-                            // Check if user is allowed to see this message
-                            val isParticipant = encryptedMessage.senderId == principal || 
-                                               encryptedMessage.receiverId == principal || 
-                                               (encryptedMessage.receiverId == "all" && encryptedMessage.channelId == "global")
-                            
-                            if (isAdmin || isParticipant) {
-                                Mono.fromCallable { decryptMessage(encryptedMessage) }
-                                    .subscribeOn(Schedulers.boundedElastic())
-                            } else {
-                                Mono.empty()
-                            }
+                            Mono.fromCallable { decryptMessage(encryptedMessage) }
+                                .subscribeOn(Schedulers.boundedElastic())
                         }
                 }
         }
@@ -233,7 +254,21 @@ class MessageController(
                         if (isAdmin) {
                             messageRepository.findAllByChannelId(channelId)
                         } else {
-                            Flux.empty()
+                            // Non-admins can see broadcast messages in this channel OR messages they are part of
+                            // This is more "Global" and respects partitioning
+                            mongoTemplate.find(
+                                org.springframework.data.mongodb.core.query.Query(
+                                    org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
+                                        .andOperator(
+                                            org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                                                org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                                            )
+                                        )
+                                ),
+                                Message::class.java
+                            )
                         }
                     }
                     receiverId != null -> {
@@ -250,7 +285,7 @@ class MessageController(
                         messageRepository.findAll()
                     }
                     else -> {
-                        // Non-admins can only see messages they are part of
+                        // Non-admins can only see messages they are part of (DMs or Broadcasts)
                         messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
                             .mergeWith(messageRepository.findAllByReceiverId("all"))
                     }

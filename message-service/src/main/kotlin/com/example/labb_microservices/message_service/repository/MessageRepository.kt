@@ -9,8 +9,11 @@ import reactor.core.publisher.Flux
 interface MessageRepository : ReactiveMongoRepository<Message, String> {
     fun findAllBySearchIndicesContaining(hash: String): Flux<Message>
     
-    @org.springframework.data.mongodb.repository.Query("{ 'searchIndices': { \$all: ?0 } }")
+    @org.springframework.data.mongodb.repository.Query("{ 'searchIndices': { '\u0024all': ?0 } }")
     fun findAllBySearchIndicesContainingAll(hashes: Collection<String>): Flux<Message>
+    
+    @org.springframework.data.mongodb.repository.Query("{ 'searchIndices': { '\u0024all': ?0 }, '\u0024or': [ { 'senderId': ?1 }, { 'receiverId': ?1 }, { 'receiverId': 'all' } ] }")
+    fun searchForUser(hashes: Collection<String>, principal: String): Flux<Message>
     
     fun findAllByChannelId(channelId: String): Flux<Message>
     fun findAllByReceiverIdOrSenderId(receiverId: String, senderId: String): Flux<Message>

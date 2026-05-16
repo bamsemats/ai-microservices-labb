@@ -36,13 +36,19 @@ const ProfilePage: React.FC = () => {
     if (token) fetchProfile();
   }, [token]);
 
+  useEffect(() => {
+    if (feedback?.type === 'success') {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
   const handleSave = async () => {
     setIsSaving(true);
     setFeedback(null);
     try {
       await api.put('/users/profile', { displayName, bio, socialLinks });
       setFeedback({ message: 'Profile updated successfully!', type: 'success' });
-      setTimeout(() => setFeedback(null), 3000);
     } catch (error) {
       console.error('Failed to update profile', error);
       setFeedback({ message: 'Failed to update profile. Please try again.', type: 'error' });

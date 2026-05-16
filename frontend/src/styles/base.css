@@ -10,7 +10,7 @@
   :root {
     color-scheme: dark light;
     font-synthesis: none;
-    text-rendering: optimizeLegibility;
+    text-rendering: optimizelegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     
@@ -50,6 +50,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1); /* Fallback */
     background: rgb(from var(--color-accent-primary) r g b / 0.2);
     border-radius: 100vw;
   }

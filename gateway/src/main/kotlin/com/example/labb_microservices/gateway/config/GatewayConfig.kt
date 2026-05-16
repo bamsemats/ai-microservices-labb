@@ -13,7 +13,8 @@ class GatewayConfig(
     @Value("\${services.auth:http://localhost:8081}") private val authServiceUrl: String,
     @Value("\${services.user:http://localhost:8082}") private val userServiceUrl: String,
     @Value("\${services.message:http://localhost:8083}") private val messageServiceUrl: String,
-    @Value("\${services.aggregator:http://localhost:8086}") private val aggregatorServiceUrl: String
+    @Value("\${services.aggregator:http://localhost:8086}") private val aggregatorServiceUrl: String,
+    @Value("\${services.feedback:http://localhost:8087}") private val feedbackServiceUrl: String
 ) {
 
     @Bean
@@ -37,6 +38,11 @@ class GatewayConfig(
                 r.path("/analytics/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(aggregatorServiceUrl)
+            }
+            .route("feedback-service") { r ->
+                r.path("/feedback/**")
+                    .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
+                    .uri(feedbackServiceUrl)
             }
             .build()
     }

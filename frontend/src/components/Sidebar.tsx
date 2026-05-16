@@ -2,143 +2,121 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
-import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
+import { usePresenceStore } from '../store/usePresenceStore';
 import BrandLogo from './BrandLogo';
 
 interface SidebarProps {
-  activeReceiver: string;
-  onSelectReceiver: (id: string) => void;
+  activeReceiver?: string;
+  onSelectReceiver?: (id: string) => void;
 }
 
+const CHANNELS = [
+  { id: 'home', name: 'general', icon: '#' },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) => {
-  const { userId, token } = useAuthStore();
-  const { presences, fetchPresences } = usePresenceStore();
-  const { sidebarOpen, toggleSidebar } = useUIStore();
   const navigate = useNavigate();
+  const { userId } = useAuthStore();
+  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { presences } = usePresenceStore();
 
-  React.useEffect(() => {
-    if (token) {
-      fetchPresences(token);
-    }
-  }, [token, fetchPresences]);
-
-  const handleNav = (path: string, receiverId?: string) => {
+  const handleNav = (path: string) => {
     navigate(path);
-    if (receiverId) {
-      onSelectReceiver(receiverId);
+    if (window.innerWidth <= 768) {
+      toggleSidebar(false);
     }
-    toggleSidebar(false);
   };
 
-  const getStatusClass = (status: PresenceStatus) => {
-    switch (status) {
-      case 'ONLINE': return 'online';
-      case 'AWAY': return 'away';
-      case 'DND': return 'dnd';
-      default: return 'offline';
+  const handleReceiverSelect = (id: string) => {
+    if (onSelectReceiver) {
+      onSelectReceiver(id);
+    } else {
+      navigate(`/?receiver=${encodeURIComponent(id)}`);
+    }
+    if (window.innerWidth <= 768) {
+      toggleSidebar(false);
     }
   };
+
+  const onlineUsers = Object.values(presences).filter(p => p.userId !== userId);
 
   return (
     <aside className={`sidebar glass-panel ${sidebarOpen ? 'mobile-open' : ''}`} role="navigation" aria-label="Main navigation">
-      <div className="sidebar-header" onClick={() => handleNav('/')} style={{ cursor: 'pointer' }}>
+      <button 
+        className="sidebar-header" 
+        onClick={() => handleNav('/')} 
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleNav('/')}
+        aria-label="Go to Home"
+        style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+      >
         <BrandLogo size="md" />
-      </div>
+      </button>
 
       <div className="sidebar-section" role="group" aria-labelledby="main-nav-label">
-        <h3 id="main-nav-label">Main</h3>
-        <button 
-          className={`channel-item ${activeReceiver === 'home' ? 'active' : ''}`}
-          onClick={() => handleNav('/')}
-          aria-current={activeReceiver === 'home' ? 'page' : undefined}
-        >
-          <span className="icon" aria-hidden="true">🏠</span> Home
-        </button>
-        <button 
-          className={`channel-item ${activeReceiver === 'explore' ? 'active' : ''}`}
-          onClick={() => handleNav('/explore')}
-          aria-current={activeReceiver === 'explore' ? 'page' : undefined}
-        >
-          <span className="icon" aria-hidden="true">✨</span> Discovery
-        </button>
-        <button 
-          className={`channel-item ${activeReceiver === 'insights' ? 'active' : ''}`}
-          onClick={() => handleNav('/insights')}
-          aria-current={activeReceiver === 'insights' ? 'page' : undefined}
-        >
-          <span className="icon" aria-hidden="true">📊</span> Insights
-        </button>
+        <h3 id="main-nav-label">Channels</h3>
+        <div className="channel-list" role="list">
+          {CHANNELS.map((channel) => (
+            <button
+              key={channel.id}
+              className={`channel-item ${activeReceiver === channel.id ? 'active' : ''}`}
+              onClick={() => handleReceiverSelect(channel.id)}
+              role="listitem"
+              aria-current={activeReceiver === channel.id ? 'page' : undefined}
+            >
+              <span className="at" aria-hidden="true">{channel.icon}</span> {channel.name}
+              {channel.id === 'home' && onlineUsers.length > 0 && <span className="status-indicator online" aria-hidden="true"></span>}
+            </button>
+          ))}
+        </div>
       </div>
-      
-      <div className="sidebar-section" role="group" aria-labelledby="quick-actions-label">
-        <h3 id="quick-actions-label">Quick Actions</h3>
+
+      <div className="sidebar-section">
+        <h3>Intelligence</h3>
         <div className="action-grid">
           <button 
-            className="lumina-button secondary small"
-            onClick={() => handleNav('/', 'AdaptaAI')}
-            aria-label="Start chat with AI Agent"
+            className={`channel-item ${activeReceiver === 'explore' ? 'active' : ''}`} 
+            onClick={() => handleNav('/explore')}
+            aria-label="Discovery Hub"
           >
-            <span className="icon" aria-hidden="true">🤖</span> AI Agent
+            <span className="icon" aria-hidden="true">🌐</span> Discovery
           </button>
           <button 
-            className="lumina-button secondary small"
+            className={`channel-item ${activeReceiver === 'insights' ? 'active' : ''}`} 
             onClick={() => handleNav('/insights')}
-            aria-label="View AI Insights and Memory"
+            aria-label="AI Insights"
           >
-            <span className="icon" aria-hidden="true">🧠</span> Memory
+            <span className="icon" aria-hidden="true">📊</span> Insights
           </button>
         </div>
       </div>
 
-      <div className="sidebar-section" role="group" aria-labelledby="channels-label">
-        <h3 id="channels-label">Channels</h3>
-        <button 
-          className={`channel-item ${activeReceiver === 'all' ? 'active' : ''}`}
-          onClick={() => { onSelectReceiver('all'); toggleSidebar(false); }}
-          aria-current={activeReceiver === 'all' ? 'true' : undefined}
-        >
-          <span className="hash" aria-hidden="true">#</span> general
-        </button>
-      </div>
-
-      <div className="sidebar-section" role="group" aria-labelledby="dm-label">
-        <h3 id="dm-label">Direct Messages</h3>
+      <div className="sidebar-section" style={{ marginTop: 'auto' }}>
+        <h3>Presence</h3>
         <button 
           className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
-          onClick={() => { if (userId) { onSelectReceiver(userId); toggleSidebar(false); } }}
-          disabled={!userId}
-          aria-current={activeReceiver === userId ? 'true' : undefined}
+          onClick={() => handleReceiverSelect(userId || 'me')}
           aria-label="Me (Notes)"
         >
           <span className="at" aria-hidden="true">@</span> Me (Notes)
-          <span className="status-indicator online" aria-label="Status: Online"></span>
+          <span className="status-indicator online" aria-hidden="true"></span>
         </button>
-        
-        {(() => {
-          const filteredPeers = Object.values(presences).filter(p => p.userId !== userId);
-          return (
-            <>
-              {filteredPeers.map((presence) => (
-                <button 
-                  key={presence.userId}
-                  className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
-                  onClick={() => { onSelectReceiver(presence.userId); toggleSidebar(false); }}
-                  aria-current={activeReceiver === presence.userId ? 'true' : undefined}
-                  aria-label={`Chat with ${presence.username}, status: ${presence.status.toLowerCase()}`}
-                >
-                  <span className="at" aria-hidden="true">@</span> {presence.username}
-                  <span className={`status-indicator ${getStatusClass(presence.status)}`} aria-hidden="true"></span>
-                </button>
-              ))}
-              
-              {filteredPeers.length === 0 && (
-                <button className="channel-item disabled" disabled aria-disabled="true">
-                  <span className="at" aria-hidden="true">@</span> No users online
-                </button>
-              )}
-            </>
-          );
-        })()}
+
+        {onlineUsers.length > 0 ? (
+          onlineUsers.map(u => (
+            <button 
+              key={u.userId} 
+              className={`channel-item ${activeReceiver === u.userId ? 'active' : ''}`}
+              onClick={() => handleReceiverSelect(u.userId)}
+            >
+              <span className="at" aria-hidden="true">@</span> {u.username}
+              <span className={`status-indicator ${u.status.toLowerCase()}`} aria-hidden="true"></span>
+            </button>
+          ))
+        ) : (
+          <button className="channel-item" disabled style={{ opacity: 0.6, cursor: 'default' }}>
+            <span className="at" aria-hidden="true">@</span> No users online
+          </button>
+        )}
       </div>
     </aside>
   );

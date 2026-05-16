@@ -211,6 +211,23 @@ services:
       redis:
         condition: service_healthy
 
+  feedback-service:
+    build:
+      context: .
+      dockerfile: feedback-service/Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/feedbackdb
+      - JWT_SECRET=${JWT_SECRET}
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
   jaeger:
     image: jaegertracing/all-in-one:1.55
     ports:
