@@ -1,14 +1,14 @@
 package com.example.labb_microservices.user_service.repository
 
 import com.example.labb_microservices.user_service.model.PresenceStatus
-import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 
 @Component
-class PresenceTracker(private val redisTemplate: ReactiveRedisTemplate<String, String>) {
+class PresenceTracker(private val redisTemplate: ReactiveStringRedisTemplate) {
 
     private val userPresencePrefix = "presence:active:"
     private val botPresencePrefix = "presence:static:"
