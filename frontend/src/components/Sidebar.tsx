@@ -53,20 +53,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
 
       <div className="sidebar-section" role="group" aria-labelledby="main-nav-label">
         <h3 id="main-nav-label">Channels</h3>
-        <div className="channel-list" role="list">
+        <ul className="channel-list">
           {CHANNELS.map((channel) => (
-            <button
-              key={channel.id}
-              className={`channel-item ${activeReceiver === channel.id ? 'active' : ''}`}
-              onClick={() => handleReceiverSelect(channel.id)}
-              role="listitem"
-              aria-current={activeReceiver === channel.id ? 'page' : undefined}
-            >
-              <span className="at" aria-hidden="true">{channel.icon}</span> {channel.name}
-              {channel.id === 'home' && onlineUsers.length > 0 && <span className="status-indicator online" aria-hidden="true"></span>}
-            </button>
+            <li key={channel.id}>
+              <button
+                className={`channel-item ${activeReceiver === channel.id ? 'active' : ''}`}
+                onClick={() => handleReceiverSelect(channel.id)}
+                aria-current={activeReceiver === channel.id ? 'page' : undefined}
+              >
+                <span className="at" aria-hidden="true">{channel.icon}</span> {channel.name}
+                {channel.id === 'home' && onlineUsers.length > 0 && <span className="status-indicator online" aria-hidden="true"></span>}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
       <div className="sidebar-section">
@@ -94,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
         <button 
           className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
           onClick={() => handleReceiverSelect(userId || 'me')}
-          aria-label="Me (Notes)"
+          aria-label="Me (Notes) - online"
         >
           <span className="at" aria-hidden="true">@</span> Me (Notes)
           <span className="status-indicator online" aria-hidden="true"></span>
@@ -106,6 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
               key={u.userId} 
               className={`channel-item ${activeReceiver === u.userId ? 'active' : ''}`}
               onClick={() => handleReceiverSelect(u.userId)}
+              aria-label={`${u.username} - ${u.status.toLowerCase()}`}
             >
               <span className="at" aria-hidden="true">@</span> {u.username}
               <span className={`status-indicator ${u.status.toLowerCase()}`} aria-hidden="true"></span>

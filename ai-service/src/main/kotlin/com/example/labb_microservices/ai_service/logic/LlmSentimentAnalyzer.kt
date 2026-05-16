@@ -100,18 +100,34 @@ class LlmSentimentAnalyzer(
 
                     val response = objectMapper.readValue(jsonMatch, SentimentResponse::class.java)
                     
-                    if (response.theme == "neutral") return@flatMap Mono.empty<AdaptationEvent>()
+                    val allowedThemes = setOf("emergency", "vibrant", "zen", "deep")
+                    val theme = response.theme.lowercase()
+                    if (theme == "neutral") return@flatMap Mono.empty<AdaptationEvent>()
+                    if (theme !in allowedThemes) {
+                        logger.warn("Received unknown theme from LLM: {}", theme)
+                        return@flatMap Mono.empty<AdaptationEvent>()
+                    }
+
+                    // Normalize and clamp properties
+                    val intensity = (response.intensity).coerceIn(0.0, 1.0)
+                    val blurAmount = (response.blurAmount ?: 0.0).coerceIn(0.0, 30.0)
+                    val glassOpacity = (response.glassOpacity ?: 0.0).coerceIn(0.0, 0.2)
+                    val glowIntensity = (response.glowIntensity ?: 0.0).coerceIn(0.0, 1.0)
+                    
+                    // Basic hex color validation
+                    val color = response.color?.takeIf { it.matches(Regex("^#[0-9A-Fa-f]{6}$")) }
                     
                     Mono.just(AdaptationEvent(
-                        theme = response.theme,
-                        intensity = response.intensity,
-                        color = response.color,
-                        blurAmount = response.blurAmount,
-                        glassOpacity = response.glassOpacity,
-                        glowIntensity = response.glowIntensity
+                        theme = theme,
+                        intensity = intensity,
+                        color = color,
+                        blurAmount = blurAmount,
+                        glassOpacity = glassOpacity,
+                        glowIntensity = glowIntensity
                     ))
                 } catch (e: Exception) {
-                    logger.warn("Failed to parse semantic sentiment JSON: {}", json, e)
+                    val sanitizedSnippet = if (json.length > 100) json.substring(0, 100) + "..." else json
+                    logger.warn("Failed to parse semantic sentiment JSON snippet: {} (error: {})", sanitizedSnippet, e.message)
                     Mono.empty<AdaptationEvent>()
                 }
             }

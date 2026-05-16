@@ -21,7 +21,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
         return http
             .csrf { it.disable() }
             .authorizeExchange { 
-                it.pathMatchers("/actuator/**").permitAll()
+                it.pathMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 it.anyExchange().authenticated() 
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
