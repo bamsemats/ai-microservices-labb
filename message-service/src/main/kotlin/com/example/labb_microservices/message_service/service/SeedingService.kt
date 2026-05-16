@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.*
 
 @Service
@@ -53,7 +53,7 @@ class SeedingService(
                                         channelId = "general",
                                         content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?",
                                         authorType = AuthorType.BOT,
-                                        timestamp = LocalDateTime.now()
+                                        timestamp = Instant.now()
                                     )
                                     messageRepository.save(welcomeMessage)
                                         .doOnSuccess { messageProducer.deliverMessage(it) }

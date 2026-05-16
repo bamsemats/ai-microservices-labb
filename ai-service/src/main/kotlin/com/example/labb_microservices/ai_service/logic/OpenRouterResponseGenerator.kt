@@ -109,6 +109,9 @@ class OpenRouterResponseGenerator(
                         if (e is org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized) {
                             logger.error("Unauthorized call to OpenRouter. Switching to simulation mode.")
                             generateSimulatedResponse(message)
+                        } else if (e is org.springframework.web.reactive.function.client.WebClientResponseException) {
+                            logger.error("Error calling OpenRouter: {} {} - URL: {}", e.statusCode, e.responseBodyAsString, url)
+                            Flux.just("Interference detected in the frequency (API Error). Please try again later.")
                         } else if (e is java.util.concurrent.TimeoutException) {
                             logger.error("Timeout calling OpenRouter: {}", e.message)
                             Flux.just("I'm having trouble connecting to my brain right now. (Timeout)")

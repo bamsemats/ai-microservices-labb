@@ -19,11 +19,11 @@ const getSafeStorageItem = (key: string) => {
 };
 
 export const useAuthStore = create<AuthState>((set) => {
-  const initialToken = null; // Token is now in-memory only
+  const initialToken = getSafeStorageItem('accessToken');
   const initialUserId = getSafeStorageItem('userId');
   const initialUsername = getSafeStorageItem('username');
   const initialRole = getSafeStorageItem('role');
-  const initialIsAuthenticated = false; // Cannot be authenticated without in-memory token on start
+  const initialIsAuthenticated = !!initialToken;
 
   return {
     token: initialToken,
@@ -39,7 +39,8 @@ export const useAuthStore = create<AuthState>((set) => {
         return false;
       }
       
-      // Persist only non-sensitive data
+      // Persist credentials
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('userId', userId);
       localStorage.setItem('username', username);
       localStorage.setItem('role', role);
@@ -56,6 +57,7 @@ export const useAuthStore = create<AuthState>((set) => {
     },
     
     logout: () => {
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('username');
       localStorage.removeItem('role');
@@ -63,20 +65,30 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     initialize: async () => {
+      const token = getSafeStorageItem('accessToken');
       const username = getSafeStorageItem('username');
       const userId = getSafeStorageItem('userId');
       const role = getSafeStorageItem('role');
       
-      // Hydrate basic user info from storage for UX (e.g. showing name in sidebar)
-      // but explicitly set isAuthenticated: false since we don't store JWTs in localStorage.
-      // Full authentication requires a fresh login or refresh token flow.
-      set({ 
-        username, 
-        userId, 
-        role, 
-        isAuthenticated: false, 
-        isAdmin: false 
-      });
+      if (token && userId && username) {
+        set({ 
+          token,
+          username, 
+          userId, 
+          role, 
+          isAuthenticated: true, 
+          isAdmin: role === 'ROLE_ADMIN' 
+        });
+      } else {
+        set({ 
+          token: null,
+          username, 
+          userId, 
+          role, 
+          isAuthenticated: false, 
+          isAdmin: false 
+        });
+      }
     }
   };
 });

@@ -27,7 +27,7 @@ class PresenceService(
             .switchIfEmpty(Mono.error(UserNotFoundException("User not found")))
             .flatMap { user ->
                 val username = user.username ?: "unknown"
-                presenceTracker.setStatus(userId, status)
+                presenceTracker.setStatus(userId, status, user.isBot == true)
                     .flatMap {
                         Mono.fromCallable {
                             val event = PresenceUpdateEvent(

@@ -3,6 +3,8 @@ package com.example.labb_microservices.user_service.service
 import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
+import com.example.labb_microservices.user_service.model.PresenceStatus
+import com.example.labb_microservices.user_service.repository.PresenceTracker
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -14,7 +16,8 @@ import java.util.*
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val encryptionUtils: EncryptionUtils
+    private val encryptionUtils: EncryptionUtils,
+    private val presenceTracker: PresenceTracker
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
@@ -144,6 +147,11 @@ class UserService(
         return Flux.fromIterable(bots)
             .flatMap { (name, role) ->
                 userRepository.findById(name)
+                    .flatMap { existing ->
+                        // Update existing user to ensure it's marked as bot
+                        val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")
+                        userRepository.save(updated)
+                    }
                     .switchIfEmpty(
                         Mono.defer {
                             userRepository.save(
@@ -158,6 +166,10 @@ class UserService(
                             )
                         }
                     )
+                    .flatMap { 
+                        presenceTracker.setStatus(it.id!!, PresenceStatus.ONLINE, true)
+                            .thenReturn(it)
+                    }
             }
             .then()
     }

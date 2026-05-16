@@ -37,12 +37,13 @@ class LlmSentimentAnalyzer(
         val glowIntensity: Double? = null
     )
     
-    // Using a fast, small model for sentiment analysis
-    private val sentimentModel = "mistralai/mistral-7b-instruct:free"
+    // Using a reliable model for sentiment analysis
+    private val sentimentModel = "openrouter/auto"
 
     override fun analyzeSentiment(content: String): Mono<AdaptationEvent?> {
         if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
-            return Mono.empty()
+            logger.debug("OpenRouter API key missing for sentiment analysis. Using simulated sentiment.")
+            return generateSimulatedSentiment(content)
         }
 
         val systemPrompt = """
@@ -132,9 +133,38 @@ class LlmSentimentAnalyzer(
                 }
             }
             .onErrorResume { e ->
-                logger.error("Error calling semantic sentiment analysis: {}", e.message)
+                if (e is org.springframework.web.reactive.function.client.WebClientResponseException) {
+                    logger.error("Error calling semantic sentiment analysis: {} {} - URL: {}", e.statusCode, e.responseBodyAsString, url)
+                } else {
+                    logger.error("Error calling semantic sentiment analysis: {}", e.message)
+                }
                 Mono.empty()
             }
+    }
+
+    private fun generateSimulatedSentiment(content: String): Mono<AdaptationEvent?> {
+        val lower = content.lowercase()
+        val theme = when {
+            lower.contains("help") || lower.contains("danger") || lower.contains("error") -> "emergency"
+            lower.contains("yay") || lower.contains("celebrate") || lower.contains("party") -> "vibrant"
+            lower.contains("peace") || lower.contains("calm") || lower.contains("relax") -> "zen"
+            lower.contains("code") || lower.contains("technical") || lower.contains("study") -> "deep"
+            else -> "neutral"
+        }
+        
+        if (theme == "neutral") return Mono.empty()
+        
+        return Mono.just(AdaptationEvent(
+            theme = theme,
+            intensity = 0.5,
+            color = when(theme) {
+                "emergency" -> "#f43f5e"
+                "vibrant" -> "#ec4899"
+                "zen" -> "#06b6d4"
+                "deep" -> "#8b5cf6"
+                else -> "#6366f1"
+            }
+        ))
     }
 
     private fun extractJson(content: String): String {

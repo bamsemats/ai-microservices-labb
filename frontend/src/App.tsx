@@ -11,6 +11,7 @@ import FeedbackWidget from './components/FeedbackWidget';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './index.css';
+import {usePresenceStore} from "./store/usePresenceStore.ts";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, token } = useAuthStore();
@@ -66,10 +67,18 @@ function AppContent() {
 function App() {
   useUIAdaptation();
   const initialize = useAuthStore((state) => state.initialize);
+  const fetchPresences = usePresenceStore((state) => state.fetchPresences);
+  const token = useAuthStore((state) => state.token);
 
   React.useEffect(() => {
     initialize();
   }, [initialize]);
+
+  React.useEffect(() => {
+    if (token) {
+      fetchPresences(token);
+    }
+  }, [token, fetchPresences]);
 
   return <AppContent />;
 }

@@ -120,8 +120,9 @@ class MessageConsumer(
     fun consumeGenericEvent(eventData: Map<String, Any>) {
         val type = eventData["type"] as? String ?: "UI_ADAPTATION"
         val channelId = eventData["channelId"] as? String
+        val userId = eventData["userId"] as? String
         
-        logger.info("Received real-time event: $type for channel: ${channelId ?: "global"}")
+        logger.info("Received real-time event: $type for channel: ${channelId ?: "global"}, user: ${userId ?: "none"}")
         val jsonEvent = try {
             objectMapper.writeValueAsString(eventData)
         } catch (e: Exception) {
@@ -130,9 +131,18 @@ class MessageConsumer(
         }
 
         try {
+            // Priority 1: Direct to user (best for DMs/Status)
+            if (!userId.isNullOrBlank()) {
+                deliveryService.sendMessageToUser(userId, jsonEvent)
+            }
+            
+            // Priority 2: Channel broadcast (best for shared context)
             if (!channelId.isNullOrBlank()) {
                 deliveryService.broadcastToChannel(channelId, jsonEvent)
-            } else {
+            }
+            
+            // Priority 3: Global (if no targets)
+            if (userId.isNullOrBlank() && channelId.isNullOrBlank()) {
                 deliveryService.broadcastMessage(jsonEvent)
             }
         } catch (e: Exception) {
