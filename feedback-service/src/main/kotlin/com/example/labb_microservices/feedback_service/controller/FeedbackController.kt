@@ -36,7 +36,7 @@ class FeedbackController(private val feedbackRepository: FeedbackRepository) {
                     comment = request.comment,
                     timestamp = Instant.now()
                 )
-                logger.info("Saving user feedback from $userId")
+                logger.info("Saving user feedback for user=<redacted>")
                 feedbackRepository.save(feedback)
             }
     }

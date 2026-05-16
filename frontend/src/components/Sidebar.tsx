@@ -45,7 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
       <button 
         className="sidebar-header" 
         onClick={() => handleNav('/')} 
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleNav('/')}
         aria-label="Go to Home"
         style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
       >

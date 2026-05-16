@@ -40,6 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           onClick={toggleTheme}
           title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+          aria-pressed={isDark}
         >
           {isDark ? '☀️' : '🌙'}
         </button>

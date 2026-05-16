@@ -63,16 +63,7 @@ class MessageController(
                     return@flatMap Mono.error<String>(AccessDeniedException("Only admins can send broadcast messages"))
                 }
 
-                userGrpcClient.getUser(senderId)
-                    .onErrorResume { e ->
-                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                            logger.debug("User $senderId not found in user-service, using ID as name")
-                        } else {
-                            logger.error("Failed to lookup user $senderId via gRPC: ${e.message}")
-                        }
-                        Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
-                    }
-                    .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                getUserWithFallback(senderId)
                     .flatMap { userResponse ->
                         Mono.fromCallable {
                             val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
@@ -103,16 +94,7 @@ class MessageController(
                 val auth = context.authentication
                 val senderId = auth.name
                 
-                userGrpcClient.getUser(senderId)
-                    .onErrorResume { e ->
-                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                            logger.debug("User $senderId not found in user-service, using ID as name")
-                        } else {
-                            logger.error("Failed to lookup user $senderId via gRPC: ${e.message}")
-                        }
-                        Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
-                    }
-                    .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(senderId).build())
+                getUserWithFallback(senderId)
                     .flatMap { userResponse ->
                         Mono.fromCallable {
                             val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
@@ -131,6 +113,19 @@ class MessageController(
                     }
                 .subscribeOn(Schedulers.boundedElastic())
             }
+    }
+
+    private fun getUserWithFallback(userId: String): Mono<com.example.labb_microservices.proto.UserResponse> {
+        return userGrpcClient.getUser(userId)
+            .onErrorResume { e ->
+                if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                    logger.debug("User $userId not found in user-service, using ID as name")
+                } else {
+                    logger.error("Failed to lookup user $userId via gRPC: ${e.message}")
+                }
+                Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+            }
+            .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
     }
 
     @GetMapping("/search")

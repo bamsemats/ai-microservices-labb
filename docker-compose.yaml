@@ -147,6 +147,7 @@ services:
       - SERVICES_AUTH=http://auth-service:8081
       - SERVICES_USER=http://user-service:8082
       - SERVICES_MESSAGE=http://message-service:8083
+      - SERVICES_FEEDBACK=http://feedback-service:8087
       - JWT_SECRET=${JWT_SECRET}
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}

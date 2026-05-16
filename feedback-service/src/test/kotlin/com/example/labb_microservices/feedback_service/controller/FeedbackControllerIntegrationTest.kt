@@ -59,6 +59,25 @@ class FeedbackControllerIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
+    @WithMockUser(username = "user-1")
+    fun `should fail when rating is out of bounds`() {
+        val lowRequest = FeedbackRequest(rating = 0, comment = "Too low")
+        val highRequest = FeedbackRequest(rating = 6, comment = "Too high")
+
+        webTestClient.post()
+            .uri("/feedback")
+            .bodyValue(lowRequest)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        webTestClient.post()
+            .uri("/feedback")
+            .bodyValue(highRequest)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
     @WithMockUser(username = "admin-1", roles = ["ADMIN"])
     fun `should retrieve all feedback for admin`() {
         val f1 = Feedback(userId = "u1", rating = 4, comment = "Nice")

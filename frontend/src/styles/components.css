@@ -427,7 +427,7 @@
   .close-toast {
     background: transparent;
     border: none;
-    color: currentColor;
+    color: currentcolor;
     font-size: 1.5rem;
     cursor: pointer;
     line-height: 1;
@@ -1098,6 +1098,3 @@
     margin: 0;
   }
 }
-  .grid-layout, .dashboard-main-grid {
-      grid-template-columns: 1fr;
-    }

@@ -89,30 +89,30 @@ class LlmSentimentAnalyzer(
             .retrieve()
             .bodyToMono(String::class.java)
             .timeout(java.time.Duration.ofSeconds(10))
-            .map { json ->
+            .flatMap { json ->
                 try {
                     val root = objectMapper.readTree(json)
                     val contentResponse = root.path("choices").get(0).path("message").path("content").asText()
                     
                     // Robust JSON extraction
                     val jsonMatch = extractJson(contentResponse)
-                    if (jsonMatch.isEmpty()) return@map null
+                    if (jsonMatch.isEmpty()) return@flatMap Mono.empty<AdaptationEvent>()
 
                     val response = objectMapper.readValue(jsonMatch, SentimentResponse::class.java)
                     
-                    if (response.theme == "neutral") return@map null
+                    if (response.theme == "neutral") return@flatMap Mono.empty<AdaptationEvent>()
                     
-                    AdaptationEvent(
+                    Mono.just(AdaptationEvent(
                         theme = response.theme,
                         intensity = response.intensity,
                         color = response.color,
                         blurAmount = response.blurAmount,
                         glassOpacity = response.glassOpacity,
                         glowIntensity = response.glowIntensity
-                    )
+                    ))
                 } catch (e: Exception) {
                     logger.warn("Failed to parse semantic sentiment JSON: {}", json, e)
-                    null
+                    Mono.empty<AdaptationEvent>()
                 }
             }
             .onErrorResume { e ->

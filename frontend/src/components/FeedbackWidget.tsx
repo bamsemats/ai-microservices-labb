@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import api from '../api/axios';
 
@@ -9,6 +9,15 @@ const FeedbackWidget: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +27,12 @@ const FeedbackWidget: React.FC = () => {
     try {
       await api.post('/feedback', { rating, comment });
       setSubmitted(true);
-      setTimeout(() => {
+      
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+      }
+      
+      autoCloseTimerRef.current = setTimeout(() => {
         setIsOpen(false);
         setSubmitted(false);
         setComment('');

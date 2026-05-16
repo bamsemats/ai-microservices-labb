@@ -14,6 +14,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
 - **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
+- **Feedback Service**: Gathers user UX/AI quality reports and ratings for system refinement.
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
 - **Common Observability**: A dedicated module for centralized monitoring (Actuator), tracing (Micrometer), and production health indicators.
 - **Common Test**: Singleton infrastructure for stable, noise-free integration tests across the monorepo.
