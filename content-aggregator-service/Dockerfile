@@ -14,6 +14,7 @@ COPY user-service/pom.xml user-service/
 COPY message-service/pom.xml message-service/
 COPY ai-service/pom.xml ai-service/
 COPY content-aggregator-service/pom.xml content-aggregator-service/
+COPY feedback-service/pom.xml feedback-service/
 
 # Install parent and shared modules
 RUN --mount=type=cache,target=/root/.m2 mvn install -N -B -Dmaven.repo.local=/root/.m2
