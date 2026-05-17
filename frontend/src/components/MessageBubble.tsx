@@ -28,7 +28,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         stiffness: 260, 
         damping: 20 
       }}
-      className={`message-bubble ${isOwn ? 'own' : ''}`}
+      className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''}`}
     >
       <div className="sender-info">
         {message.senderName || message.senderId}

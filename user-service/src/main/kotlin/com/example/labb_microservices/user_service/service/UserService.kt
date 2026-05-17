@@ -146,7 +146,7 @@ class UserService(
     fun seedBots(bots: List<Pair<String, String>>): Mono<Void> {
         return Flux.fromIterable(bots)
             .flatMap { (name, role) ->
-                userRepository.findById(name)
+                userRepository.findByUsername(name)
                     .flatMap { existing ->
                         // Update existing user to ensure it's marked as bot
                         val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")

@@ -134,9 +134,13 @@ class LlmSentimentAnalyzer(
             }
             .onErrorResume { e ->
                 if (e is org.springframework.web.reactive.function.client.WebClientResponseException) {
-                    logger.error("Error calling semantic sentiment analysis: {} {} - URL: {}", e.statusCode, e.responseBodyAsString, url)
+                    if (e.statusCode == org.springframework.http.HttpStatus.UNAUTHORIZED || e.statusCode == org.springframework.http.HttpStatus.FORBIDDEN) {
+                        logger.error("Error calling semantic sentiment analysis: {} - URL: {}", e.statusCode, url, e)
+                        return@onErrorResume Mono.defer { generateSimulatedSentiment(content) }
+                    }
+                    logger.error("Error calling semantic sentiment analysis: {} - URL: {}", e.statusCode, url, e)
                 } else {
-                    logger.error("Error calling semantic sentiment analysis: {}", e.message)
+                    logger.error("Error calling semantic sentiment analysis: {}", e.message, e)
                 }
                 Mono.empty()
             }

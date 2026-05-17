@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
@@ -50,7 +50,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             senderId = "user1",
             receiverId = "user2",
             content = originalContent,
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         // Simulate message arrival in storage queue
@@ -108,7 +108,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             receiverId = "all",
             channelId = "general",
             content = content1,
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         val content2 = "Message in crypto channel"
@@ -118,7 +118,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             receiverId = "all",
             channelId = "crypto",
             content = content2,
-            timestamp = LocalDateTime.now().minusMinutes(5)
+            timestamp = Instant.now().minusSeconds(300)
         )
 
         // Store both messages
@@ -171,7 +171,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             receiverId = "user3",
             channelId = "general",
             content = privateContent,
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         messageConsumer.storeMessage(privateMessage)
@@ -198,7 +198,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             receiverId = "user2",
             channelId = "general",
             content = privateContent,
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         messageConsumer.storeMessage(privateMessage)

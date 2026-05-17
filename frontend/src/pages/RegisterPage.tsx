@@ -33,8 +33,9 @@ const RegisterPage: React.FC = () => {
         {error && <p className="error">{error}</p>}
         {success && <p className="success">Registration successful! Redirecting to login...</p>}
         <div className="input-group">
-          <label>Username</label>
+          <label htmlFor="username">Username</label>
           <input 
+            id="username"
             type="text" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
@@ -42,8 +43,9 @@ const RegisterPage: React.FC = () => {
           />
         </div>
         <div className="input-group">
-          <label>Email</label>
+          <label htmlFor="email">Email</label>
           <input 
+            id="email"
             type="email" 
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
@@ -51,8 +53,9 @@ const RegisterPage: React.FC = () => {
           />
         </div>
         <div className="input-group">
-          <label>Password</label>
+          <label htmlFor="password">Password</label>
           <input 
+            id="password"
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 

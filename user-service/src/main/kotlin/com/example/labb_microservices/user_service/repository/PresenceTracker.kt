@@ -15,9 +15,14 @@ class PresenceTracker(private val redisTemplate: ReactiveStringRedisTemplate) {
 
     fun setStatus(userId: String, status: PresenceStatus, isBot: Boolean = false): Mono<Boolean> {
         val prefix = if (isBot) botPresencePrefix else userPresencePrefix
+        val oppositePrefix = if (isBot) userPresencePrefix else botPresencePrefix
         val ttl = if (isBot) Duration.ofDays(30) else Duration.ofDays(7)
         return redisTemplate.opsForValue()
             .set(presenceKey(userId, prefix), status.name, ttl)
+            .flatMap { result ->
+                redisTemplate.delete(presenceKey(userId, oppositePrefix))
+                    .thenReturn(result)
+            }
     }
 
     fun getStatus(userId: String): Mono<PresenceStatus> {

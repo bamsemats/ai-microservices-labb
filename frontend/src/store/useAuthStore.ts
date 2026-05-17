@@ -18,20 +18,31 @@ const getSafeStorageItem = (key: string) => {
   return value;
 };
 
+const getPersistedAuth = () => {
+  const userId = getSafeStorageItem('userId');
+  const username = getSafeStorageItem('username');
+  const role = getSafeStorageItem('role');
+  
+  // NOTE: Rehydrate auth from an HttpOnly refresh/session cookie (server-driven refresh endpoint)
+  // rather than client-side storage. Token is null until rehydration.
+  const token = null;
+
+  if (userId && username) {
+    return { token, userId, username, role };
+  }
+  return null;
+};
+
 export const useAuthStore = create<AuthState>((set) => {
-  const initialToken = getSafeStorageItem('accessToken');
-  const initialUserId = getSafeStorageItem('userId');
-  const initialUsername = getSafeStorageItem('username');
-  const initialRole = getSafeStorageItem('role');
-  const initialIsAuthenticated = !!initialToken;
+  const persisted = getPersistedAuth();
 
   return {
-    token: initialToken,
-    userId: initialUserId,
-    username: initialUsername,
-    role: initialRole,
-    isAuthenticated: initialIsAuthenticated,
-    isAdmin: initialIsAuthenticated && initialRole === 'ROLE_ADMIN',
+    token: persisted?.token || null,
+    userId: persisted?.userId || null,
+    username: persisted?.username || null,
+    role: persisted?.role || null,
+    isAuthenticated: false,
+    isAdmin: false,
     
     setAuth: (token, userId, username, role = 'ROLE_USER') => {
       if (!token || !userId || !username) {
@@ -39,8 +50,7 @@ export const useAuthStore = create<AuthState>((set) => {
         return false;
       }
       
-      // Persist credentials
-      localStorage.setItem('accessToken', token);
+      // Persist only non-sensitive credentials
       localStorage.setItem('userId', userId);
       localStorage.setItem('username', username);
       localStorage.setItem('role', role);
@@ -57,7 +67,6 @@ export const useAuthStore = create<AuthState>((set) => {
     },
     
     logout: () => {
-      localStorage.removeItem('accessToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('username');
       localStorage.removeItem('role');
@@ -65,26 +74,23 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     initialize: async () => {
-      const token = getSafeStorageItem('accessToken');
-      const username = getSafeStorageItem('username');
-      const userId = getSafeStorageItem('userId');
-      const role = getSafeStorageItem('role');
+      const persisted = getPersistedAuth();
       
-      if (token && userId && username) {
+      if (persisted) {
         set({ 
-          token,
-          username, 
-          userId, 
-          role, 
-          isAuthenticated: true, 
-          isAdmin: role === 'ROLE_ADMIN' 
+          token: persisted.token,
+          username: persisted.username, 
+          userId: persisted.userId, 
+          role: persisted.role, 
+          isAuthenticated: false, 
+          isAdmin: false 
         });
       } else {
         set({ 
           token: null,
-          username, 
-          userId, 
-          role, 
+          username: null, 
+          userId: null, 
+          role: null, 
           isAuthenticated: false, 
           isAdmin: false 
         });

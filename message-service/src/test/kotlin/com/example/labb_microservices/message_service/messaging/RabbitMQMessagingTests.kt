@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.context.annotation.Bean
 import org.springframework.amqp.core.*
-import java.time.LocalDateTime
+import java.time.Instant
 
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
@@ -50,7 +50,7 @@ class RabbitMQMessagingTests : BaseIntegrationTest() {
             senderId = "user1",
             receiverId = "user2",
             content = "Hello Fanout",
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         messageProducer.deliverMessage(message)

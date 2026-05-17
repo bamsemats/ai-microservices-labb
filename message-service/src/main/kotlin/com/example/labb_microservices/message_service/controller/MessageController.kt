@@ -69,6 +69,12 @@ class MessageController(
                             val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
                             val channelId = request.channelId?.takeIf { it.isNotBlank() }
                                 ?: if (request.receiverId == "all") "global" else "general"
+                            
+                            val metadata = mutableMapOf<String, String>()
+                            if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
+                                metadata["X-Adapta-Test-Mode"] = "true"
+                            }
+                            
                             val message = Message(
                                 id = idPrefix + UUID.randomUUID().toString(),
                                 senderId = senderId,
@@ -76,7 +82,8 @@ class MessageController(
                                 receiverId = request.receiverId,
                                 channelId = channelId,
                                 content = request.content,
-                                authorType = AuthorType.USER
+                                authorType = AuthorType.USER,
+                                metadata = metadata
                             )
                             processMessage(message)
                             "Message sent to queue by $senderId in channel $channelId"
