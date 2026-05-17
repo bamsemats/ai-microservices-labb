@@ -19,15 +19,12 @@ const getSafeStorageItem = (key: string) => {
 };
 
 const getPersistedAuth = () => {
+  const token = getSafeStorageItem('accessToken');
   const userId = getSafeStorageItem('userId');
   const username = getSafeStorageItem('username');
   const role = getSafeStorageItem('role');
   
-  // NOTE: Rehydrate auth from an HttpOnly refresh/session cookie (server-driven refresh endpoint)
-  // rather than client-side storage. Token is null until rehydration.
-  const token = null;
-
-  if (userId && username) {
+  if (token && userId && username) {
     return { token, userId, username, role };
   }
   return null;
@@ -41,8 +38,8 @@ export const useAuthStore = create<AuthState>((set) => {
     userId: persisted?.userId || null,
     username: persisted?.username || null,
     role: persisted?.role || null,
-    isAuthenticated: false,
-    isAdmin: false,
+    isAuthenticated: !!persisted?.token,
+    isAdmin: persisted?.role === 'ROLE_ADMIN',
     
     setAuth: (token, userId, username, role = 'ROLE_USER') => {
       if (!token || !userId || !username) {
@@ -50,7 +47,8 @@ export const useAuthStore = create<AuthState>((set) => {
         return false;
       }
       
-      // Persist only non-sensitive credentials
+      // Persist credentials
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('userId', userId);
       localStorage.setItem('username', username);
       localStorage.setItem('role', role);
@@ -67,6 +65,7 @@ export const useAuthStore = create<AuthState>((set) => {
     },
     
     logout: () => {
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('username');
       localStorage.removeItem('role');
@@ -82,8 +81,8 @@ export const useAuthStore = create<AuthState>((set) => {
           username: persisted.username, 
           userId: persisted.userId, 
           role: persisted.role, 
-          isAuthenticated: false, 
-          isAdmin: false 
+          isAuthenticated: true, 
+          isAdmin: persisted.role === 'ROLE_ADMIN' 
         });
       } else {
         set({ 

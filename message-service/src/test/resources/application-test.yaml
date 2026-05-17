@@ -7,3 +7,7 @@ spring:
   data:
     redis:
       timeout: 500ms
+
+app:
+  test-mode:
+    allowed: true

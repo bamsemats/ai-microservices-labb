@@ -125,6 +125,7 @@ services:
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=${TRACING_SAMPLING_PROBABILITY:-0.1}
       - SPRING_RABBITMQ_LISTENER_SIMPLE_OBSERVATION_ENABLED=true
       - SPRING_DATA_REDIS_HOST=redis
+      - APP_TEST_MODE_ALLOWED=true
     depends_on:
       mongodb:
         condition: service_healthy
@@ -162,9 +163,28 @@ services:
         condition: service_started
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: labb-microservices-frontend:prod
     ports:
       - "3000:80"
+    depends_on:
+      gateway:
+        condition: service_started
+
+  # Development service with Hot Module Replacement (HMR)
+  frontend-dev:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Preserve node_modules inside container
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://localhost:8080
     depends_on:
       gateway:
         condition: service_started

@@ -123,15 +123,13 @@ The `MessageDeliveryService` has been refactored to remove ambiguous magic strin
 The visual identity has been evolved from a fragmented component-based layout to the **Prism Aura** system. 
 - **Edge-to-Edge Layout**: Sidebar and Navbar are now flush with the viewport, maximizing information density while maintaining high-fidelity glassmorphism.
 - **Scalable SVG Branding**: Replaced all raster logos with a themeable SVG `BrandLogo` component, supporting smooth scaling and AI-driven aesthetic transitions.
-- **Session Continuity**: Authentication state is persisted via `localStorage` with a robust recovery pipeline, preventing session loss on page refreshes.
+- **Zero-Trust Auth Hygiene**: Authentication state follows a "non-persistent sensitive data" policy. While user profile info (name, id) is hydrated from storage for UX continuity, JWT access tokens are kept purely in-memory, requiring a secure re-authentication or server-driven refresh upon page reload.
 
-### Unified Observability
-Monitoring logic has been centralized into the `common-observability` module:
-- **Trace-Enriched Logging**: Every log entry now includes `traceId` and `spanId` for seamless cross-service correlation in Jaeger.
-- **Shared Infrastructure**: Services inherit production-ready monitoring defaults via a single `spring.config.import`, ensuring consistent metric collection across the monorepo.
+### Synchronized Presence & Bot Identities
+"Living Bots" now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution). Presence tracking utilizes a dual-namespace Redis strategy (`active:` for users, `static:` for bots) with automated cleanup to ensure high-fidelity availability status throughout the UI.
 
-### Synchronized Bot Identities
-"Living Bots" now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution), ensuring high-fidelity username and profile metadata throughout the UI.
+### Production-Grade gRPC mTLS
+Inter-service communication is hardened with mandatory mTLS. Configuration properties have been standardized to camelCase (e.g., `privateKeyPassword`) and correctly mapped to the `grpc-client-spring-boot-starter` metadata, ensuring robust certificate management and IDE validation.
 
 ---
 
