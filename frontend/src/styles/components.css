@@ -138,12 +138,20 @@
     flex-shrink: 0;
     border-block-end: 1px solid var(--glass-border);
   }
+  .active-context {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
   .user-controls {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
     gap: 1rem;
+  }
+  .user-controls button {
+
   }
   .user-badge {
     display: flex;
@@ -353,6 +361,7 @@
     gap: 0.5rem;
     transition: all 0.3s ease;
     background: rgb(from var(--color-bg-main) r g b / 0.5);
+    margin-right: 5rem;
   }
 
   .input-wrapper input {
@@ -361,6 +370,7 @@
     box-shadow: none !important;
     color: var(--text-primary) !important;
     flex: 1;
+    padding: 0.5rem;
   }
 
   .composer-form.focused:not(.disabled) .input-wrapper {
@@ -847,6 +857,18 @@
     display: flex;
     justify-content: center;
   }
+
+  .profile-settings,
+  .design-preferences {
+    padding: calc(var(--spacing-main) * 1.5) !important;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+    & h3 {
+      margin-block-end: 1rem;
+    }
+  }
+
 
   .profile-card-wrapper {
     inline-size: 100%;

@@ -14,11 +14,8 @@ import reactor.core.publisher.Mono
 import java.util.concurrent.TimeUnit
 
 @Primary
-
 @Service
 class LlmSentimentAnalyzer(
-
-
     private val webClientBuilder: WebClient.Builder,
     private val objectMapper: ObjectMapper,
     @Value("\${openrouter.api.key}") private val apiKey: String,
@@ -64,11 +61,11 @@ class LlmSentimentAnalyzer(
               "glowIntensity": 0.0 to 1.0
             }
             
-            Theme colors guidance:
-            - emergency: #f43f5e
-            - vibrant: #ec4899
-            - zen: #06b6d4
-            - deep: #8b5cf6
+            Theme colors guidance (Monochrome Indigo Palette):
+            - emergency: #4f46e5
+            - vibrant: #818cf8
+            - zen: #a5b4fc
+            - deep: #3730a3
             - neutral: #6366f1
         """.trimIndent()
 
@@ -162,10 +159,10 @@ class LlmSentimentAnalyzer(
             theme = theme,
             intensity = 0.5,
             color = when(theme) {
-                "emergency" -> "#f43f5e"
-                "vibrant" -> "#ec4899"
-                "zen" -> "#06b6d4"
-                "deep" -> "#8b5cf6"
+                "emergency" -> "#4f46e5"
+                "vibrant" -> "#818cf8"
+                "zen" -> "#a5b4fc"
+                "deep" -> "#3730a3"
                 else -> "#6366f1"
             }
         ))

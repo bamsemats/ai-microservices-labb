@@ -30,7 +30,7 @@
     /* --- Layout & Spacing (Logical) --- */
     --size-sidebar: 260px;
     --size-navbar: 4rem;
-    --spacing-main: 1rem;
+    --spacing-main: 0.75rem;
     --radius-lg: 1rem;
     --radius-md: 0.75rem;
     

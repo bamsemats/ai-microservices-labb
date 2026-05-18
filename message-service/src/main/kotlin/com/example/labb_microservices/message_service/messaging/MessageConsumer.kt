@@ -105,7 +105,28 @@ class MessageConsumer(
         mongoTemplate.upsert(query, update, Message::class.java).block()
         
         // Deliver to WebSockets after successful persistence
-        messageProducer.deliverMessage(message)
+        val jsonMessage = try {
+            objectMapper.writeValueAsString(message)
+        } catch (e: Exception) {
+            logger.error("Failed to serialize message ${message.id} for WebSocket", e)
+            return
+        }
+
+        try {
+            if (message.receiverId == "all") {
+                deliveryService.broadcastToChannel(message.channelId ?: "global", jsonMessage)
+            } else {
+                val recipients = setOfNotNull(
+                    message.receiverId.takeIf { it.isNotBlank() },
+                    message.senderId.takeIf { it.isNotBlank() }
+                )
+                recipients.forEach { userId ->
+                    deliveryService.sendMessageToUser(userId, jsonMessage)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Transient failure broadcasting AI response message ${message.id}", e)
+        }
     }
 
     private fun tokenizeAndHash(content: String): Set<String> {

@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
+import api from '../api/axios';
+import { Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
   prefix?: string;
@@ -9,9 +11,24 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
-  const { username, logout } = useAuthStore();
+  const { username, logout, token } = useAuthStore();
   const { currentTheme, setTheme, toggleSidebar } = useUIStore();
+  const [displayName, setDisplayName] = React.useState<string | null>(null);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/users/me');
+        if (response.data.displayName) {
+          setDisplayName(response.data.displayName);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile in navbar', error);
+      }
+    };
+    if (token && !displayName) fetchProfile();
+  }, [token, displayName]);
 
   const isDark = currentTheme.mode !== 'light';
 
@@ -42,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
           aria-pressed={isDark}
         >
-          {isDark ? '☀️' : '🌙'}
+          {isDark ? <Sun/> : <Moon/>}
         </button>
         
         <button 
@@ -51,8 +68,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           aria-label="View your profile"
           style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}
         >
-          <span className="username">{username}</span>
-          <div className="user-avatar" aria-hidden="true">{username?.charAt(0).toUpperCase()}</div>
+          <span className="username">{displayName || username}</span>
         </button>
         
         <button className="lumina-button secondary logout-btn" onClick={logout} aria-label="Logout of your account">Logout</button>

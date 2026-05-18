@@ -111,6 +111,10 @@ class AiMessageConsumer(
         return subject.replace(Regex("(?:\\b(?:at|tonight|am|pm|the|a|an)\\b|\\d{1,2}(?::\\d{2})?)", RegexOption.IGNORE_CASE), "").trim()
     }
 
+    companion object {
+        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
+    }
+
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
         logger.info("Processing streaming AI request for messageId: {}", message.id)
@@ -119,11 +123,19 @@ class AiMessageConsumer(
         val responseId = UUID.randomUUID().toString()
         
         // Dynamic bot identification
-        val isAiBot = botRegistry.isAiBot(message.receiverId)
-        val botId = botRegistry.getBotId(message.receiverId)
-        val botName = botRegistry.getBotDisplayName(botId)
+        val isExplicitReceiver = botRegistry.isAiBot(message.receiverId)
+        val mentionedBotId = AI_MENTION_REGEX.find(message.content)?.groupValues?.get(1)?.lowercase()
+        val targetBotId = if (isExplicitReceiver) {
+            botRegistry.getBotId(message.receiverId)
+        } else if (mentionedBotId != null && botRegistry.isAiBot(mentionedBotId)) {
+            botRegistry.getBotId(mentionedBotId)
+        } else {
+            botRegistry.getBotId("ai-bot") // Fallback
+        }
         
-        val receiverId = if (isAiBot) message.senderId else message.receiverId
+        val botName = botRegistry.getBotDisplayName(targetBotId)
+        
+        val receiverId = if (message.receiverId == "all") "all" else message.senderId
 
         // Notify UI that AI is thinking
         val startNotify = Mono.fromRunnable<Unit> {
@@ -144,7 +156,7 @@ class AiMessageConsumer(
                 Mono.fromRunnable<Unit> {
                     val aiChunk = Message(
                         id = responseId,
-                        senderId = botId,
+                        senderId = targetBotId,
                         senderName = botName,
                         receiverId = receiverId,
                         channelId = message.channelId,

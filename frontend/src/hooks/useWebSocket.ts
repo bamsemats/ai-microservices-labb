@@ -73,7 +73,7 @@ export const useWebSocket = () => {
             useChatStore.getState().setAiStatus(mappedStatus);
           }
         } else if (data.type === 'PRESENCE_UPDATE') {
-          const { userId, username, status } = data;
+          const { userId, username, status, isBot } = data;
           const normalizedStatus = (status || '').toString().toUpperCase();
           const statusMap: Record<string, PresenceStatus> = {
             'ONLINE': 'ONLINE',
@@ -83,8 +83,8 @@ export const useWebSocket = () => {
             'BUSY': 'DND'
           };
           if (typeof userId === 'string' && typeof username === 'string' && normalizedStatus in statusMap) {
-            console.log('Received Presence Update:', userId, normalizedStatus);
-            setPresence(userId, username, statusMap[normalizedStatus]);
+            console.log('Received Presence Update:', userId, normalizedStatus, isBot);
+            setPresence(userId, username, statusMap[normalizedStatus], !!isBot);
           }
         } else if (data.type === 'TYPING') {
           const { username, channelId, isTyping } = data;

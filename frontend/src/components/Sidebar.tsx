@@ -106,9 +106,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
               key={u.userId} 
               className={`channel-item ${activeReceiver === u.userId ? 'active' : ''}`}
               onClick={() => handleReceiverSelect(u.userId)}
-              aria-label={`${u.username} - ${u.status.toLowerCase()}`}
+              aria-label={`${u.username} ${u.isBot ? '(AI)' : ''} - ${u.status.toLowerCase()}`}
             >
               <span className="at" aria-hidden="true">@</span> {u.username}
+              {u.isBot && <span className="bot-tag">AI</span>}
               <span className={`status-indicator ${u.status.toLowerCase()}`} aria-hidden="true"></span>
             </button>
           ))

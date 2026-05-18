@@ -78,7 +78,7 @@ class MessageController(
                             val message = Message(
                                 id = idPrefix + UUID.randomUUID().toString(),
                                 senderId = senderId,
-                                senderName = userResponse.username,
+                                senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
                                 receiverId = request.receiverId,
                                 channelId = channelId,
                                 content = request.content,
