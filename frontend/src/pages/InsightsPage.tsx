@@ -8,9 +8,9 @@ import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
 const InsightsPage: React.FC = () => {
-  const { username, token } = useAuthStore();
+  const { displayName: storedDisplayName, token, setDisplayName: setAuthDisplayName } = useAuthStore();
   const { currentTheme, setTheme } = useUIStore();
-  const [displayName, setDisplayName] = useState(username || '');
+  const [displayName, setDisplayName] = useState(storedDisplayName || '');
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -80,6 +80,7 @@ const InsightsPage: React.FC = () => {
 
     try {
       await api.put('/users/profile', { displayName, bio });
+      setAuthDisplayName(displayName);
       setFeedback("Profile frequency updated successfully.");
       setFeedbackType('success');
       feedbackTimeoutRef.current = setTimeout(() => {
@@ -196,6 +197,7 @@ const InsightsPage: React.FC = () => {
                       id="adaptation-toggle"
                       className={`lumina-toggle ${currentTheme.adaptationEnabled ? 'active' : ''}`}
                       onClick={() => setTheme({ adaptationEnabled: !currentTheme.adaptationEnabled })}
+                      aria-pressed={currentTheme.adaptationEnabled}
                     >
                       <div className="toggle-handle"></div>
                     </button>

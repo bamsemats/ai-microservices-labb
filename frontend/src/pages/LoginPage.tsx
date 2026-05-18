@@ -23,8 +23,12 @@ const LoginPage: React.FC = () => {
       const response = await api.post('/login', { username, password });
       const { accessToken, userId, username: loggedInUsername, role, displayName } = response.data;
       
-      setAuth(accessToken, userId, loggedInUsername, role, displayName);
-      navigate('/');
+      const success = setAuth(accessToken, userId, loggedInUsername, role, displayName);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Login failed: Authentication session could not be established.');
+      }
     } catch (err: unknown) {
       console.error('Login failed', err);
       setError('Login failed. Check your credentials.');

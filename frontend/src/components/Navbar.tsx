@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
@@ -16,10 +16,13 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
 
   const isDark = currentTheme.mode !== 'light';
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', currentTheme.mode);
+  }, [currentTheme.mode]);
+
   const toggleTheme = () => {
     const newMode = isDark ? 'light' : 'dark';
     setTheme({ mode: newMode });
-    document.documentElement.setAttribute('data-theme', newMode);
   };
 
   return (

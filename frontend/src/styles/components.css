@@ -829,8 +829,15 @@
     border-color: var(--color-accent-primary);
     background: rgba(255, 255, 255, 0.08); /* Fallback */
     background: rgb(from white r g b / 0.08);
+    color: contrast-color(var(--color-bg-elevated), var(--color-bg-main));
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); /* Fallback */
     box-shadow: 0 0 0 4px rgb(from var(--color-accent-primary) r g b / 0.1);
+  }
+
+  .lumina-input > option {
+    background: var(--color-bg-elevated);
+    color: contrast-color(var(--color-bg-elevated), var(--color-bg-main));
+    border-radius: var(--radius-md);
   }
 
   .auth-footer {
