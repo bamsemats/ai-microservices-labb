@@ -38,11 +38,13 @@ export const useWebSocket = () => {
         
         if (data.type === 'UI_ADAPTATION') {
           const { theme, intensity, color, primaryColor, blurAmount, glassOpacity, glowIntensity } = data;
-          if (typeof theme === 'string') {
+          const { adaptationEnabled, intensity: userIntensity } = useUIStore.getState().currentTheme;
+          
+          if (adaptationEnabled && typeof theme === 'string') {
             console.log('Applying AI UI Adaptation:', theme);
             useUIStore.getState().setTheme({ 
               theme, 
-              intensity: typeof intensity === 'number' ? intensity : 0.5,
+              intensity: (typeof intensity === 'number' ? intensity : 0.5) * userIntensity,
               color: typeof color === 'string' ? color : undefined,
               primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
               blurAmount: typeof blurAmount === 'number' ? blurAmount : undefined,

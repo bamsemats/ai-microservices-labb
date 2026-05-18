@@ -9,7 +9,7 @@ const isValidColor = (color: string) => {
   return s.color !== '';
 };
 
-const safeNum = (val: any, fallback: number, min = 0, max = 100) => {
+const safeNum = (val: string | number, fallback: number, min = 0, max = 100) => {
   const n = typeof val === 'string' ? parseFloat(val) : val;
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
 };
@@ -20,6 +20,13 @@ export const useUIAdaptation = () => {
 
   useEffect(() => {
     const root = document.documentElement;
+
+    // Apply base aesthetic attribute
+    if (currentTheme.theme) {
+      root.setAttribute('data-theme-base', currentTheme.theme);
+    } else {
+      root.removeAttribute('data-theme-base');
+    }
     
     // Stop previous animations
     controlsRef.current.forEach(c => c.stop());

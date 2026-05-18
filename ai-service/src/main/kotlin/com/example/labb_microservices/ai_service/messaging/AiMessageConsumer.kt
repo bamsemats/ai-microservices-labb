@@ -53,10 +53,10 @@ class AiMessageConsumer(
                 val subject = sanitizeSubject(rawSubject)
                 
                 val (type, value) = when {
-                    matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
                     content.lowercase().contains("elden ring") -> "GAME" to "Elden Ring"
                     content.lowercase().contains("valorant") -> "GAME" to "Valorant"
                     content.lowercase().contains("minecraft") -> "GAME" to "Minecraft"
+                    matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
                     content.lowercase().contains("react") -> "VIDEO" to "React Tutorial"
                     content.lowercase().contains("python") -> "VIDEO" to "Python Tutorial"
                     content.lowercase().contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"

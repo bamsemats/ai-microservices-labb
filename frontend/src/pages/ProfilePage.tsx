@@ -48,6 +48,7 @@ const ProfilePage: React.FC = () => {
     setFeedback(null);
     try {
       await api.put('/users/profile', { displayName, bio, socialLinks });
+      useAuthStore.getState().setDisplayName(displayName || null);
       setFeedback({ message: 'Profile updated successfully!', type: 'success' });
     } catch (error) {
       console.error('Failed to update profile', error);

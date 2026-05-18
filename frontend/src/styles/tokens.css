@@ -54,4 +54,34 @@
     --color-accent-secondary: #059669;
     --color-accent-tertiary: #e11d48;
   }
+
+  /* --- Base Aesthetics --- */
+  [data-theme-base="cyber"] {
+    --color-bg-main: #050505;
+    --color-bg-surface: #0a0a0a;
+    --color-accent-primary: #ff00ff;
+    --color-accent-secondary: #00ffff;
+    --color-accent-tertiary: #ffff00;
+  }
+
+  [data-theme-base="nature"] {
+    --color-bg-main: #064e3b;
+    --color-bg-surface: #065f46;
+    --color-accent-primary: #10b981;
+    --color-accent-secondary: #84cc16;
+  }
+
+  [data-theme-base="minimal"] {
+    --color-bg-main: #000000;
+    --color-bg-surface: #111111;
+    --color-accent-primary: #ffffff;
+    --color-accent-secondary: #888888;
+  }
+
+  [data-theme-base="warm"] {
+    --color-bg-main: #450a0a;
+    --color-bg-surface: #7c2d12;
+    --color-accent-primary: #f97316;
+    --color-accent-secondary: #f43f5e;
+  }
 }

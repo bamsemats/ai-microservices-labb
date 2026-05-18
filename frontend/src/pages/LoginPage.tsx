@@ -21,9 +21,9 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await api.post('/login', { username, password });
-      const { accessToken, userId, username: loggedInUsername } = response.data;
+      const { accessToken, userId, username: loggedInUsername, role, displayName } = response.data;
       
-      setAuth(accessToken, userId, loggedInUsername);
+      setAuth(accessToken, userId, loggedInUsername, role, displayName);
       navigate('/');
     } catch (err: unknown) {
       console.error('Login failed', err);

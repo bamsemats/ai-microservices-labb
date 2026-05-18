@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
-import api from '../api/axios';
 import { Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
@@ -11,24 +10,9 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
-  const { username, logout, token } = useAuthStore();
+  const { username, displayName, logout } = useAuthStore();
   const { currentTheme, setTheme, toggleSidebar } = useUIStore();
-  const [displayName, setDisplayName] = React.useState<string | null>(null);
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get('/users/me');
-        if (response.data.displayName) {
-          setDisplayName(response.data.displayName);
-        }
-      } catch (error) {
-        console.error('Failed to fetch profile in navbar', error);
-      }
-    };
-    if (token && !displayName) fetchProfile();
-  }, [token, displayName]);
 
   const isDark = currentTheme.mode !== 'light';
 

@@ -10,7 +10,6 @@ import api from '../api/axios';
 const InsightsPage: React.FC = () => {
   const { username, token } = useAuthStore();
   const { currentTheme, setTheme } = useUIStore();
-  const [accentGlow, setAccentGlow] = useState(currentTheme.intensity);
   const [displayName, setDisplayName] = useState(username || '');
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -67,16 +66,10 @@ const InsightsPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    };
-  }, []);
+    }
+    }, []);
 
-  const handleUpdateGlow = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setAccentGlow(val);
-    setTheme({ intensity: val });
-  };
-
-  const handleSave = async () => {
+    const handleSave = async () => {
     setIsSaving(true);
     setFeedback(null);
     setFeedbackType(null);
@@ -195,10 +188,25 @@ const InsightsPage: React.FC = () => {
                 className="glass-panel design-preferences"
               >
                 <h3>Adapta Theme Preferences</h3>
+                
+                <div className="settings-group toggle-group">
+                  <div className="label-row">
+                    <label htmlFor="adaptation-toggle">Enable AI UI Adaptation</label>
+                    <button 
+                      id="adaptation-toggle"
+                      className={`lumina-toggle ${currentTheme.adaptationEnabled ? 'active' : ''}`}
+                      onClick={() => setTheme({ adaptationEnabled: !currentTheme.adaptationEnabled })}
+                    >
+                      <div className="toggle-handle"></div>
+                    </button>
+                  </div>
+                  <p className="helper-text">Allow the AI to dynamically modulate your UI based on sentiment and context.</p>
+                </div>
+
                 <div className="settings-group">
                   <div className="label-row">
-                    <label htmlFor="accent-glow-range">Accent Glow Intensity</label>
-                    <span className="value-tag">{(accentGlow * 100).toFixed(0)}%</span>
+                    <label htmlFor="accent-glow-range">Adaptation Magnitude</label>
+                    <span className="value-tag">{(currentTheme.intensity * 100).toFixed(0)}%</span>
                   </div>
                   <input 
                     id="accent-glow-range"
@@ -206,15 +214,55 @@ const InsightsPage: React.FC = () => {
                     min="0" 
                     max="1" 
                     step="0.05" 
-                    value={accentGlow} 
-                    onChange={handleUpdateGlow}
+                    value={currentTheme.intensity} 
+                    onChange={(e) => setTheme({ intensity: parseFloat(e.target.value) })}
                     className="lumina-range"
                   />
-                  <p className="helper-text">Modulates the intensity of all luminous surface effects.</p>
+                  <p className="helper-text">Controls how strongly the AI can influence visual properties like glow and blur.</p>
+                </div>
+
+                <div className="settings-group">
+                  <label htmlFor="theme-selector">Base Aesthetic</label>
+                  <select 
+                    id="theme-selector"
+                    value={currentTheme.theme}
+                    onChange={(e) => setTheme({ theme: e.target.value })}
+                    className="lumina-input"
+                  >
+                    <option value="default">Prism Aura (Default)</option>
+                    <option value="cyber">Cybernetic Pulse</option>
+                    <option value="nature">Emerald Grove</option>
+                    <option value="minimal">Void Clarity</option>
+                    <option value="warm">Sunset Horizon</option>
+                  </select>
+                </div>
+
+                <div className="settings-group">
+                  <label htmlFor="primary-color-picker">Primary Frequency (Color)</label>
+                  <div className="color-picker-row">
+                    <input 
+                      id="primary-color-picker"
+                      type="color" 
+                      value={currentTheme.primaryColor || '#6366f1'} 
+                      onChange={(e) => setTheme({ primaryColor: e.target.value })}
+                      className="lumina-color-input"
+                    />
+                    <button 
+                      className="lumina-button secondary mini"
+                      onClick={() => setTheme({ primaryColor: undefined })}
+                    >
+                      Reset to Aura
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="theme-preview">
-                  <div className="preview-bubble own">Luminous Preview</div>
+                  <div className="preview-bubble own" style={{ 
+                    backgroundColor: currentTheme.primaryColor || 'var(--primary-glow)',
+                    boxShadow: `0 0 ${currentTheme.intensity * 20}px ${currentTheme.primaryColor || 'var(--primary-glow)'}`
+                  }}>
+                    Luminous Preview
+                  </div>
                   <div className="preview-bubble">Adaptive Context</div>
                 </div>
               </motion.div>

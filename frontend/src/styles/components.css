@@ -150,9 +150,6 @@
     align-items: center;
     gap: 1rem;
   }
-  .user-controls button {
-
-  }
   .user-badge {
     display: flex;
     align-items: center;
