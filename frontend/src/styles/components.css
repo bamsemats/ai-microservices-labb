@@ -8,6 +8,7 @@
     display: flex;
     flex-direction: column;
     padding: 1.25rem;
+    background: rgba(2, 6, 23, 0.4); /* Fallback */
     background: rgb(from var(--color-bg-main) r g b / 0.4);
     flex-shrink: 0;
     overflow-y: auto;
@@ -88,6 +89,7 @@
   }
 
   .channel-item:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05); /* Fallback */
     background: rgb(from white r g b / 0.05);
     color: var(--text-primary);
     transform: translateX(4px);
@@ -165,6 +167,7 @@
   }
 
   .user-badge.clickable:hover {
+    background: rgba(255, 255, 255, 0.1) !important; /* Fallback */
     background: rgb(from white r g b / 0.1) !important;
     border-color: var(--color-accent-primary) !important;
   }
@@ -200,6 +203,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--color-bg-main); /* Fallback */
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
     background: radial-gradient(circle at top right, rgb(from var(--color-accent-primary) r g b / 0.05) 0%, transparent 40%),
                 radial-gradient(circle at bottom left, rgb(from var(--color-accent-tertiary) r g b / 0.05) 0%, transparent 40%);
   }
@@ -269,6 +275,7 @@
   }
 
   .message-bubble.own .sender-info {
+    color: rgba(255, 255, 255, 0.8); /* Fallback */
     color: rgb(from white r g b / 0.8);
   }
 
@@ -323,7 +330,9 @@
   }
 
   .suggestion-chip {
+    background: rgba(255, 255, 255, 0.05); /* Fallback */
     background: rgb(from white r g b / 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Fallback */
     border: 1px solid rgb(from white r g b / 0.1);
     color: var(--text-secondary);
     padding-block: 0.4rem;
@@ -339,7 +348,9 @@
   }
 
   .suggestion-chip:hover {
+    background: rgba(99, 102, 241, 0.1); /* Fallback */
     background: rgb(from var(--color-accent-primary) r g b / 0.1);
+    border-color: rgba(99, 102, 241, 0.3); /* Fallback */
     border-color: rgb(from var(--color-accent-primary) r g b / 0.3);
     color: var(--text-primary);
     transform: translateY(-1px);
@@ -357,8 +368,9 @@
     padding-inline: 0.5rem;
     gap: 0.5rem;
     transition: all 0.3s ease;
+    background: rgba(2, 6, 23, 0.5); /* Fallback */
     background: rgb(from var(--color-bg-main) r g b / 0.5);
-    margin-right: 5rem;
+    margin-inline-end: 5rem;
   }
 
   .input-wrapper input {
@@ -371,14 +383,18 @@
   }
 
   .composer-form.focused:not(.disabled) .input-wrapper {
+    border-color: rgba(99, 102, 241, 0.4) !important; /* Fallback */
     border-color: rgb(from var(--color-accent-primary) r g b / 0.4) !important;
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.15), var(--color-accent-glow); /* Fallback */
     box-shadow: 0 0 30px rgb(from var(--color-accent-primary) r g b / 0.15), var(--color-accent-glow);
+    background: rgba(2, 6, 23, 0.8); /* Fallback */
     background: rgb(from var(--color-bg-main) r g b / 0.8);
   }
 
   .composer-form.disabled .input-wrapper {
     opacity: 0.5;
     cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02); /* Fallback */
     background: rgb(from white r g b / 0.02);
   }
 
@@ -432,7 +448,9 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    background: rgba(239, 68, 68, 0.15); /* Fallback */
     background: rgb(from var(--color-error) r g b / 0.15);
+    border-color: rgba(239, 68, 68, 0.3); /* Fallback */
     border-color: rgb(from var(--color-error) r g b / 0.3);
     color: var(--color-error);
     z-index: 1000;
@@ -648,6 +666,7 @@
     font-size: 1.5rem;
     inline-size: 3rem;
     block-size: 3rem;
+    background: rgba(255, 255, 255, 0.05); /* Fallback */
     background: rgb(from white r g b / 0.05);
     border-radius: 50%;
     display: flex;
@@ -681,12 +700,14 @@
     color: var(--text-muted);
     padding-block: 0.2rem;
     padding-inline: 0.5rem;
+    background: rgba(255, 255, 255, 0.03); /* Fallback */
     background: rgb(from white r g b / 0.03);
     border-radius: 1rem;
   }
 
   .stat-trend.up {
     color: var(--color-success);
+    background: rgba(16, 185, 129, 0.1); /* Fallback */
     background: rgb(from var(--color-success) r g b / 0.1);
   }
 
