@@ -9,6 +9,7 @@ interface Message {
   timestamp?: string;
   authorType?: string;
   receiverId?: string;
+  readBy?: string[];
 }
 
 interface MessageBubbleProps {
@@ -27,7 +28,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         stiffness: 260, 
         damping: 20 
       }}
-      className={`message-bubble ${isOwn ? 'own' : ''}`}
+      className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''}`}
     >
       <div className="sender-info">
         {message.senderName || message.senderId}
@@ -37,8 +38,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
       {message.timestamp && (
         <div className="message-time">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {isOwn && message.readBy && message.readBy.length > 0 && (
+            <span className="read-status">✓ Seen</span>
+          )}
         </div>
       )}
+
     </motion.div>
   );
 };

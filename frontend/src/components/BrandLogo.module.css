@@ -1,0 +1,14 @@
+.container {
+  transition: transform 0.3s ease;
+}
+
+.container:hover {
+  transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    transition: none;
+    transform: none !important;
+  }
+}

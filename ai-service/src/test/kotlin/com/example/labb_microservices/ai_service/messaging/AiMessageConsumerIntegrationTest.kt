@@ -51,6 +51,12 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
     @MockitoBean
     private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
 
+    @MockitoBean
+    private lateinit var sentimentAnalyzer: com.example.labb_microservices.ai_service.logic.LlmSentimentAnalyzer
+
+    @MockitoBean
+    private lateinit var sentimentStabilizer: com.example.labb_microservices.ai_service.logic.SentimentStabilizer
+
     @Autowired
     private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
 
@@ -82,6 +88,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         
         // Default stubs
         `when`(factExtractor.extractFacts(any())).thenReturn(Flux.empty())
+        `when`(sentimentAnalyzer.analyzeSentiment(any())).thenReturn(Mono.empty())
+        `when`(sentimentStabilizer.shouldPublish(any(), any())).thenReturn(true)
     }
 
     @Test
@@ -93,6 +101,9 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             content = "This is URGENT! I need HELP!",
             authorType = AuthorType.USER
         )
+
+        val expectedEvent = AdaptationEvent(theme = "emergency", intensity = 0.9, glowIntensity = 0.9, color = "#f43f5e", blurAmount = 24.0, glassOpacity = 0.15)
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(expectedEvent))
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
@@ -124,6 +135,9 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             content = "I am feeling very calm and relaxed. Time to sleep.",
             authorType = AuthorType.USER
         )
+
+        val expectedEvent = AdaptationEvent(theme = "zen", intensity = 0.2, glowIntensity = 0.2, color = "#06b6d4", blurAmount = 8.0, glassOpacity = 0.02)
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(expectedEvent))
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 

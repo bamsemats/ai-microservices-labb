@@ -26,6 +26,7 @@
 		<module>message-service</module>
 		<module>ai-service</module>
 		<module>content-aggregator-service</module>
+		<module>feedback-service</module>
 	</modules>
 
 	<properties>

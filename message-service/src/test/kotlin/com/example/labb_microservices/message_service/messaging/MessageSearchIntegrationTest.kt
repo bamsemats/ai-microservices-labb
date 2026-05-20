@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
@@ -50,7 +50,7 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
             senderId = "user1",
             receiverId = "user2",
             content = originalContent,
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         // Simulate message arrival in storage queue
@@ -100,37 +100,118 @@ class MessageSearchIntegrationTest : BaseIntegrationTest() {
 
     @Test
     @WithMockUser(username = "user1")
-    fun `should encrypt AI response and find it via blind index search`() {
-        val originalChunk = "This is an AI response"
-        val message = Message(
+    fun `should search across multiple channels`() {
+        val content1 = "Message in general channel"
+        val message1 = Message(
             id = UUID.randomUUID().toString(),
-            senderId = "ai-bot",
-            receiverId = "user1",
-            content = originalChunk,
-            authorType = com.example.labb_microservices.message_service.model.AuthorType.BOT,
-            timestamp = LocalDateTime.now()
+            senderId = "user1",
+            receiverId = "all",
+            channelId = "general",
+            content = content1,
+            timestamp = Instant.now()
         )
 
-        // Simulate AI response arrival
-        messageConsumer.consumeAiResponse(message)
+        val content2 = "Message in crypto channel"
+        val message2 = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = "user2",
+            receiverId = "all",
+            channelId = "crypto",
+            content = content2,
+            timestamp = Instant.now().minusSeconds(300)
+        )
 
-        // Verify it is stored encrypted in DB
-        val storedMessages = messageRepository.findAll().collectList().block() ?: emptyList()
-        assertEquals(1, storedMessages.size)
-        val stored = storedMessages[0]
-        assertTrue(stored.content != originalChunk, "AI content should be encrypted")
-        assertTrue(stored.searchIndices.isNotEmpty(), "AI search indices should be populated")
-        
-        // Search for "AI"
-        val resultsAi = webTestClient.get()
-            .uri("/messages/search?q=AI")
+        // Store both messages
+        messageConsumer.storeMessage(message1)
+        messageConsumer.storeMessage(message2)
+
+        // Search for "Message" across all channels
+        val resultsAll = webTestClient.get()
+            .uri("/messages/search?q=Message")
             .exchange()
             .expectStatus().isOk
             .expectBodyList(Message::class.java)
             .returnResult()
             .responseBody ?: emptyList()
             
-        assertEquals(1, resultsAi.size)
-        assertEquals(originalChunk, resultsAi[0].content, "AI content should be decrypted in search results")
+        assertEquals(2, resultsAll.size, "Should find messages from both channels")
+
+        // Search for "Message" specifically in "crypto" channel
+        val resultsCrypto = webTestClient.get()
+            .uri("/messages/search?q=Message&channelId=crypto")
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList(Message::class.java)
+            .returnResult()
+            .responseBody ?: emptyList()
+            
+        assertEquals(1, resultsCrypto.size)
+        assertEquals("crypto", resultsCrypto[0].channelId)
+
+        // Search for "Message" from "user2"
+        val resultsUser2 = webTestClient.get()
+            .uri("/messages/search?q=Message&senderId=user2")
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList(Message::class.java)
+            .returnResult()
+            .responseBody ?: emptyList()
+            
+        assertEquals(1, resultsUser2.size)
+        assertEquals("user2", resultsUser2[0].senderId)
+    }
+
+    @Test
+    @WithMockUser(username = "user1")
+    fun `should not find private messages of other users in global search`() {
+        val privateContent = "This is a private secret between user2 and user3"
+        val privateMessage = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = "user2",
+            receiverId = "user3",
+            channelId = "general",
+            content = privateContent,
+            timestamp = Instant.now()
+        )
+
+        messageConsumer.storeMessage(privateMessage)
+
+        // Search for "secret" as user1
+        val results = webTestClient.get()
+            .uri("/messages/search?q=secret")
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList(Message::class.java)
+            .returnResult()
+            .responseBody ?: emptyList()
+            
+        assertEquals(0, results.size, "user1 should not be able to find private messages between others")
+    }
+
+    @Test
+    @WithMockUser(username = "user1")
+    fun `should find own private messages in global search`() {
+        val privateContent = "My own private secret"
+        val privateMessage = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = "user1",
+            receiverId = "user2",
+            channelId = "general",
+            content = privateContent,
+            timestamp = Instant.now()
+        )
+
+        messageConsumer.storeMessage(privateMessage)
+
+        // Search for "secret" as user1
+        val results = webTestClient.get()
+            .uri("/messages/search?q=secret")
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList(Message::class.java)
+            .returnResult()
+            .responseBody ?: emptyList()
+            
+        assertEquals(1, results.size, "user1 should find their own sent private messages")
     }
 }

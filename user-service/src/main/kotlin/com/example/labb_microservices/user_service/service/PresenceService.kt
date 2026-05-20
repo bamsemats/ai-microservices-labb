@@ -27,13 +27,15 @@ class PresenceService(
             .switchIfEmpty(Mono.error(UserNotFoundException("User not found")))
             .flatMap { user ->
                 val username = user.username ?: "unknown"
-                presenceTracker.setStatus(userId, status)
+                val isBot = user.isBot == true
+                presenceTracker.setStatus(userId, status, isBot)
                     .flatMap {
                         Mono.fromCallable {
                             val event = PresenceUpdateEvent(
                                 userId = userId,
                                 username = username,
-                                status = status
+                                status = status,
+                                isBot = isBot
                             )
                             rabbitTemplate.convertAndSend(RabbitConfig.PRESENCE_EXCHANGE, "", event)
                             logger.info("Published presence update for user $userId: $status")
@@ -57,9 +59,9 @@ class PresenceService(
             .flatMap { (userId, status) ->
                 userRepository.findById(userId)
                     .map { user ->
-                        PresenceUpdateEvent(userId, user.username ?: "unknown", status)
+                        PresenceUpdateEvent(userId, user.username ?: "unknown", status, user.isBot == true)
                     }
-                    .defaultIfEmpty(PresenceUpdateEvent(userId, "unknown", status))
+                    .defaultIfEmpty(PresenceUpdateEvent(userId, "unknown", status, false))
             }
     }
 }

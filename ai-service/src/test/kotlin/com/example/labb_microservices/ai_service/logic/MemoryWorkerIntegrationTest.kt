@@ -14,6 +14,7 @@ import java.util.*
 import java.time.Duration
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
+@org.springframework.test.annotation.DirtiesContext
 class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired

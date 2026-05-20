@@ -6,5 +6,6 @@ data class UserDto(
     val email: String? = null,
     val enabled: Boolean = true,
     val displayName: String? = null,
-    val bio: String? = null
+    val bio: String? = null,
+    val socialLinks: Map<String, String>? = null
 )

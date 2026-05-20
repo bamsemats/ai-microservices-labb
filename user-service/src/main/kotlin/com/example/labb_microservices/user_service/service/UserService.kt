@@ -3,17 +3,21 @@ package com.example.labb_microservices.user_service.service
 import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
+import com.example.labb_microservices.user_service.model.PresenceStatus
+import com.example.labb_microservices.user_service.repository.PresenceTracker
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-
+import reactor.core.publisher.Flux
 import org.slf4j.LoggerFactory
+import java.util.*
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val encryptionUtils: EncryptionUtils
+    private val encryptionUtils: EncryptionUtils,
+    private val presenceTracker: PresenceTracker
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
@@ -60,10 +64,13 @@ class UserService(
             .map { decryptUser(it) }
     }
 
-    fun updateProfile(userId: String, displayName: String?, bio: String?): Mono<User> {
+    fun updateProfile(userId: String, displayName: String?, bio: String?, socialLinks: Map<String, String>? = null): Mono<User> {
         return userRepository.findById(userId)
             .flatMap { user ->
-                userRepository.save(user.copy(displayName = displayName, bio = bio))
+                val newDisplayName = displayName ?: user.displayName
+                val newBio = bio ?: user.bio
+                val newSocialLinks = socialLinks ?: user.socialLinks
+                userRepository.save(user.copy(displayName = newDisplayName, bio = newBio, socialLinks = newSocialLinks))
             }
             .map { decryptUser(it) }
     }
@@ -114,6 +121,10 @@ class UserService(
             .map { decryptUser(it) }
     }
 
+    fun deleteUser(userId: String): Mono<Void> {
+        return userRepository.deleteById(userId)
+    }
+
     private fun decryptUser(user: User): User {
         val encryptedEmail = user.email ?: return user
         return try {
@@ -130,5 +141,36 @@ class UserService(
                 user.copy(email = null)
             }
         }
+    }
+
+    fun seedBots(bots: List<Pair<String, String>>): Mono<Void> {
+        return Flux.fromIterable(bots)
+            .flatMap { (name, role) ->
+                userRepository.findByUsername(name)
+                    .flatMap { existing ->
+                        // Update existing user to ensure it's marked as bot
+                        val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")
+                        userRepository.save(updated)
+                    }
+                    .switchIfEmpty(
+                        Mono.defer {
+                            userRepository.save(
+                                User(
+                                    id = name,
+                                    username = name,
+                                    displayName = name,
+                                    password = passwordEncoder.encode(UUID.randomUUID().toString()),
+                                    bio = "Official AdaptaChat $role Bot",
+                                    isBot = true
+                                )
+                            )
+                        }
+                    )
+                    .flatMap { 
+                        presenceTracker.setStatus(it.id!!, PresenceStatus.ONLINE, true)
+                            .thenReturn(it)
+                    }
+            }
+            .then()
     }
 }

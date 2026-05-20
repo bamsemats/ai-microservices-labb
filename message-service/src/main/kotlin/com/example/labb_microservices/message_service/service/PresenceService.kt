@@ -11,24 +11,41 @@ import java.time.Duration
 class PresenceService(
     private val redisTemplate: ReactiveRedisTemplate<String, String>
 ) {
-    private val presenceKeyPrefix = "presence:"
+    private val userPresencePrefix = "presence:active:"
+    private val botPresencePrefix = "presence:static:"
 
     fun setUserOnline(userId: String): Mono<Boolean> {
         return redisTemplate.opsForValue()
-            .set("${presenceKeyPrefix}$userId", "online", Duration.ofMinutes(2))
+            .set("${userPresencePrefix}$userId", "ONLINE", Duration.ofMinutes(5))
+    }
+
+    fun setBotOnline(botId: String): Mono<Boolean> {
+        return redisTemplate.opsForValue()
+            .set("${botPresencePrefix}$botId", "ONLINE", Duration.ofDays(1))
     }
 
     fun setUserOffline(userId: String): Mono<Long> {
-        return redisTemplate.delete("${presenceKeyPrefix}$userId")
+        return redisTemplate.delete("${userPresencePrefix}$userId")
     }
 
     fun isUserOnline(userId: String): Mono<Boolean> {
-        return redisTemplate.hasKey("${presenceKeyPrefix}$userId")
+        return redisTemplate.hasKey("${userPresencePrefix}$userId")
+            .flatMap { isOnline ->
+                if (isOnline) Mono.just(true)
+                else redisTemplate.hasKey("${botPresencePrefix}$userId")
+            }
     }
 
     fun getAllOnlineUsers(): Flux<String> {
-        val options = ScanOptions.scanOptions().match("${presenceKeyPrefix}*").count(1000).build()
-        return redisTemplate.scan(options)
-            .map { it.removePrefix(presenceKeyPrefix) }
+        val userOptions = ScanOptions.scanOptions().match("${userPresencePrefix}*").count(1000).build()
+        val botOptions = ScanOptions.scanOptions().match("${botPresencePrefix}*").count(1000).build()
+        
+        return redisTemplate.scan(userOptions)
+            .map { it.removePrefix(userPresencePrefix) }
+            .mergeWith(
+                redisTemplate.scan(botOptions)
+                    .map { it.removePrefix(botPresencePrefix) }
+            )
+            .distinct()
     }
 }

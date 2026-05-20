@@ -2,23 +2,33 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuthStore } from '../store/useAuthStore';
-import logoWithName from '../assets/logo-with-name.png';
+import BrandLogo from '../components/BrandLogo';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const { setAuth, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const response = await api.post('/login', { username, password });
-      const { accessToken, userId, username: loggedInUsername } = response.data;
+      const { accessToken, userId, username: loggedInUsername, role, displayName } = response.data;
       
-      setAuth(accessToken, userId, loggedInUsername);
-      navigate('/');
+      const success = setAuth(accessToken, userId, loggedInUsername, role, displayName);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Login failed: Authentication session could not be established.');
+      }
     } catch (err: unknown) {
       console.error('Login failed', err);
       setError('Login failed. Check your credentials.');
@@ -29,32 +39,43 @@ const LoginPage: React.FC = () => {
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleLogin}>
         <div className="auth-logo-wrapper">
-          <img src={logoWithName} alt="AdaptaChat" className="auth-logo" />
+          <BrandLogo size="lg" />
         </div>
         <h2>Login</h2>
         {error && <p className="error">{error}</p>}
         <div className="input-group">
-          <label>Username</label>
+          <label htmlFor="username">Username</label>
           <input 
+            id="username"
             type="text" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
             required 
+            autoComplete="username"
           />
         </div>
         <div className="input-group">
-          <label>Password</label>
+          <label htmlFor="password">Password</label>
           <input 
+            id="password"
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
             required 
+            autoComplete="current-password"
           />
         </div>
         <button className="lumina-button" type="submit">Login</button>
-        <p>
-          Don't have an account? <Link to="/register">Register here</Link>
-        </p>
+        
+        <div className="auth-footer">
+          <p>Don't have an account?</p>
+          <Link 
+            to="/register" 
+            className="lumina-button secondary auth-footer-cta"
+          >
+            Create New Account
+          </Link>
+        </div>
       </form>
     </div>
   );

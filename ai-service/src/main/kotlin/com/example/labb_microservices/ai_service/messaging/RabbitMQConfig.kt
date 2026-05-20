@@ -111,7 +111,7 @@ class RabbitMQConfig {
     ): Binding =
         BindingBuilder.bind(sentimentQueue)
             .to(storageExchange)
-            .with("sentiment")
+            .with("message-published")
 
     @Bean
     fun rabbitAdmin(connectionFactory: ConnectionFactory): RabbitAdmin =

@@ -1,429 +1,49 @@
-:root {
-  /* Core Foundation */
-  --bg-dark: #0B1326;
-  --bg-darker: #050810;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  
-  /* Lumina Accents */
-  --accent-primary: #8b5cf6; /* Violet */
-  --accent-secondary: #ec4899; /* Fuchsia */
-  --accent-tertiary: #06b6d4; /* Cyan */
-  --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-  
-  /* AI-Driven Style Tokens (Dynamic) */
-  --accent-glow-intensity: 0.5;
-  --glass-blur-amount: 12px;
-  --glass-opacity: 0.05;
-  --glass-border-opacity: 0.1;
-  --border-glow-width: 1px;
-  
-  /* Computed Values */
-  --glass-bg: rgba(255, 255, 255, var(--glass-opacity));
-  --glass-border: rgba(255, 255, 255, var(--glass-border-opacity));
-  --accent-glow: 0 0 calc(20px * var(--accent-glow-intensity)) rgba(139, 92, 246, 0.3);
+@import './styles/base.css';
+@import './styles/components.css';
 
-  /* Status Colors */
-  --error: #f43f5e;
-  --success: #10b981;
-}
+@layer utilities {
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--sentiment-blur));
+    -webkit-backdrop-filter: blur(var(--sentiment-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    padding: var(--spacing-main);
+    & h3 {
+      margin-block-end: 1rem;
+    }
+  }
 
-:root {
-  /* ... existing vars ... */
-  transition: --accent-glow-intensity 0.5s ease, 
-              --glass-blur-amount 0.5s ease, 
-              --glass-opacity 0.5s ease,
-              --accent-primary 0.5s ease;
-}
+  .glass-card {
+    background: rgb(var(--glass-base) / 0.03);
+    backdrop-filter: blur(calc(var(--sentiment-blur) * 0.8));
+    border: 1px solid var(--glass-border);
+    corner-shape: squircle;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-main);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  }
 
-/* Note: CSS Variables themselves don't transition on :root in all browsers 
-   without @property. We'll apply transitions to the elements using them. */
+  .lumina-button {
+    background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+    color: var(--text-on-accent);
+    border: none;
+    corner-shape: squircle;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-main);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgb(from var(--color-accent-primary) r g b / 0.3);
+  }
 
-/* Global Transitions */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  margin: 0;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Targeted Transitions for UI elements */
-button, a, input, select, textarea, .glass-card, .glass-panel, .channel-item {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Typography & Links */
-h1, h2, h3 {
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-p {
-  color: var(--text-secondary);
-  font-size: 0.9375rem;
-}
-
-a {
-  color: var(--accent-tertiary);
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  display: inline-block;
-  position: relative;
-}
-
-a:hover {
-  color: var(--accent-primary);
-  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));
-}
-
-a::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 1px;
-  bottom: -2px;
-  left: 0;
-  background: var(--accent-gradient);
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.3s ease;
-}
-
-a:hover::after {
-  transform: scaleX(1);
-  transform-origin: left;
-}
-
-/* Glassmorphism UI Kit */
-
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur-amount));
-  -webkit-backdrop-filter: blur(var(--glass-blur-amount));
-  border: var(--border-glow-width) solid var(--glass-border);
-  border-radius: 1.25rem;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(calc(var(--glass-blur-amount) * 0.8));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur-amount) * 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: var(--accent-glow);
-}
-
-.lumina-button {
-  background: var(--accent-gradient);
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-}
-
-.lumina-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4), var(--accent-glow);
-  filter: brightness(1.1);
-}
-
-.lumina-button:active {
-  transform: translateY(0);
-}
-
-.lumina-button.secondary {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: none;
-}
-
-.lumina-button.secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Auth Screens - Updated for UI Foundation */
-
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background: radial-gradient(circle at center, #1e293b 0%, var(--bg-dark) 100%);
-}
-
-.auth-form {
-  padding: 3rem;
-  width: 100%;
-  max-width: 440px;
-  background: rgba(11, 19, 38, 0.85);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.5rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--accent-glow);
-}
-
-.auth-form h2 {
-  font-size: 2rem;
-  text-align: center;
-  margin-bottom: 2rem;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.auth-logo-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.auth-logo {
-  max-width: 240px;
-  height: auto;
-  filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.4));
-}
-
-.auth-form p {
-  text-align: center;
-  margin-top: 1.5rem;
-}
-
-/* Base styles to bridge old classes to new system */
-.input-group {
-  margin-bottom: 1.5rem;
-}
-
-.input-group label {
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.input-group input, 
-.composer-form input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.input-group input:focus,
-.composer-form input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), var(--accent-glow);
-}
-
-.error {
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.2);
-  color: #fb7185;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.success {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Shared Layout Components */
-
-.app-container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  background-color: var(--bg-dark);
-  overflow: hidden;
-}
-
-.chat-page-layout {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
-              radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
-}
-
-.chat-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem 1rem 1rem 0;
-  overflow: hidden;
-}
-
-.chat-navbar {
-  height: 4.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 2rem;
-  margin-bottom: 1rem;
-  flex-shrink: 0;
-}
-
-.active-context {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.context-prefix {
-  font-weight: 700;
-  color: var(--accent-primary);
-  font-size: 1.25rem;
-}
-
-.context-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: -0.01em;
-}
-
-.user-controls {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.user-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem 0.5rem 1rem !important;
-  border-radius: 2rem !important;
-}
-
-.username {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.user-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: var(--accent-gradient);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.875rem;
-  color: white;
-  box-shadow: var(--accent-glow);
-}
-
-.logout-btn {
-  padding: 0.5rem 1rem !important;
-  font-size: 0.8125rem !important;
-  border-color: rgba(244, 63, 94, 0.2) !important;
-  color: var(--error) !important;
-}
-
-.logout-btn:hover {
-  background: rgba(244, 63, 94, 0.1) !important;
-  border-color: var(--error) !important;
-}
-
-.lumina-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.lumina-input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), var(--accent-glow);
-}
-
-.lumina-button.small {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  border-radius: 0.5rem;
-}
-
-/* Hide scrollbars but keep functionality */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  .lumina-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgb(from var(--color-accent-primary) r g b / 0.4), var(--color-accent-glow);
+    filter: brightness(1.1);
+  }
 }

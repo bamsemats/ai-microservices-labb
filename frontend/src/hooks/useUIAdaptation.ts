@@ -9,7 +9,7 @@ const isValidColor = (color: string) => {
   return s.color !== '';
 };
 
-const safeNum = (val: any, fallback: number, min = 0, max = 100) => {
+const safeNum = (val: string | number, fallback: number, min = 0, max = 100) => {
   const n = typeof val === 'string' ? parseFloat(val) : val;
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
 };
@@ -20,13 +20,20 @@ export const useUIAdaptation = () => {
 
   useEffect(() => {
     const root = document.documentElement;
+
+    // Apply base aesthetic attribute
+    if (currentTheme.theme) {
+      root.setAttribute('data-theme-base', currentTheme.theme);
+    } else {
+      root.removeAttribute('data-theme-base');
+    }
     
     // Stop previous animations
     controlsRef.current.forEach(c => c.stop());
     controlsRef.current = [];
 
     // Animate Glow Intensity
-    const currentGlow = safeNum(getComputedStyle(root).getPropertyValue('--accent-glow-intensity'), 0.5, 0, 1);
+    const currentGlow = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-glow-intensity'), 0.5, 0, 1);
     const targetGlow = safeNum(currentTheme.glowIntensity ?? currentTheme.intensity, 0.5, 0, 1);
     
     const intensityAnim = animate(
@@ -37,7 +44,7 @@ export const useUIAdaptation = () => {
         ease: [0.4, 0, 0.2, 1],
         onUpdate: (latest) => {
           if (Number.isFinite(latest)) {
-            root.style.setProperty('--accent-glow-intensity', latest.toFixed(3));
+            root.style.setProperty('--sentiment-glow-intensity', latest.toFixed(3));
           }
         }
       }
@@ -47,16 +54,16 @@ export const useUIAdaptation = () => {
     // Animate Color if present
     const targetColor = currentTheme.primaryColor ?? currentTheme.color;
     if (targetColor) {
-      const sourceColor = getComputedStyle(root).getPropertyValue('--accent-primary').trim() || "#8b5cf6";
+      const sourceColor = getComputedStyle(root).getPropertyValue('--color-accent-primary').trim() || "#6366f1";
 
       if (isValidColor(sourceColor) && isValidColor(targetColor)) {
         const colorAnim = animate(
           sourceColor,
           targetColor,
           {
-            duration: 1.2,
+            duration: 1.5,
             ease: "easeInOut",
-            onUpdate: (latest) => root.style.setProperty('--accent-primary', latest)
+            onUpdate: (latest) => root.style.setProperty('--color-accent-primary', latest)
           }
         );
         controlsRef.current.push(colorAnim);
@@ -87,35 +94,36 @@ export const useUIAdaptation = () => {
           targetOpacityRaw = targetOpacityRaw ?? 0.12;
           break;
         default:
-          targetBlurRaw = targetBlurRaw ?? 12;
-          targetOpacityRaw = targetOpacityRaw ?? 0.05;
+          targetBlurRaw = targetBlurRaw ?? 16;
+          targetOpacityRaw = targetOpacityRaw ?? 0.04;
       }
     }
 
-    const currentBlur = safeNum(getComputedStyle(root).getPropertyValue('--glass-blur-amount'), 12, 0, 100);
-    const targetBlur = safeNum(targetBlurRaw, 12, 0, 100);
+    const currentBlur = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-blur'), 16, 0, 100);
+    const targetBlur = safeNum(targetBlurRaw, 16, 0, 100);
     const blurAnim = animate(currentBlur, targetBlur, {
-      duration: 1.0,
+      duration: 1.5,
       ease: "backOut",
       onUpdate: (latest) => {
         if (Number.isFinite(latest)) {
-          root.style.setProperty('--glass-blur-amount', `${latest.toFixed(1)}px`);
+          root.style.setProperty('--sentiment-blur', `${latest.toFixed(1)}px`);
         }
       }
     });
     controlsRef.current.push(blurAnim);
 
-    const currentOpacity = safeNum(getComputedStyle(root).getPropertyValue('--glass-opacity'), 0.05, 0, 1);
-    const targetOpacity = safeNum(targetOpacityRaw, 0.05, 0, 1);
+    const currentOpacity = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-opacity'), 0.04, 0, 1);
+    const targetOpacity = safeNum(targetOpacityRaw, 0.04, 0, 1);
     const opacityAnim = animate(currentOpacity, targetOpacity, {
-      duration: 1.0,
+      duration: 1.5,
       onUpdate: (latest) => {
         if (Number.isFinite(latest)) {
-          root.style.setProperty('--glass-opacity', latest.toFixed(3));
+          root.style.setProperty('--sentiment-opacity', latest.toFixed(3));
         }
       }
     });
     controlsRef.current.push(opacityAnim);
+
 
     return () => {
       controlsRef.current.forEach(c => c.stop());

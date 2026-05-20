@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
 
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
@@ -40,6 +42,7 @@ class MessageController(
     private val presenceService: PresenceService,
     private val messageRepository: MessageRepository,
     private val encryptionUtils: EncryptionUtils,
+    private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate,
     @org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
 ) {
 
@@ -60,20 +63,32 @@ class MessageController(
                     return@flatMap Mono.error<String>(AccessDeniedException("Only admins can send broadcast messages"))
                 }
 
-                Mono.fromCallable {
-                    val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
-                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "general"
-                    val message = Message(
-                        id = idPrefix + UUID.randomUUID().toString(),
-                        senderId = senderId,
-                        receiverId = request.receiverId,
-                        channelId = channelId,
-                        content = request.content,
-                        authorType = AuthorType.USER
-                    )
-                    processMessage(message)
-                    "Message sent to queue by $senderId in channel $channelId"
-                }
+                getUserWithFallback(senderId)
+                    .flatMap { userResponse ->
+                        Mono.fromCallable {
+                            val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() }
+                                ?: if (request.receiverId == "all") "global" else "general"
+                            
+                            val metadata = mutableMapOf<String, String>()
+                            if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
+                                metadata["X-Adapta-Test-Mode"] = "true"
+                            }
+                            
+                            val message = Message(
+                                id = idPrefix + UUID.randomUUID().toString(),
+                                senderId = senderId,
+                                senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
+                                receiverId = request.receiverId,
+                                channelId = channelId,
+                                content = request.content,
+                                authorType = AuthorType.USER,
+                                metadata = metadata
+                            )
+                            processMessage(message)
+                            "Message sent to queue by $senderId in channel $channelId"
+                        }
+                    }
                 .subscribeOn(Schedulers.boundedElastic())
             }
     }
@@ -85,25 +100,47 @@ class MessageController(
             .flatMap { context ->
                 val auth = context.authentication
                 val senderId = auth.name
-                Mono.fromCallable {
-                    val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "all"
-                    val message = Message(
-                        id = UUID.randomUUID().toString(),
-                        senderId = senderId,
-                        receiverId = "all",
-                        channelId = channelId,
-                        content = request.content,
-                        authorType = AuthorType.USER
-                    )
-                    processMessage(message)
-                    "Broadcast message sent by $senderId in channel $channelId"
-                }
+                
+                getUserWithFallback(senderId)
+                    .flatMap { userResponse ->
+                        Mono.fromCallable {
+                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
+                            val message = Message(
+                                id = UUID.randomUUID().toString(),
+                                senderId = senderId,
+                                senderName = userResponse.username,
+                                receiverId = "all",
+                                channelId = channelId,
+                                content = request.content,
+                                authorType = AuthorType.USER
+                            )
+                            processMessage(message)
+                            "Broadcast message sent by $senderId in channel $channelId"
+                        }
+                    }
                 .subscribeOn(Schedulers.boundedElastic())
             }
     }
 
+    private fun getUserWithFallback(userId: String): Mono<com.example.labb_microservices.proto.UserResponse> {
+        return userGrpcClient.getUser(userId)
+            .onErrorResume { e ->
+                if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                    logger.debug("User $userId not found in user-service, using ID as name")
+                } else {
+                    logger.error("Failed to lookup user $userId via gRPC: ${e.message}")
+                }
+                Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+            }
+            .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+    }
+
     @GetMapping("/search")
-    fun searchMessages(@RequestParam q: String): Flux<Message> {
+    fun searchMessages(
+        @RequestParam q: String,
+        @RequestParam(required = false) channelId: String?,
+        @RequestParam(required = false) senderId: String?
+    ): Flux<Message> {
         if (q.isBlank() || q.length < 2) return Flux.empty()
         
         val tokens = q.lowercase()
@@ -125,32 +162,50 @@ class MessageController(
                     val principal = auth.name
                     val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
                     
-                    messageRepository.findAllBySearchIndicesContainingAll(hashes)
+                    val query = org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("searchIndices").all(hashes)
+                    )
+
+                    if (!isAdmin) {
+                        val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                            org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                        )
+                        query.addCriteria(visibilityCriteria)
+                    }
+
+                    if (!channelId.isNullOrBlank()) {
+                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId))
+                    }
+
+                    if (!senderId.isNullOrBlank()) {
+                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(senderId))
+                    }
+
+                    // Limit results for safety and sort by newest
+                    query.limit(100)
+                    query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
+
+                    mongoTemplate.find(query, Message::class.java)
                         .flatMap { encryptedMessage ->
-                            // Check if user is allowed to see this message
-                            val isParticipant = encryptedMessage.senderId == principal || 
-                                               encryptedMessage.receiverId == principal || 
-                                               (encryptedMessage.receiverId == "all" && encryptedMessage.channelId == "global")
-                            
-                            if (isAdmin || isParticipant) {
-                                Mono.fromCallable { decryptMessage(encryptedMessage) }
-                                    .subscribeOn(Schedulers.boundedElastic())
-                            } else {
-                                Mono.empty()
-                            }
+                            Mono.fromCallable { decryptMessage(encryptedMessage) }
+                                .subscribeOn(Schedulers.boundedElastic())
                         }
                 }
         }
     }
 
     companion object {
-        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@ai(?:\\W|$)")
+        private val AI_BOT_IDS = setOf("ai", "ai-bot", "adaptaai", "nexusprime", "echoflow", "vibecheck", "helpdesk")
+        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
     }
 
     private fun processMessage(message: Message) {
         messageProducer.sendMessage(message)
-
-        if (AI_MENTION_REGEX.containsMatchIn(message.content)) {
+        
+        val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
+        if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {
             try {
                 messageProducer.sendAiRequest(message)
             } catch (e: Exception) {
@@ -168,6 +223,13 @@ class MessageController(
                 val isSelf = auth.name == userId
                 
                 userGrpcClient.getUser(userId)
+                    .onErrorResume { e ->
+                        if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
+                            Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                        } else {
+                            Mono.error(e)
+                        }
+                    }
                     .map { user ->
                         if (isAdmin || isSelf) {
                             "User: ${user.username}, Email: ${user.email}"
@@ -194,7 +256,21 @@ class MessageController(
                         if (isAdmin) {
                             messageRepository.findAllByChannelId(channelId)
                         } else {
-                            Flux.empty()
+                            // Non-admins can see broadcast messages in this channel OR messages they are part of
+                            // This is more "Global" and respects partitioning
+                            mongoTemplate.find(
+                                org.springframework.data.mongodb.core.query.Query(
+                                    org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
+                                        .andOperator(
+                                            org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                                                org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                                            )
+                                        )
+                                ),
+                                Message::class.java
+                            )
                         }
                     }
                     receiverId != null -> {
@@ -211,7 +287,7 @@ class MessageController(
                         messageRepository.findAll()
                     }
                     else -> {
-                        // Non-admins can only see messages they are part of
+                        // Non-admins can only see messages they are part of (DMs or Broadcasts)
                         messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
                             .mergeWith(messageRepository.findAllByReceiverId("all"))
                     }
@@ -236,7 +312,7 @@ class MessageController(
     }
 
     @GetMapping("/presence")
-    @PreAuthorize("hasRole('ADMIN')") // Restrict global presence to admins for now
+    @PreAuthorize("hasRole('ADMIN')")
     fun getOnlineUsers(): Flux<String> {
         return presenceService.getAllOnlineUsers()
     }

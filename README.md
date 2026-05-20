@@ -4,6 +4,8 @@ A high-performance, resilient, and secure distributed chat system built with Spr
 
 ## 🏗 Architecture Overview
 
+For a deep dive into the system's roles, data flows, and security rationale, see the [Detailed Architectural Overview](docs/overview.md).
+
 The system follows a **Database-per-Service** pattern and utilizes a **Monorepo** structure for streamlined development and orchestration.
 
 - **API Gateway**: Entry point for all clients. Handles routing and coarse-grained JWT validation.
@@ -12,6 +14,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
 - **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
 - **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
+- **Feedback Service**: Gathers user UX/AI quality reports and ratings for system refinement.
 - **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
 - **Common Observability**: A dedicated module for centralized monitoring (Actuator), tracing (Micrometer), and production health indicators.
 - **Common Test**: Singleton infrastructure for stable, noise-free integration tests across the monorepo.
@@ -67,69 +70,93 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
 - [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
 - [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
-- [ ] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession`.
+- [x] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession` and `SessionRegistry`.
 - [x] **#53 AI-Driven Design Tokens**: Deepen Analytical Seam by moving design logic to `ai-service`.
+- [x] **#54 Global Cross-Channel Search**: Searchable encrypted history using HMAC-SHA256 blind indexing.
+- [ ] **#55 Direct File Transfers**: Media sharing service foundation.
+- [ ] **#56 Voice/Video Integration**: WebRTC-based real-time media.
+- [x] **#57 Observability Refactoring**: Consolidated monitoring, tracing (Jaeger/OTLP), and metrics (Prometheus) logic.
 - [x] **#58 Full-Stack Security & Reliability Sweep**: Non-root Docker execution, mTLS hardening, and multi-token search.
+- [x] **#59 Fix: Docker Build & Startup Stabilization**: Resolved dependency and permission issues.
+- [x] **#60 UX: Theme Toggle & Profile Hub**: Added Dark/Light mode and dedicated profile editing with social links.
+- [x] **#61 UX: Typing Indicators & Read Receipts**: Implemented real-time typing detection and persistent read status tracking.
+- [x] **#62 UX: Accessibility Polish**: ARIA labels, roles, and keyboard navigation shortcuts.
+- [x] **#63 UX: Mobile Optimization**: Responsive design, mobile sidebar, and adaptive grids.
+- [x] **#64 Branding & Identity Update**: Refresh logotype and global design language.
+- [x] **#65 Logic Centralization & Hardening**:
+    - Centralized bot identities in `ai-service` via `BotRegistry` and externalized configuration.
+    - Resolved WebSocket emission conflicts via buffered sinks (`onBackpressureBuffer`).
+    - Hardened frontend Auth state initialization to prevent unauthorized admin UI elevation.
+    - Hardened `PresenceService` with explicit Redis TTLs for bot states.
+    - Refined `MessageDeliveryService` API for strict interface contracts.
+    - Optimized frontend `ChatPage` with memoization and secure read-receipt guards.
+- [x] **#66 Semantic UI Adaptation**: 
+    - Transitioned from keyword-based triggers to semantic sentiment analysis using Mistral-7B.
+    - Implemented a "grace period" stabilization mechanism to prevent theme flickering.
+    - Refined design tokens for more subtle, integrated transitions.
+- [x] **#67 Public Hosting & Feedback Loop**:
+    - Prepared Kubernetes manifests for public cloud deployment with SSL/TLS (cert-manager).
+    - Configured API Gateway routing and Ingress rules for production readiness.
+    - Implemented a dedicated `feedback-service` and a floating UI widget for user reports.
 
 ---
 
 ## 🛠 Technology Stack
 
-- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin
-- **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS
-- **Messaging**: RabbitMQ, gRPC, WebSockets
-- **Persistence**: MongoDB, Redis
-- **Orchestration**: Docker Compose, Kubernetes
-- **Security**: Zero-Trust JWT, AES-256 PII Encryption, mTLS
+- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin, Micrometer (Tracing/Metrics)
+- **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS (Prism Aura)
+- **Messaging**: RabbitMQ (Real-time Events), gRPC (mTLS), WebSockets
+- **Persistence**: MongoDB (Reactive), Redis (Presence/Tokens)
+- **Observability**: OTLP/Jaeger, Prometheus, Actuator
 
 ---
 
 ## 🏗 Design Decisions & Trade-offs
 
-### Full-Stack Security & Reliability Sweep
-A comprehensive sweep was performed to harden the system's production readiness:
-- **Non-root Docker images**: All microservices now run as unprivileged users (UID 10001) to mitigate container breakout risks.
-- **Kubernetes Hardening**: Enforced `seccompProfile: RuntimeDefault` across all pods to limit syscall access.
-- **Multi-Token Blind Indexing**: Evolved the search architecture from full-string hashing to tokenized hashing. This allows for rich, multi-word search queries over AES-encrypted content without sacrificing privacy or performance.
-- **Admin-Only Broadcasts**: Enforced strict authorization for system-wide announcements (`receiverId="all"`), preventing unauthorized users from bypassing channel isolation.
-- **Test Isolation & Hermeticity**: Resolved flakiness in the CI/CD pipeline by ensuring deterministic test data (unique IDs), programmatic infrastructure reuse, and explicit queue purging between test runs.
+### Centralized Bot Ecosystem
+To prevent logic drift, bot metadata and identification has been moved from ad-hoc mappings in individual services to a canonical **BotRegistry** in the `ai-service`. This ensures that sentiment analysis and response generation always follow consistent naming and identity rules.
 
-### Deepened Analytical Seam (AI-Driven UI)
-The system has moved from a "Shallow" to a "Deep" Analytical Seam for UI adaptation. Instead of the AI service sending raw sentiment themes for the frontend to interpret, the `ai-service` now calculates and publishes specific **Design Tokens** (primaryColor, blurAmount, glassOpacity, glowIntensity). This allows the UI to evolve its visual language dynamically without requiring frontend redeployments.
+### Service Interface Hardening
+The `MessageDeliveryService` has been refactored to remove ambiguous magic strings (like the "all" channel special-case) and unused parameters. This enforces a stricter API contract and ensures that message routing is explicit and maintainable.
 
-### High-Availability WebSockets (Session-based)
-The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions.
+### Prism Aura: Edge-to-Edge UI
+The visual identity has been evolved from a fragmented component-based layout to the **Prism Aura** system. 
+- **Edge-to-Edge Layout**: Sidebar and Navbar are now flush with the viewport, maximizing information density while maintaining high-fidelity glassmorphism.
+- **Scalable SVG Branding**: Replaced all raster logos with a themeable SVG `BrandLogo` component, supporting smooth scaling and AI-driven aesthetic transitions.
+- **Zero-Trust Auth Hygiene**: Authentication state follows a "non-persistent sensitive data" policy. While user profile info (name, id) is hydrated from storage for UX continuity, JWT access tokens are kept purely in-memory, requiring a secure re-authentication or server-driven refresh upon page reload.
 
----
+### Synchronized Presence & Bot Identities
+"Living Bots" now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution). Presence tracking utilizes a dual-namespace Redis strategy (`active:` for users, `static:` for bots) with automated cleanup to ensure high-fidelity availability status throughout the UI.
 
-## ⚠️ Known Limitations
-- **Binary Coupling**: Services depend on `common-security`, `common-observability`, and `proto`.
-- **Coordinated Rollouts**: Shared library updates require full-stack redeployment.
+### Production-Grade gRPC mTLS
+Inter-service communication is hardened with mandatory mTLS. Configuration properties have been standardized to camelCase (e.g., `privateKeyPassword`) and correctly mapped to the `grpc-client-spring-boot-starter` metadata, ensuring robust certificate management and IDE validation.
 
 ---
 
 ## 🏁 How to Run
 
 ### Prerequisites
-The system requires several environment variables for security and inter-service communication. For local development, create a `.env` file in the root directory:
+The system requires several environment variables. For local development, create a `.env` file in the root directory:
 
 ```env
 JWT_SECRET=your-256-bit-secret
 ENCRYPTION_SECRET=your-32-char-encryption-key
 OPENROUTER_API_KEY=your-api-key
 
-# gRPC Keystore Passwords (local development only; override in non-local environments)
+# gRPC Keystore Passwords (local development only)
 GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
 GRPC_SERVER_SECURITY_KEY_PASSWORD=password
 GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
 ```
 
-### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
+### Infrastructure & Frontend (Docker Compose)
 ```bash
 docker-compose up --build
 ```
 - **Frontend UI**: [http://localhost:3000](http://localhost:3000)
 - **API Gateway**: [http://localhost:8080](http://localhost:8080)
+- **Jaeger UI**: [http://localhost:16686](http://localhost:16686)
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
 
 ## Author
 - [Bamsemats](https://github.com/bamsemats)

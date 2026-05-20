@@ -38,11 +38,13 @@ export const useWebSocket = () => {
         
         if (data.type === 'UI_ADAPTATION') {
           const { theme, intensity, color, primaryColor, blurAmount, glassOpacity, glowIntensity } = data;
-          if (typeof theme === 'string') {
+          const { adaptationEnabled, intensity: userIntensity } = useUIStore.getState().currentTheme;
+          
+          if (adaptationEnabled && typeof theme === 'string') {
             console.log('Applying AI UI Adaptation:', theme);
             useUIStore.getState().setTheme({ 
               theme, 
-              intensity: typeof intensity === 'number' ? intensity : 0.5,
+              intensity: (typeof intensity === 'number' ? intensity : 0.5) * userIntensity,
               color: typeof color === 'string' ? color : undefined,
               primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
               blurAmount: typeof blurAmount === 'number' ? blurAmount : undefined,
@@ -73,7 +75,7 @@ export const useWebSocket = () => {
             useChatStore.getState().setAiStatus(mappedStatus);
           }
         } else if (data.type === 'PRESENCE_UPDATE') {
-          const { userId, username, status } = data;
+          const { userId, username, status, isBot } = data;
           const normalizedStatus = (status || '').toString().toUpperCase();
           const statusMap: Record<string, PresenceStatus> = {
             'ONLINE': 'ONLINE',
@@ -83,8 +85,19 @@ export const useWebSocket = () => {
             'BUSY': 'DND'
           };
           if (typeof userId === 'string' && typeof username === 'string' && normalizedStatus in statusMap) {
-            console.log('Received Presence Update:', userId, normalizedStatus);
-            setPresence(userId, username, statusMap[normalizedStatus]);
+            console.log('Received Presence Update:', userId, normalizedStatus, isBot);
+            setPresence(userId, username, statusMap[normalizedStatus], !!isBot);
+          }
+        } else if (data.type === 'TYPING') {
+          const { username, channelId, isTyping } = data;
+          if (typeof username === 'string' && typeof channelId === 'string') {
+            useChatStore.getState().setTyping(username, channelId, !!isTyping);
+          }
+
+        } else if (data.type === 'READ_RECEIPT') {
+          const { messageId, userId } = data;
+          if (typeof messageId === 'string' && typeof userId === 'string') {
+            useChatStore.getState().markMessageRead(messageId, userId);
           }
         } else {
           const isValidMessage = (m: unknown): m is Message => {
@@ -175,5 +188,27 @@ export const useWebSocket = () => {
     }
   }, []);
 
-  return { sendMessage };
+  const sendTyping = useCallback((channelId: string, isTyping: boolean) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
+        type: 'TYPING',
+        channelId,
+        isTyping
+      };
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  const sendReadReceipt = useCallback((messageId: string, channelId: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
+        type: 'READ_RECEIPT',
+        messageId,
+        channelId
+      };
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  return { sendMessage, sendTyping, sendReadReceipt };
 };

@@ -50,16 +50,16 @@ class UserGrpcService(
                     .setUsername(user.username)
                     .setEmail(user.email ?: "")
                     .setEnabled(user.enabled)
+                    .setDisplayName(user.displayName ?: "")
+                    .setIsBot(user.isBot)
                     .build()
             }
+            .switchIfEmpty(reactor.core.publisher.Mono.error(io.grpc.Status.NOT_FOUND.withDescription("User not found").asRuntimeException()))
             .subscribe({ response ->
                 responseObserver.onNext(response)
                 responseObserver.onCompleted()
             }, { error ->
                 responseObserver.onError(error)
-            }, {
-                // On complete if empty
-                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("User not found").asException())
             })
     }
 }
