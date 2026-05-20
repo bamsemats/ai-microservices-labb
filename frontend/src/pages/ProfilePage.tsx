@@ -81,7 +81,7 @@ const ProfilePage: React.FC = () => {
             className="glass-panel profile-editor"
           >
             <div className="editor-header">
-              <div className="profile-avatar-large">{username?.charAt(0).toUpperCase()}</div>
+              <div className="profile-avatar-large">{username?.charAt(0)?.toUpperCase() ?? '?'}</div>
               <div className="header-text">
                 <h2>{username}</h2>
                 <p>Customize your digital identity across the Adapta Network.</p>

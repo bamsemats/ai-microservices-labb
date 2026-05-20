@@ -100,7 +100,7 @@ const InsightsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSelectReceiver = (id: string) => {
-    navigate(`/?receiver=${id}`);
+    navigate(`/?receiver=${encodeURIComponent(id)}`);
   };
 
   return (
