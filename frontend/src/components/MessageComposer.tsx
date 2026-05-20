@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+// import { motion, AnimatePresence } from 'motion/react';
 
 interface MessageComposerProps {
   onSend: (content: string) => void;
@@ -8,12 +8,12 @@ interface MessageComposerProps {
   disabled?: boolean;
 }
 
-const AI_SUGGESTIONS = [
+/* const AI_SUGGESTIONS = [
   "Summarize our talk",
   "What's the status?",
   "Tell me a joke",
   "Help me with code"
-];
+]; */
 
 const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, placeholder, disabled }) => {
   const [value, setValue] = useState('');
@@ -73,11 +73,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
+ /* const handleSuggestionClick = (suggestion: string) => {
     if (!disabled) {
       setValue(suggestion);
     }
-  };
+  }; */
 
   return (
     <div className="composer-container">
