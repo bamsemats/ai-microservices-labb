@@ -21,7 +21,7 @@
   body {
     font-family: Inter, system-ui, -apple-system, sans-serif;
     background-color: var(--color-bg-main);
-    color: contrast-color(var(--color-bg-main));
+    color: var(--text-primary);
     min-height: 100vh;
     line-height: 1.6;
     overflow-x: hidden;

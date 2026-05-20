@@ -81,30 +81,6 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
 
   return (
     <div className="composer-container">
-      <AnimatePresence>
-        {isFocused && !disabled && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="ai-suggestions-bar"
-            role="group"
-            aria-label="AI message suggestions"
-          >
-            {AI_SUGGESTIONS.map((suggestion, index) => (
-              <button 
-                key={index} 
-                className="suggestion-chip"
-                onClick={() => handleSuggestionClick(suggestion)}
-                aria-label={`Use suggestion: ${suggestion}`}
-              >
-                <span className="sparkle" aria-hidden="true">✨</span> {suggestion}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
       <form 
         className={`composer-form ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`} 
         onSubmit={handleSubmit}

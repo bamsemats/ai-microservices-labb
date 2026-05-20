@@ -2,7 +2,7 @@
 
 @layer tokens {
   :root {
-    /* --- Foundation Colors (Prism Aura) --- */
+    /* --- Foundation Colors (Prism Aura - Default Dark) --- */
     --color-bg-main: #020617;
     --color-bg-surface: #0f172a;
     --color-bg-elevated: #1e293b;
@@ -18,14 +18,13 @@
     --color-error: #ef4444;
     
     /* --- Text & Contrast --- */
-    /* Utilizing modern contrast-color() for automatic readability */
-    --text-on-accent: contrast-color(var(--color-accent-primary));
-    --text-on-surface: contrast-color(var(--color-bg-surface));
-    --topic-color: rgb(from var(--text-on-surface) r g b / 0.8);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-on-accent: #ffffff;
+    --text-on-surface: #f8fafc;
     
-    --text-primary: contrast-color(var(--color-bg-main));
-    --text-secondary: rgb(from var(--text-primary) r g b / 0.7);
-    --text-muted: rgb(from var(--text-primary) r g b / 0.45);
+    --topic-color: rgb(from var(--text-on-surface) r g b / 0.8);
     
     /* --- Layout & Spacing (Logical) --- */
     --size-sidebar: 260px;
@@ -39,10 +38,13 @@
     --sentiment-blur: 16px;
     --sentiment-opacity: 0.04;
     
+    /* --- Glassmorphism Base --- */
+    --glass-base: 255, 255, 255;
+    
     /* --- Computed Variables (Relative Color Syntax) --- */
     --color-accent-glow: rgb(from var(--color-accent-primary) r g b / calc(var(--sentiment-glow-intensity) * 0.5));
-    --glass-bg: rgb(from white r g b / var(--sentiment-opacity));
-    --glass-border: rgb(from white r g b / 0.08);
+    --glass-bg: rgb(var(--glass-base) / var(--sentiment-opacity));
+    --glass-border: rgb(var(--glass-base) / 0.08);
   }
 
   [data-theme="light"] {
@@ -53,35 +55,86 @@
     --color-accent-primary: #4f46e5;
     --color-accent-secondary: #059669;
     --color-accent-tertiary: #e11d48;
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-on-accent: #ffffff;
+    --text-on-surface: #0f172a;
+
+    --glass-base: 0, 0, 0;
+    --sentiment-opacity: 0.06;
   }
 
-  /* --- Base Aesthetics --- */
+  /* --- Base Aesthetics: Cyber --- */
   [data-theme-base="cyber"] {
     --color-bg-main: #050505;
     --color-bg-surface: #0a0a0a;
     --color-accent-primary: #ff00ff;
     --color-accent-secondary: #00ffff;
     --color-accent-tertiary: #ffff00;
+    --text-primary: #ffffff;
+    --text-on-accent: #000000;
   }
 
+  [data-theme="light"][data-theme-base="cyber"] {
+    --color-bg-main: #fafafa;
+    --color-bg-surface: #ffffff;
+    --color-accent-primary: #d000d0;
+    --color-accent-secondary: #00b0b0;
+    --text-primary: #000000;
+  }
+
+  /* --- Base Aesthetics: Nature --- */
   [data-theme-base="nature"] {
     --color-bg-main: #064e3b;
     --color-bg-surface: #065f46;
     --color-accent-primary: #10b981;
     --color-accent-secondary: #84cc16;
+    --text-primary: #ecfdf5;
   }
 
+  [data-theme="light"][data-theme-base="nature"] {
+    --color-bg-main: #f0fdf4;
+    --color-bg-surface: #ffffff;
+    --color-accent-primary: #059669;
+    --color-accent-secondary: #65a30d;
+    --text-primary: #064e3b;
+  }
+
+  /* --- Base Aesthetics: Minimal --- */
   [data-theme-base="minimal"] {
     --color-bg-main: #000000;
     --color-bg-surface: #111111;
     --color-accent-primary: #ffffff;
     --color-accent-secondary: #888888;
+    --text-primary: #ffffff;
+    --text-on-accent: #000000;
   }
 
+  [data-theme="light"][data-theme-base="minimal"] {
+    --color-bg-main: #ffffff;
+    --color-bg-surface: #f8fafc;
+    --color-accent-primary: #000000;
+    --color-accent-secondary: #64748b;
+    --text-primary: #000000;
+    --text-on-accent: #ffffff;
+  }
+
+  /* --- Base Aesthetics: Warm --- */
   [data-theme-base="warm"] {
     --color-bg-main: #450a0a;
     --color-bg-surface: #7c2d12;
     --color-accent-primary: #f97316;
     --color-accent-secondary: #f43f5e;
+    --text-primary: #fff7ed;
+  }
+
+  [data-theme="light"][data-theme-base="warm"] {
+    --color-bg-main: #fff7ed;
+    --color-bg-surface: #ffffff;
+    --color-accent-primary: #ea580c;
+    --color-accent-secondary: #e11d48;
+    --text-primary: #450a0a;
   }
 }

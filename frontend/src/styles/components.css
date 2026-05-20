@@ -35,6 +35,21 @@
       inset-inline-start: 0;
       box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     }
+
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 90;
+      display: block;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .sidebar-overlay {
+      display: none;
+    }
   }
 
   .sidebar-header {
@@ -204,10 +219,10 @@
     flex-direction: column;
     overflow: hidden;
     background: var(--color-bg-main); /* Fallback */
-    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
-    background: radial-gradient(circle at top right, rgb(from var(--color-accent-primary) r g b / 0.05) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgb(from var(--color-accent-tertiary) r g b / 0.05) 0%, transparent 40%);
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(244, 63, 94, 0.1) 0%, transparent 40%);
+    background: radial-gradient(circle at top right, rgb(from var(--color-accent-primary) r g b / 0.1) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgb(from var(--color-accent-secondary) r g b / 0.1) 0%, transparent 40%);
   }
 
   .message-stream {
@@ -311,6 +326,7 @@
   .composer-container {
     padding-block: 1.5rem;
     padding-inline: 2rem;
+    padding-inline-end: 6rem;
     background: linear-gradient(to top, var(--color-bg-main) 60%, transparent);
     position: relative;
     z-index: 10;
@@ -370,7 +386,8 @@
     transition: all 0.3s ease;
     background: rgba(2, 6, 23, 0.5); /* Fallback */
     background: rgb(from var(--color-bg-main) r g b / 0.5);
-    margin-inline-end: 5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border);
   }
 
   .input-wrapper input {
@@ -383,19 +400,15 @@
   }
 
   .composer-form.focused:not(.disabled) .input-wrapper {
-    border-color: rgba(99, 102, 241, 0.4) !important; /* Fallback */
-    border-color: rgb(from var(--color-accent-primary) r g b / 0.4) !important;
-    box-shadow: 0 0 30px rgba(99, 102, 241, 0.15), var(--color-accent-glow); /* Fallback */
+    border-color: var(--color-accent-primary) !important;
     box-shadow: 0 0 30px rgb(from var(--color-accent-primary) r g b / 0.15), var(--color-accent-glow);
-    background: rgba(2, 6, 23, 0.8); /* Fallback */
     background: rgb(from var(--color-bg-main) r g b / 0.8);
   }
 
   .composer-form.disabled .input-wrapper {
     opacity: 0.5;
     cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.02); /* Fallback */
-    background: rgb(from white r g b / 0.02);
+    background: rgb(from var(--glass-base) r g b / 0.02);
   }
 
   .composer-form button {
@@ -403,6 +416,33 @@
     block-size: 2.75rem;
     padding: 0 !important;
     flex-shrink: 0;
+  }
+
+  /* --- Animations --- */
+  @keyframes slide-up-fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message-bubble {
+    animation: slide-up-fade 0.3s ease-out;
+  }
+
+  .read-status {
+    margin-inline-start: 0.5rem;
+    opacity: 0.8;
+    font-weight: 600;
+    color: var(--color-accent-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    animation: pulse-read 2s infinite;
+  }
+
+  @keyframes pulse-read {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
   }
 
   /* --- Typing Indicator --- */
@@ -850,14 +890,14 @@
     border-color: var(--color-accent-primary);
     background: rgba(255, 255, 255, 0.08); /* Fallback */
     background: rgb(from white r g b / 0.08);
-    color: contrast-color(var(--color-bg-elevated), var(--color-bg-main));
+    color: var(--text-primary);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); /* Fallback */
     box-shadow: 0 0 0 4px rgb(from var(--color-accent-primary) r g b / 0.1);
   }
 
   .lumina-input > option {
     background: var(--color-bg-elevated);
-    color: contrast-color(var(--color-bg-elevated), var(--color-bg-main));
+    color: var(--text-primary);
     border-radius: var(--radius-md);
   }
 

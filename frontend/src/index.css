@@ -15,7 +15,7 @@
   }
 
   .glass-card {
-    background: rgb(from white r g b / 0.03);
+    background: rgb(var(--glass-base) / 0.03);
     backdrop-filter: blur(calc(var(--sentiment-blur) * 0.8));
     border: 1px solid var(--glass-border);
     corner-shape: squircle;
