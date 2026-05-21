@@ -72,10 +72,10 @@ class OpenRouterResponseGenerator(
                         OpenRouterMessage(role = "system", content = systemPrompt),
                         OpenRouterMessage(role = "user", content = userContent)
                     ),
-                    stream = true
+                    stream = false
                 )
 
-                logger.info("Sending streaming request to OpenRouter using model: {} at URL: {}", model, url)
+                logger.info("Sending non-streaming request to OpenRouter using model: {} at URL: {}", model, url)
 
                 if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
                     logger.warn("OpenRouter API key is missing. Using simulation fallback.")
@@ -87,24 +87,16 @@ class OpenRouterResponseGenerator(
                     .header("Authorization", "Bearer $apiKey")
                     .header("HTTP-Referer", "http://localhost:3000")
                     .header("X-Title", "AdaptaChat")
-                    .accept(MediaType.TEXT_EVENT_STREAM)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToFlux(object : ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                    .bodyToMono(OpenRouterResponse::class.java)
                     .timeout(java.time.Duration.ofSeconds(30))
-                    .mapNotNull { it.data() }
-                    .filter { it != "[DONE]" }
-                    .map { json ->
-                        try {
-                            val response = objectMapper.readValue(json, OpenRouterResponse::class.java)
-                            response.choices.firstOrNull()?.delta?.content ?: ""
-                        } catch (e: Exception) {
-                            logger.warn("Failed to parse AI chunk: {}", json, e)
-                            ""
-                        }
+                    .map { response ->
+                        response.choices.firstOrNull()?.message?.content ?: ""
                     }
                     .filter { it.isNotEmpty() }
+                    .flatMapMany { Flux.just(it) }
                     .onErrorResume { e ->
                         if (e is org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized) {
                             logger.error("Unauthorized call to OpenRouter. Switching to simulation mode.")
@@ -136,8 +128,6 @@ class OpenRouterResponseGenerator(
                 "I've received your transmission: '${message.content}'. I'm currently operating in limited capacity, but I am standing by for your next synchronization."
         }
         
-        // Split response into chunks to simulate streaming
-        return Flux.fromIterable(response.split(" ").map { "$it " })
-            .delayElements(java.time.Duration.ofMillis(100))
+        return Flux.just(response)
     }
 }

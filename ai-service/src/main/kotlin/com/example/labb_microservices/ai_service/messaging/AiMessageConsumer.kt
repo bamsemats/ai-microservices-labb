@@ -117,7 +117,7 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing streaming AI request for messageId: {}", message.id)
+        logger.info("Processing aggregated AI request for messageId: {}", message.id)
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()

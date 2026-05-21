@@ -18,8 +18,8 @@ spec:
         fsGroup: 10001
       containers:
       - name: auth-service
-        image: auth-service:v1.0.0
-        imagePullPolicy: IfNotPresent
+        image: auth-service:latest
+        imagePullPolicy: Never
 
         securityContext:
           allowPrivilegeEscalation: false

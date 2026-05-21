@@ -44,9 +44,9 @@ export const useChatStore = create<ChatState>((set) => ({
       const updatedMessages = [...state.messages];
       updatedMessages[existingIndex] = {
         ...updatedMessages[existingIndex],
-        content: updatedMessages[existingIndex].content + message.content,
+        content: message.content, // Replace instead of append to stop streaming effect
       };
-      // Reset AI status once we start receiving chunks
+      // Reset AI status once we start receiving messages
       return { messages: updatedMessages, aiStatus: 'IDLE' };
     }
     return { messages: [...state.messages, message], aiStatus: 'IDLE' };

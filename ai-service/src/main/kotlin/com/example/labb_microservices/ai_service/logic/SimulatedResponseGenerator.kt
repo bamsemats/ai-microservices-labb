@@ -52,11 +52,7 @@ class SimulatedResponseGenerator(
 
                 val finalResponse = baseResponse + personalTouch
                 
-                // Simulate LLM latency and streaming chunks
-                val words = finalResponse.split(" ")
-                Flux.fromIterable(words.withIndex())
-                    .map { (index, word) -> if (index == words.lastIndex) word else "$word " }
-                    .delayElements(Duration.ofMillis(100))
+                Flux.just(finalResponse)
             }
             .doOnComplete { logger.info("LLM simulation complete") }
     }
