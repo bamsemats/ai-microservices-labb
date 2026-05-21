@@ -79,8 +79,9 @@ const InsightsPage: React.FC = () => {
     }
 
     try {
-      await api.put('/users/profile', { displayName, bio });
-      setAuthDisplayName(displayName);
+      const normalizedDisplayName = displayName.trim() === '' ? null : displayName;
+      await api.put('/users/profile', { displayName: normalizedDisplayName, bio });
+      setAuthDisplayName(normalizedDisplayName);
       setFeedback("Profile frequency updated successfully.");
       setFeedbackType('success');
       feedbackTimeoutRef.current = setTimeout(() => {

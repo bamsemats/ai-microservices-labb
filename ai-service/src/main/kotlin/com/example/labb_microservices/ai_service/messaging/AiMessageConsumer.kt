@@ -154,6 +154,7 @@ class AiMessageConsumer(
             .timeout(java.time.Duration.ofSeconds(60))
             .collectList()
             .map { chunks -> chunks.joinToString("") }
+            .filter { it.isNotBlank() }
             .flatMap { fullContent ->
                 Mono.fromRunnable<Unit> {
                     val aiMessage = Message(

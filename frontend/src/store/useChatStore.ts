@@ -40,16 +40,25 @@ export const useChatStore = create<ChatState>((set) => ({
   typingUsers: {},
   addMessage: (message) => set((state) => {
     const existingIndex = state.messages.findIndex((m) => m.id === message.id);
+    const shouldResetAiStatus = message.authorType === 'BOT';
+
     if (existingIndex !== -1) {
       const updatedMessages = [...state.messages];
       updatedMessages[existingIndex] = {
         ...updatedMessages[existingIndex],
-        content: message.content, // Replace instead of append to stop streaming effect
+        ...message,
       };
-      // Reset AI status once we start receiving messages
-      return { messages: updatedMessages, aiStatus: 'IDLE' };
+      // Reset AI status once we start receiving messages from the bot
+      return { 
+        messages: updatedMessages, 
+        aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
+      };
     }
-    return { messages: [...state.messages, message], aiStatus: 'IDLE' };
+
+    return { 
+      messages: [...state.messages, message], 
+      aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
+    };
   }),
   addInjectedContent: (content) => set((state) => ({
     injectedContent: [...state.injectedContent, content]

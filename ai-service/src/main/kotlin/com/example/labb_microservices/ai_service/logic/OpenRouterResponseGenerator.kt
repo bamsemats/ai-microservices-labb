@@ -117,6 +117,7 @@ class OpenRouterResponseGenerator(
 
     private fun generateSimulatedResponse(message: Message): Flux<String> {
         val content = message.content.lowercase()
+        val redactedContent = piiRedactor.redact(message.content)
         val response = when {
             content.contains("hello") || content.contains("hi") -> 
                 "Greetings! I am the AdaptaChat AI. I am currently running in simulation mode because my external uplink is unauthorized or missing. How can I help you navigate these frequencies today?"
@@ -125,7 +126,7 @@ class OpenRouterResponseGenerator(
             content.contains("help") -> 
                 "I can assist with navigating the Discovery Hub, understanding your Insights, or just chatting. Note: I am currently in 'Offline Mode' due to API key issues."
             else -> 
-                "I've received your transmission: '${message.content}'. I'm currently operating in limited capacity, but I am standing by for your next synchronization."
+                "I've received your transmission: '$redactedContent'. I'm currently operating in limited capacity, but I am standing by for your next synchronization."
         }
         
         return Flux.just(response)

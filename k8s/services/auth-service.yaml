@@ -18,8 +18,8 @@ spec:
         fsGroup: 10001
       containers:
       - name: auth-service
-        image: auth-service:latest
-        imagePullPolicy: Never
+        image: auth-service:v1.0.0
+        imagePullPolicy: IfNotPresent
 
         securityContext:
           allowPrivilegeEscalation: false
@@ -78,6 +78,7 @@ spec:
           value: 5s
         - name: GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE
           value: file:/app/certs/auth-service.jks
+        # Both key store and key passwords share the same secret by default (see scripts/generate-certs.ps1)
         - name: GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD
           valueFrom:
             secretKeyRef:

@@ -1,5 +1,6 @@
 package com.example.labb_microservices.message_service.config
 
+import com.example.labb_microservices.common.security.AuthorizeExchangeHelper.authorizeActuator
 import com.example.labb_microservices.common.security.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
@@ -21,7 +22,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
         return http
             .csrf { it.disable() }
             .authorizeExchange { it
-                .pathMatchers("/actuator/**").permitAll()
+                .authorizeActuator()
                 .anyExchange().authenticated() 
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)

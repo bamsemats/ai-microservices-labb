@@ -2,7 +2,55 @@
 
 A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes. This project demonstrates advanced microservices patterns, including hybrid synchronous/asynchronous communication, zero-trust security, and real-time data streaming.
 
-## 🏗 Architecture Overview
+## Local Development & Kubernetes
+
+This project is designed to run on **Kubernetes (Minikube)**. To ensure your local code changes are reflected in the cluster, follow these procedures.
+
+### Initial Setup
+1. **Start Minikube**: `minikube start`
+2. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
+3. **Apply Services**: `kubectl apply -f k8s/services/`
+
+### The Development Loop (Restarting with Changes)
+When you modify code in any service, follow these steps to update the running system:
+
+1. **Build the Images**:
+   ```powershell
+   # Use the unified docker-compose to build all services with :latest tags
+   docker-compose build
+   ```
+
+2. **Load Images into Minikube**:
+   Minikube cannot see your local Docker images automatically. You must load them:
+   ```powershell
+   minikube image load ai-service:latest
+   minikube image load message-service:latest
+   minikube image load frontend:latest
+   # Repeat for other modified services
+   ```
+
+3. **Restart Deployments**:
+   Force Kubernetes to pull the newly loaded images:
+   ```powershell
+   kubectl rollout restart deployment ai-service message-service frontend
+   ```
+
+4. **Verify**:
+   Check pod status: `kubectl get pods`
+   Check logs: `kubectl logs -f deployment/ai-service`
+
+### Networking
+To access the frontend and API:
+```powershell
+# Port forward the gateway (via the frontend port for production parity)
+kubectl port-forward service/frontend 3000:80
+```
+Then visit `http://localhost:3000`.
+
+---
+
+## Architecture Overview
+
 
 For a deep dive into the system's roles, data flows, and security rationale, see the [Detailed Architectural Overview](docs/overview.md).
 
