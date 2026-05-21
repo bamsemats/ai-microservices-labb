@@ -153,8 +153,11 @@ class AiMessageConsumer(
         startNotify.thenMany(responseGenerator.generateResponse(message))
             .timeout(java.time.Duration.ofSeconds(60))
             .collectList()
-            .map { chunks -> chunks.joinToString("") }
-            .filter { it.isNotBlank() }
+            .map { chunks ->
+                chunks.joinToString("").ifBlank {
+                    "Interference detected in the frequency. Please try again later."
+                }
+            }
             .flatMap { fullContent ->
                 Mono.fromRunnable<Unit> {
                     val aiMessage = Message(
