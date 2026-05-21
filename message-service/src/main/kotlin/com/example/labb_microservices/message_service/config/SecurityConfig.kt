@@ -20,7 +20,10 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http
             .csrf { it.disable() }
-            .authorizeExchange { it.anyExchange().authenticated() }
+            .authorizeExchange { it
+                .pathMatchers("/actuator/**").permitAll()
+                .anyExchange().authenticated() 
+            }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build()
     }

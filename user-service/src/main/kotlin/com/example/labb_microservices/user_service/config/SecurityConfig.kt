@@ -49,6 +49,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
         return http
             .csrf { it.disable() }
             .authorizeExchange { it
+                .pathMatchers("/actuator/**").permitAll()
                 .pathMatchers("/register").permitAll()
                 .anyExchange().authenticated()
             }

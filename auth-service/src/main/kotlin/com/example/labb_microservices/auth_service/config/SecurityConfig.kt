@@ -20,6 +20,7 @@ class AuthServiceSecurityConfig(private val jwtAuthenticationFilter: JwtAuthenti
             .csrf { it.disable() }
             .logout { it.disable() }
             .authorizeExchange { it
+                .pathMatchers("/actuator/**").permitAll()
                 .pathMatchers("/login", "/register", "/refresh", "/logout").permitAll()
                 .anyExchange().authenticated()
             }

@@ -37,22 +37,25 @@ spec:
           limits:
             cpu: "300m"
             memory: "768Mi"
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 8082
-          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
             port: 8082
-          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10
         env:
         - name: JWT_SECRET
           valueFrom:
@@ -64,6 +67,8 @@ spec:
             secretKeyRef:
               name: adapta-secrets
               key: encryption-secret
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: http://jaeger:4318/v1/traces
         - name: SPRING_DATA_MONGODB_URI
           value: mongodb://mongodb:27017/userdb
         - name: SPRING_DATA_REDIS_HOST
@@ -72,16 +77,21 @@ spec:
           value: rabbitmq
         - name: GRPC_SERVER_SECURITY_ENABLED
           value: "true"
-        - name: GRPC_SERVER_SECURITY_KEYSTORE_PATH
-          value: /app/certs/user-service.jks
-        - name: GRPC_SERVER_SECURITY_KEYSTORE_PASSWORD
+        - name: GRPC_SERVER_SECURITY_KEY_STORE
+          value: file:/app/certs/user-service.jks
+        - name: GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: adapta-secrets
               key: grpc-keystore-password
-        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PATH
-          value: /app/certs/truststore.jks
-        - name: GRPC_SERVER_SECURITY_TRUSTSTORE_PASSWORD
+        - name: GRPC_SERVER_SECURITY_KEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-keystore-password
+        - name: GRPC_SERVER_SECURITY_TRUST_STORE
+          value: file:/app/certs/truststore.jks
+        - name: GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: adapta-secrets

@@ -19,18 +19,25 @@ spec:
       - name: gateway
         image: gateway:v1.0.0
         imagePullPolicy: IfNotPresent
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 8080
-          initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
             port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 10
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -53,6 +60,11 @@ spec:
             secretKeyRef:
               name: adapta-secrets
               key: jwt-secret
+        - name: ENCRYPTION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: encryption-secret
         - name: SERVICES_AUTH
           value: http://auth-service:8080
         - name: SERVICES_USER

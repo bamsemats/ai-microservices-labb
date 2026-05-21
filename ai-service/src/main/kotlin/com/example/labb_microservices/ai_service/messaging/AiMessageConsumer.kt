@@ -152,33 +152,33 @@ class AiMessageConsumer(
 
         startNotify.thenMany(responseGenerator.generateResponse(message))
             .timeout(java.time.Duration.ofSeconds(60))
-            .concatMap { chunk ->
+            .collectList()
+            .map { chunks -> chunks.joinToString("") }
+            .flatMap { fullContent ->
                 Mono.fromRunnable<Unit> {
-                    val aiChunk = Message(
+                    val aiMessage = Message(
                         id = responseId,
                         senderId = targetBotId,
                         senderName = botName,
                         receiverId = receiverId,
                         channelId = message.channelId,
-                        content = chunk,
+                        content = fullContent,
                         authorType = AuthorType.BOT
                     )
 
                     rabbitTemplate.convertAndSend(
                         RabbitMQConfig.AI_EXCHANGE_NAME,
                         "ai.response",
-                        aiChunk
+                        aiMessage
                     )
-                }
-                .subscribeOn(Schedulers.boundedElastic())
-                .thenReturn(chunk)
+                }.subscribeOn(Schedulers.boundedElastic())
             }
             .doOnTerminate {
                 readinessIndicator.decrementActiveRequests()
             }
             .then(
                 Mono.fromRunnable<Unit> {
-                    logger.info("AI streaming complete for responseId: {}", responseId)
+                    logger.info("AI generation complete for responseId: {}", responseId)
                     // Notify UI that AI is done
                     rabbitTemplate.convertAndSend(
                         RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,

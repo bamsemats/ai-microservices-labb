@@ -59,7 +59,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
     if (trimmed && !disabled) {

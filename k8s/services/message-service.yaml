@@ -34,22 +34,25 @@ spec:
           limits:
             cpu: "300m"
             memory: "768Mi"
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8083
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 8083
-          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
             port: 8083
-          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10
         env:
         - name: JWT_SECRET
           valueFrom:
@@ -61,20 +64,51 @@ spec:
             secretKeyRef:
               name: adapta-secrets
               key: encryption-secret
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: http://jaeger:4318/v1/traces
         - name: SPRING_DATA_MONGODB_URI
           value: mongodb://mongodb:27017/messagedb
         - name: SPRING_RABBITMQ_HOST
           value: rabbitmq
         - name: GRPC_CLIENT_USER_SERVICE_ADDRESS
           value: static://user-service:9090
+        - name: GRPC_CLIENT_USER_SERVICE_NEGOTIATION_TYPE
+          value: TLS
+        - name: GRPC_CLIENT_USER_SERVICE_DEADLINE
+          value: 5s
+        - name: GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE
+          value: file:/app/certs/message-service.jks
+        - name: GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_STORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-keystore-password
+        - name: GRPC_CLIENT_USER_SERVICE_SECURITY_KEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-keystore-password
+        - name: GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE
+          value: file:/app/certs/truststore.jks
+        - name: GRPC_CLIENT_USER_SERVICE_SECURITY_TRUST_STORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: grpc-truststore-password
         - name: SPRING_DATA_REDIS_HOST
           value: redis
         volumeMounts:
         - name: tmp-volume
           mountPath: /tmp
+        - name: certs-volume
+          mountPath: /app/certs
+          readOnly: true
       volumes:
       - name: tmp-volume
         emptyDir: {}
+      - name: certs-volume
+        secret:
+          secretName: message-service-certs
 ---
 apiVersion: v1
 kind: Service
