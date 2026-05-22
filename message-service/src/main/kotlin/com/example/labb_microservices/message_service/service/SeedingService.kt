@@ -7,6 +7,7 @@ import com.example.labb_microservices.message_service.repository.MessageReposito
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Bean
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -14,11 +15,12 @@ import java.time.Instant
 import java.util.*
 
 @Service
+@ConditionalOnProperty(name = ["app.seeding.enabled"], havingValue = "true", matchIfMissing = true)
 class SeedingService(
     private val messageProducer: MessageProducer,
     private val messageRepository: MessageRepository,
     private val presenceService: PresenceService
-) {
+) : CommandLineRunner {
     private val logger = LoggerFactory.getLogger(SeedingService::class.java)
 
     // Using a list of "Living Bots" that we want to simulate
@@ -66,8 +68,7 @@ class SeedingService(
             .doOnSuccess { logger.info("Data seeding completed for living bots.") }
     }
 
-    @Bean
-    fun seedRunner() = CommandLineRunner {
+    override fun run(vararg args: String?) {
         // Delay slightly to ensure infrastructure is ready
         Mono.delay(java.time.Duration.ofSeconds(5))
             .flatMap { seedData() }

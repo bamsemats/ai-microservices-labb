@@ -11,3 +11,10 @@ spring:
 app:
   test-mode:
     allowed: true
+  seeding:
+    enabled: false
+
+grpc:
+  client:
+    user-service:
+      negotiation-type: plaintext

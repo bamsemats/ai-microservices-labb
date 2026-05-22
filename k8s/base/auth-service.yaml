@@ -18,8 +18,8 @@ spec:
         fsGroup: 10001
       containers:
       - name: auth-service
-        image: auth-service:latest
-        imagePullPolicy: Never
+        image: auth-service:v1.0.0
+        imagePullPolicy: IfNotPresent
 
         securityContext:
           allowPrivilegeEscalation: false
@@ -98,11 +98,6 @@ spec:
               key: grpc-truststore-password
         - name: SPRING_DATA_REDIS_HOST
           value: redis
-        - name: SPRING_DATA_REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: adapta-secrets
-              key: redis-password
         - name: SPRING_DATA_REDIS_SSL_ENABLED
           value: "false"
         volumeMounts:

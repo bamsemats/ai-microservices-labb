@@ -19,7 +19,9 @@ import java.util.*
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=-1"
+    "grpc.server.port=-1",
+    "app.seeding.enabled=false",
+    "grpc.client.user-service.negotiation-type=plaintext"
 ])
 @AutoConfigureWebTestClient
 class MessageSearchIntegrationTest : BaseIntegrationTest() {

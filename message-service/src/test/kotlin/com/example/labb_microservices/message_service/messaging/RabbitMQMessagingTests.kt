@@ -22,7 +22,9 @@ import java.time.Instant
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=0",
+    "app.seeding.enabled=false",
+    "grpc.client.user-service.negotiation-type=plaintext"
 ])
 @Import(RabbitMQMessagingTests.LatchConfig::class, RabbitMQMessagingTests.ListenerConfig::class)
 class RabbitMQMessagingTests : BaseIntegrationTest() {

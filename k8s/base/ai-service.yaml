@@ -17,8 +17,8 @@ spec:
         runAsUser: 10001
       containers:
       - name: ai-service
-        image: ai-service:latest
-        imagePullPolicy: Never
+        image: ai-service:v1.0.0
+        imagePullPolicy: IfNotPresent
 
         securityContext:
           allowPrivilegeEscalation: false

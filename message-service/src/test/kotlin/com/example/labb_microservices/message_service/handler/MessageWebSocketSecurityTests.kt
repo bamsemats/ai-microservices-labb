@@ -25,7 +25,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
     "grpc.server.port=0",
     "auth.cache.ttl=0",
-    "auth.validation.interval=1"
+    "auth.validation.interval=1",
+    "app.seeding.enabled=false",
+    "grpc.client.user-service.negotiation-type=plaintext"
 ])
 class MessageWebSocketSecurityTests : BaseIntegrationTest() {
 

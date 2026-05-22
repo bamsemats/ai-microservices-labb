@@ -9,7 +9,7 @@ This project is designed to run on **Kubernetes (Minikube)**. To ensure your loc
 ### Initial Setup
 1. **Start Minikube**: `minikube start`
 2. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
-3. **Apply Services**: `kubectl apply -f k8s/services/`
+3. **Apply Services**: `kubectl apply -k k8s/overlays/local`
 
 ### The Development Loop (Restarting with Changes)
 When you modify code in any service, follow these steps to update the running system:

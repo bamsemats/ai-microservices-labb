@@ -18,8 +18,8 @@ spec:
         fsGroup: 1000
       containers:
       - name: frontend
-        image: frontend:latest
-        imagePullPolicy: Never
+        image: frontend:v1.0.0
+        imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
