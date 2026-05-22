@@ -219,6 +219,7 @@ services:
     build:
       context: .
       dockerfile: content-aggregator-service/Dockerfile
+    image: content-aggregator-service:latest
     ports:
       - "8086:8086"
     environment:
@@ -241,6 +242,7 @@ services:
     build:
       context: .
       dockerfile: feedback-service/Dockerfile
+    image: feedback-service:latest
     ports:
       - "8087:8087"
     environment:

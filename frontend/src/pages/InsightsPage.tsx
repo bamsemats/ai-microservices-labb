@@ -28,8 +28,8 @@ const InsightsPage: React.FC = () => {
       try {
         const response = await api.get('/users/me');
         const user = response.data;
-        if (user.displayName) setDisplayName(user.displayName);
-        if (user.bio) setBio(user.bio);
+        setDisplayName(user.displayName ?? '');
+        setBio(user.bio ?? '');
       } catch (error) {
         console.error('Failed to fetch profile', error);
       }
@@ -79,9 +79,11 @@ const InsightsPage: React.FC = () => {
     }
 
     try {
-      const normalizedDisplayName = displayName.trim() === '' ? null : displayName;
+      const trimmedDisplayName = displayName.trim();
+      const normalizedDisplayName = trimmedDisplayName === '' ? null : trimmedDisplayName;
       await api.put('/users/profile', { displayName: normalizedDisplayName, bio });
       setAuthDisplayName(normalizedDisplayName);
+      setDisplayName(normalizedDisplayName ?? '');
       setFeedback("Profile frequency updated successfully.");
       setFeedbackType('success');
       feedbackTimeoutRef.current = setTimeout(() => {
