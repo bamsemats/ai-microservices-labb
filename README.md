@@ -47,6 +47,21 @@ kubectl port-forward service/frontend 3000:80
 ```
 Then visit `http://localhost:3000`.
 
+### Graceful Shutdown
+To reclaim system resources without losing your configuration or data:
+
+1. **Hibernate the Cluster** (Recommended):
+   ```powershell
+   minikube stop
+   ```
+   This stops all resource usage (CPU/RAM) while preserving the cluster state, certificates, and database data. Run `minikube start` to resume.
+
+2. **Clean Stop** (Remove services only):
+   ```powershell
+   kubectl delete -k k8s/overlays/local
+   ```
+   This removes the application pods but keeps Minikube and infrastructure (DBs) running.
+
 ---
 
 ## Architecture Overview
