@@ -9,6 +9,8 @@ images:
   newTag: latest
 - name: auth-service
   newTag: latest
+- name: content-aggregator-service
+  newTag: latest
 - name: feedback-service
   newTag: latest
 - name: frontend

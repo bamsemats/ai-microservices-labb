@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-aggregator-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-aggregator-service
+  template:
+    metadata:
+      labels:
+        app: content-aggregator-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: content-aggregator-service
+        image: content-aggregator-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8086
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8086
+          periodSeconds: 10
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8086
+          periodSeconds: 10
+          timeoutSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+        ports:
+        - containerPort: 8086
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "512Mi"
+        env:
+        - name: SPRING_RABBITMQ_HOST
+          value: rabbitmq
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: http://jaeger:4318/v1/traces
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-aggregator-service
+spec:
+  type: ClusterIP
+  selector:
+    app: content-aggregator-service
+  ports:
+  - port: 8080
+    targetPort: 8086

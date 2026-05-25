@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
 - ai-service.yaml
 - auth-service.yaml
+- content-aggregator-service.yaml
 - feedback-service.yaml
 - frontend.yaml
 - gateway.yaml
