@@ -67,31 +67,29 @@ class MessageController(
 
                 getUserWithFallback(senderId)
                     .flatMap { userResponse ->
-                        Mono.fromCallable {
-                            val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
-                            val channelId = request.channelId?.takeIf { it.isNotBlank() }
-                                ?: if (request.receiverId == "all") "global" else "general"
-                            
-                            val metadata = mutableMapOf<String, String>()
-                            if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
-                                metadata["X-Adapta-Test-Mode"] = "true"
-                            }
-                            
-                            val message = Message(
-                                id = idPrefix + UUID.randomUUID().toString(),
-                                senderId = senderId,
-                                senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
-                                receiverId = request.receiverId,
-                                channelId = channelId,
-                                content = request.content,
-                                authorType = AuthorType.USER,
-                                metadata = metadata
-                            )
-                            processMessage(message)
-                            "Message sent to queue by $senderId in channel $channelId"
+                        val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
+                        val channelId = request.channelId?.takeIf { it.isNotBlank() }
+                            ?: if (request.receiverId == "all") "global" else "general"
+                        
+                        val metadata = mutableMapOf<String, String>()
+                        if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
+                            metadata["X-Adapta-Test-Mode"] = "true"
                         }
+                        
+                        val message = Message(
+                            id = idPrefix + UUID.randomUUID().toString(),
+                            senderId = senderId,
+                            senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
+                            receiverId = request.receiverId,
+                            channelId = channelId,
+                            content = request.content,
+                            authorType = AuthorType.USER,
+                            metadata = metadata
+                        )
+                        
+                        processMessage(message)
+                            .thenReturn("Message received: ${message.id}")
                     }
-                .subscribeOn(Schedulers.boundedElastic())
             }
     }
 
@@ -105,22 +103,19 @@ class MessageController(
                 
                 getUserWithFallback(senderId)
                     .flatMap { userResponse ->
-                        Mono.fromCallable {
-                            val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
-                            val message = Message(
-                                id = UUID.randomUUID().toString(),
-                                senderId = senderId,
-                                senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
-                                receiverId = "all",
-                                channelId = channelId,
-                                content = request.content,
-                                authorType = AuthorType.USER
-                            )
-                            processMessage(message)
-                            "Broadcast message sent by $senderId in channel $channelId"
-                        }
+                        val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
+                        val message = Message(
+                            id = UUID.randomUUID().toString(),
+                            senderId = senderId,
+                            senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
+                            receiverId = "all",
+                            channelId = channelId,
+                            content = request.content,
+                            authorType = AuthorType.USER
+                        )
+                        processMessage(message)
+                            .thenReturn("Broadcast message sent by $senderId in channel $channelId")
                     }
-                .subscribeOn(Schedulers.boundedElastic())
             }
     }
 
@@ -203,17 +198,23 @@ class MessageController(
         private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
     }
 
-    private fun processMessage(message: Message) {
-        messageProducer.sendMessage(message)
-        
-        val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
-        if (isAiRecipient || AI_MENTION_REGEX.containsMatchIn(message.content)) {
-            try {
-                messageProducer.sendAiRequest(message)
-            } catch (e: Exception) {
-                logger.error("Failed to trigger AI request for message ${message.id}", e)
+    private fun processMessage(message: Message): Mono<Void> {
+        return Mono.fromCallable {
+            logger.info("Processing message ${message.id} for dispatch")
+            messageProducer.sendMessage(message)
+            
+            val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
+            val hasAiMention = AI_MENTION_REGEX.containsMatchIn(message.content)
+            
+            if (isAiRecipient || hasAiMention) {
+                logger.info("Triggering AI request for message ${message.id}. recipientMatch=$isAiRecipient, mentionMatch=$hasAiMention")
+                try {
+                    messageProducer.sendAiRequest(message)
+                } catch (e: Exception) {
+                    logger.error("Failed to trigger AI request for message ${message.id}", e)
+                }
             }
-        }
+        }.subscribeOn(Schedulers.boundedElastic()).then()
     }
 
     @GetMapping("/user/{userId}")

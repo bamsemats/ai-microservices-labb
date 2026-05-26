@@ -77,8 +77,8 @@ class OpenRouterResponseGenerator(
 
                 logger.info("Sending non-streaming request to OpenRouter using model: {} at URL: {}", model, url)
 
-                if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
-                    logger.warn("OpenRouter API key is missing. Using simulation fallback.")
+                if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}" || apiKey.contains("dummy")) {
+                    logger.warn("OpenRouter API key is missing or dummy. Using simulation fallback.")
                     return@flatMapMany generateSimulatedResponse(message)
                 }
 

@@ -117,23 +117,21 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing aggregated AI request for messageId: {}", message.id)
+        logger.info("Processing aggregated AI request for messageId: {} from user: {}", message.id, message.senderId)
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()
         
         // Dynamic bot identification
-        val isExplicitReceiver = botRegistry.isAiBot(message.receiverId)
-        val mentionedBotId = AI_MENTION_REGEX.find(message.content)?.groupValues?.get(1)?.lowercase()
-        val targetBotId = if (isExplicitReceiver) {
-            botRegistry.getBotId(message.receiverId)
-        } else if (mentionedBotId != null && botRegistry.isAiBot(mentionedBotId)) {
-            botRegistry.getBotId(mentionedBotId)
-        } else {
-            botRegistry.getBotId("ai-bot") // Fallback
+        val mentionedBotId = AI_MENTION_REGEX.find(message.content)?.groupValues?.get(1)
+        val targetBotId = when {
+            botRegistry.isAiBot(message.receiverId) -> botRegistry.getBotId(message.receiverId)
+            mentionedBotId != null && botRegistry.isAiBot(mentionedBotId) -> botRegistry.getBotId(mentionedBotId)
+            else -> "ai-bot"
         }
         
         val botName = botRegistry.getBotDisplayName(targetBotId)
+        logger.info("Identified bot: {} ({}) as responder", targetBotId, botName)
         
         val receiverId = if (message.receiverId == "all") "all" else message.senderId
 
