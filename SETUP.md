@@ -101,8 +101,3 @@ kubectl delete -f k8s/infrastructure/
 # Optionally delete Minikube
 minikube delete
 ```
-
----
-
-## 📚 Documentation
-For detailed architectural info, see `docs/overview.md` or check `GEMINI.md` for the latest implementation notes.
