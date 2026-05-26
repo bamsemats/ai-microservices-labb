@@ -12,14 +12,65 @@ import reactor.core.publisher.Flux
 import org.slf4j.LoggerFactory
 import java.util.*
 
+import com.example.labb_microservices.user_service.model.Friendship
+import com.example.labb_microservices.user_service.model.FriendshipStatus
+import com.example.labb_microservices.user_service.repository.FriendshipRepository
+
 @Service
 class UserService(
     private val userRepository: UserRepository,
+    private val friendshipRepository: FriendshipRepository,
     private val passwordEncoder: PasswordEncoder,
     private val encryptionUtils: EncryptionUtils,
     private val presenceTracker: PresenceTracker
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
+
+    fun searchUsers(query: String, page: Int, size: Int): Mono<org.springframework.data.domain.Page<User>> {
+        val pageable = org.springframework.data.domain.PageRequest.of(page, size)
+        return userRepository.findByUsernameContainingIgnoreCase(query, pageable)
+            .collectList()
+            .zipWith(userRepository.countByUsernameContainingIgnoreCase(query))
+            .map { org.springframework.data.domain.PageImpl(it.t1, pageable, it.t2) }
+    }
+
+    fun sendFriendRequest(userId: String, friendId: String): Mono<Friendship> {
+        if (userId == friendId) return Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Cannot friend yourself"))
+        
+        return userRepository.findById(friendId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { friend ->
+                val status = if (friend.isBot) FriendshipStatus.ACCEPTED else FriendshipStatus.PENDING
+                val friendship = Friendship(userId = userId, friendId = friendId, status = status)
+                friendshipRepository.save(friendship)
+            }
+    }
+
+    fun acceptFriendRequest(userId: String, friendId: String): Mono<Friendship> {
+        return friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+            .flatMap { 
+                friendshipRepository.save(it.copy(status = FriendshipStatus.ACCEPTED))
+            }
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Friend request not found")))
+    }
+
+    fun getFriends(userId: String): Flux<User> {
+        return Flux.concat(
+            friendshipRepository.findByUserId(userId)
+                .filter { it.status == FriendshipStatus.ACCEPTED }
+                .map { it.friendId },
+            friendshipRepository.findByFriendId(userId)
+                .filter { it.status == FriendshipStatus.ACCEPTED }
+                .map { it.userId }
+        ).distinct()
+            .flatMap { userRepository.findById(it) }
+    }
+
+    fun deleteFriend(userId: String, friendId: String): Mono<Void> {
+        return friendshipRepository.findByUserIdAndFriendId(userId, friendId)
+            .switchIfEmpty(friendshipRepository.findByUserIdAndFriendId(friendId, userId))
+            .flatMap { friendshipRepository.delete(it) }
+    }
 
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")

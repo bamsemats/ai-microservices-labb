@@ -114,9 +114,10 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#27 UI Adaptation**: Real-time aesthetic shifts based on AI sentiment.
 - [x] **#28 Content Aggregator**: Contextual widget injection (Twitch, etc.).
 - [x] **#29 UI Foundation**: `Lumina Fluid` style system with glassmorphism.
-- [x] **#30 Chat Hub**: Sidebar and channel navigation architecture.
+- [x] **#30 Chat Hub**: Sidebar and channel navigation architecture.`r`n- [x] **#074 Social Expansion**: Frequencies, Friends, and Admin Dashboard.
 - [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
 - [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
+- [ ] **#075 Friends Page & Frequency Options**: Implement dedicated /friends route, direct frequency initiation, and frequency dropdown management.
 - [x] **#33 AI Insights Dashboard**: Performance visualization and profile customization.
 - [x] **#37 Persistent Channel Partitioning**: Strict channel-based message isolation.
 - [x] **#38 Real-time Presence Backend**: Redis-backed status tracking for all users.
@@ -227,3 +228,4 @@ docker-compose up --build
 
 ## Author
 - [Bamsemats](https://github.com/bamsemats)
+

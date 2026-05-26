@@ -1,93 +1,69 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
-import { useChatStore, type Message, type InjectedContent } from '../store/useChatStore';
+import { useChatStore, type Message } from '../store/useChatStore';
 import { useWebSocket } from '../hooks/useWebSocket';
-import api from '../api/axios';
 import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
-import ContentWidget from '../components/ContentWidget';
 import ThinkingBubble from '../components/ThinkingBubble';
 
 import MainLayout from '../components/MainLayout';
 
-type DisplayItem = 
-  | { type: 'msg'; data: Message }
-  | { type: 'content'; data: InjectedContent };
-
 const ChatPage: React.FC = () => {
   const [receiverId, setReceiverId] = useState('home');
   const [error, setError] = useState<string | null>(null);
-  const { userId, isAdmin } = useAuthStore();
-  const { messages, injectedContent, aiStatus, typingUsers } = useChatStore();
-  const { sendTyping, sendReadReceipt } = useWebSocket();
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const { userId, token } = useAuthStore();
+  const { 
+    messages, 
+    fetchMessages, 
+    sendMessage: pushToStore, 
+    activeChannelId, 
+    setActiveChannelId,
+    aiStatus
+  } = useChatStore();
 
-  const activeChannelId = receiverId === 'home' ? 'general' : receiverId;
-  const currentTypingUsers = typingUsers[activeChannelId] || [];
+  const { sendMessage: sendWs, sendTyping } = useWebSocket();
 
-  const filteredMessages = useMemo(() => {
-    return messages.filter(msg => {
-      if (receiverId === 'all' || receiverId === 'home') {
-        return !msg.receiverId || msg.receiverId === 'all' || msg.channelId === 'general';
-      }
-      return (msg.senderId === userId && msg.receiverId === receiverId) || 
-             (msg.senderId === receiverId && msg.receiverId === userId);
-    });
-  }, [messages, receiverId, userId]);
+  useEffect(() => {
+    setActiveChannelId(receiverId);
+    if (token) fetchMessages(receiverId);
+  }, [receiverId, token, fetchMessages, setActiveChannelId]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+  }, [messages, aiStatus]);
+
+  const filteredMessages = useMemo(() => {
+    return messages.filter(m => m.channelId === activeChannelId);
+  }, [messages, activeChannelId]);
+
+  const handleSendMessage = (content: string) => {
+    if (!content.trim()) return;
     
-    // Read receipt logic: mark visible messages as read when they arrive
-    if (!userId) return;
+    const tempId = `temp-${Date.now()}`;
+    const newMsg: Message = {
+      id: tempId,
+      senderId: userId || 'anonymous',
+      senderName: useAuthStore.getState().displayName || useAuthStore.getState().username || 'Me',
+      receiverId: receiverId === 'home' ? 'all' : receiverId,
+      channelId: activeChannelId,
+      content,
+      timestamp: new Date().toISOString(),
+      authorType: 'USER'
+    };
 
-    const unreadMessages = filteredMessages.filter(m => m.senderId !== userId && !(m.readBy || []).includes(userId));
-    unreadMessages.forEach(m => {
-      if (m.id) sendReadReceipt(m.id, m.channelId || activeChannelId);
-    });
-  }, [messages, injectedContent, aiStatus, receiverId, activeChannelId, filteredMessages, sendReadReceipt, userId]);
-
-  const handleSend = async (content: string) => {
-    setError(null);
-    try {
-      if (receiverId === 'all' || receiverId === 'home') {
-        const target = receiverId === 'home' ? 'general' : receiverId;
-        if (!isAdmin) {
-          setError(`Only admins can broadcast to #${target}.`);
-          return;
-        }
-        await api.post('/messages/broadcast', { content });
-      } else {
-        await api.post('/messages', {
-          receiverId,
-          content,
-          channelId: activeChannelId
-        });
-      }
-    } catch (err) {
-      setError("Failed to transmit frequency. Target may be offline.");
-      console.error('Failed to send message', err);
-    }
+    pushToStore(newMsg);
+    // useWebSocket sendMessage takes a Message object
+    sendWs(newMsg);
   };
 
   const handleTyping = (isTyping: boolean) => {
     sendTyping(activeChannelId, isTyping);
   };
-
-  const filteredInjectedContent = (receiverId === 'all' || receiverId === 'home') ? injectedContent : [];
-
-  // Combine messages and injected content for display
-  const displayItems: DisplayItem[] = [
-    ...filteredMessages.map(m => ({ type: 'msg' as const, data: m })),
-    ...filteredInjectedContent.map(c => ({ type: 'content' as const, data: c }))
-  ].sort((a, b) => {
-    const timeA = a.type === 'msg' ? new Date(a.data.timestamp).getTime() : a.data.timestamp;
-    const timeB = b.type === 'msg' ? new Date(b.data.timestamp).getTime() : b.data.timestamp;
-    return timeA - timeB;
-  });
 
   return (
     <MainLayout
@@ -111,7 +87,7 @@ const ChatPage: React.FC = () => {
                 <h2>Welcome to AdaptaChat</h2>
                 <p>Select a channel or direct message to start communicating across frequencies.</p>
               </motion.div>
-            ) : displayItems.length === 0 ? (
+            ) : filteredMessages.length === 0 ? (
               <motion.div 
                 key="empty"
                 initial={{ opacity: 0 }}
@@ -123,19 +99,12 @@ const ChatPage: React.FC = () => {
                 <p>No messages in this frequency yet. Start the broadcast.</p>
               </motion.div>
             ) : (
-              displayItems.map((item, idx) => (
-                item.type === 'msg' ? (
-                  <MessageBubble 
-                    key={item.data.id || `msg-${idx}`} 
-                    message={item.data} 
-                    isOwn={item.data.senderId === userId} 
-                  />
-                ) : (
-                  <ContentWidget 
-                    key={`content-${idx}`} 
-                    content={item.data} 
-                  />
-                )
+              filteredMessages.map((msg, idx) => (
+                <MessageBubble 
+                  key={msg.id || `msg-${idx}`} 
+                  message={msg} 
+                  isOwn={msg.senderId === userId} 
+                />
               ))
             )}
             {aiStatus === 'THINKING' && (
@@ -151,43 +120,20 @@ const ChatPage: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        <AnimatePresence>
-          {currentTypingUsers.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="typing-indicator-wrapper"
-            >
-              <div className="typing-dots">
-                <span></span><span></span><span></span>
-              </div>
-              <span className="typing-text">
-                {currentTypingUsers.length === 1 
-                  ? `${currentTypingUsers[0]} is typing...` 
-                  : `${currentTypingUsers.length} users are typing...`}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <MessageComposer 
-          onSend={handleSend} 
+          onSend={handleSendMessage} 
           onTyping={handleTyping}
-          placeholder={`Message ${receiverId === 'home' ? 'general' : (receiverId === 'all' ? '#general' : 'this frequency')}...`}
-          disabled={(receiverId === 'all' || receiverId === 'home') && !isAdmin}
         />
       </section>
 
       <AnimatePresence>
         {error && (
           <motion.div 
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="error-toast glass-panel"
+            exit={{ opacity: 0 }}
+            className="error-toast"
           >
-            <span className="error-icon">⚠️</span>
             <span className="error-message">{error}</span>
             <button className="close-toast" onClick={() => setError(null)}>×</button>
           </motion.div>
@@ -198,4 +144,3 @@ const ChatPage: React.FC = () => {
 };
 
 export default ChatPage;
-

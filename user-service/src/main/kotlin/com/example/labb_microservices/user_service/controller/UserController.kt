@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Flux
 import org.springframework.web.server.ResponseStatusException
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Size
@@ -76,11 +77,51 @@ class UserController(private val userService: UserService) {
     }
 
     @GetMapping("/users/search")
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
-    fun searchUsers(@RequestParam query: String): reactor.core.publisher.Flux<UserDto> {
-        return userService.findByUsername(query)
+    fun searchUsers(
+        @RequestParam query: String,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+        @AuthenticationPrincipal userId: String
+    ): Mono<org.springframework.data.domain.Page<UserDto>> {
+        return userService.searchUsers(query, page, size)
+            .map { pageObj -> 
+                pageObj.map { it.toUserDto() }
+            }
+    }
+
+    @PostMapping("/friends/request/{friendId}")
+    fun sendFriendRequest(
+        @PathVariable friendId: String,
+        @AuthenticationPrincipal userId: String
+    ): Mono<UserDto> {
+        return userService.sendFriendRequest(userId, friendId)
+            .flatMap { userService.findById(friendId) }
             .map { it.toUserDto() }
-            .flux()
+    }
+
+    @PostMapping("/friends/accept/{friendId}")
+    fun acceptFriendRequest(
+        @PathVariable friendId: String,
+        @AuthenticationPrincipal userId: String
+    ): Mono<UserDto> {
+        return userService.acceptFriendRequest(userId, friendId)
+            .flatMap { userService.findById(friendId) }
+            .map { it.toUserDto() }
+    }
+
+    @GetMapping("/friends")
+    fun getFriends(@AuthenticationPrincipal userId: String): Flux<UserDto> {
+        return userService.getFriends(userId)
+            .map { it.toUserDto() }
+    }
+
+    @DeleteMapping("/friends/{friendId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteFriend(
+        @PathVariable friendId: String,
+        @AuthenticationPrincipal userId: String
+    ): Mono<Void> {
+        return userService.deleteFriend(userId, friendId)
     }
 
     private fun User.toUserDto() = UserDto(

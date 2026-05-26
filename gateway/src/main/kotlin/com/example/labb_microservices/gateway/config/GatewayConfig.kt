@@ -25,12 +25,12 @@ class GatewayConfig(
                     .uri(authServiceUrl)
             }
             .route("user-service") { r ->
-                r.path("/register", "/users/**")
+                r.path("/register", "/users/**", "/friends/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(userServiceUrl)
             }
             .route("message-service") { r ->
-                r.path("/messages/**", "/ws/**")
+                r.path("/messages/**", "/ws/**", "/frequencies/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(messageServiceUrl)
             }

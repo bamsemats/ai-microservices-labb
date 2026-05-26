@@ -24,6 +24,10 @@ interface ChatState {
   injectedContent: InjectedContent[];
   aiStatus: 'IDLE' | 'THINKING' | 'ERROR';
   typingUsers: Record<string, string[]>; // channelId -> usernames
+  activeChannelId: string;
+  setActiveChannelId: (id: string) => void;
+  fetchMessages: (channelId: string) => Promise<void>;
+  sendMessage: (message: Message) => void;
   addMessage: (message: Message) => void;
   addInjectedContent: (content: InjectedContent) => void;
   setAiStatus: (status: 'IDLE' | 'THINKING' | 'ERROR') => void;
@@ -33,11 +37,28 @@ interface ChatState {
   markMessageRead: (messageId: string, userId: string) => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+import api from '../api/axios';
+
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   injectedContent: [],
   aiStatus: 'IDLE',
   typingUsers: {},
+  activeChannelId: 'home',
+  setActiveChannelId: (id) => set({ activeChannelId: id }),
+  fetchMessages: async (channelId) => {
+    try {
+      const isGlobal = channelId === 'home' || channelId === 'all';
+      const params = isGlobal ? { channelId: 'general' } : { channelId };
+      const response = await api.get('/messages', { params });
+      set({ messages: response.data, injectedContent: [] });
+    } catch (error) {
+      console.error('Failed to fetch messages', error);
+    }
+  },
+  sendMessage: (message) => {
+    get().addMessage(message);
+  },
   addMessage: (message) => set((state) => {
     const existingIndex = state.messages.findIndex((m) => m.id === message.id);
     const shouldResetAiStatus = message.authorType === 'BOT';

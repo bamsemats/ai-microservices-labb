@@ -7,6 +7,7 @@ import com.example.labb_microservices.message_service.model.AuthorType
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.repository.MessageRepository
 import com.example.labb_microservices.message_service.service.PresenceService
+import com.example.labb_microservices.message_service.service.FrequencyService
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -40,6 +41,7 @@ class MessageController(
     private val userGrpcClient: UserGrpcClient,
     private val messageProducer: MessageProducer,
     private val presenceService: PresenceService,
+    private val frequencyService: FrequencyService,
     private val messageRepository: MessageRepository,
     private val encryptionUtils: EncryptionUtils,
     private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate,
@@ -251,51 +253,62 @@ class MessageController(
                 val principal = auth.name
                 val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
 
-                val query = when {
-                    channelId != null -> {
-                        if (isAdmin) {
-                            messageRepository.findAllByChannelId(channelId)
-                        } else {
-                            // Non-admins can see broadcast messages in this channel OR messages they are part of
-                            // This is more "Global" and respects partitioning
-                            mongoTemplate.find(
-                                org.springframework.data.mongodb.core.query.Query(
-                                    org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
-                                        .andOperator(
-                                            org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                                                org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
-                                            )
-                                        )
-                                ),
-                                Message::class.java
-                            )
+                val authCheck = if (channelId != null && channelId != "general" && channelId != "global" && !isAdmin) {
+                    frequencyService.findById(channelId)
+                        .flatMap { freq ->
+                            if (freq.members.contains(principal)) Mono.just(true)
+                            else Mono.just(false)
                         }
-                    }
-                    receiverId != null -> {
-                        // Principal must be one of the participants
-                        if (receiverId == principal) {
-                            messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
-                        } else {
-                            // Find DMs between principal and receiverId
-                            messageRepository.findAllBySenderIdAndReceiverId(principal, receiverId)
-                                .mergeWith(messageRepository.findAllBySenderIdAndReceiverId(receiverId, principal))
-                        }
-                    }
-                    isAdmin -> {
-                        messageRepository.findAll()
-                    }
-                    else -> {
-                        // Non-admins can only see messages they are part of (DMs or Broadcasts)
-                        messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
-                            .mergeWith(messageRepository.findAllByReceiverId("all"))
-                    }
+                        .switchIfEmpty(Mono.just(true)) // Fallback for DMs
+                } else {
+                    Mono.just(true)
                 }
 
-                query.flatMap { encryptedMessage ->
-                    Mono.fromCallable { decryptMessage(encryptedMessage) }
-                        .subscribeOn(Schedulers.boundedElastic())
+                authCheck.flatMapMany { authorized ->
+                    if (!authorized) return@flatMapMany Flux.error<Message>(ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this frequency"))
+
+                    val query = when {
+                        channelId != null -> {
+                            if (isAdmin) {
+                                messageRepository.findAllByChannelId(channelId)
+                            } else {
+                                // Non-admins can see broadcast messages in this channel OR messages they are part of
+                                mongoTemplate.find(
+                                    org.springframework.data.mongodb.core.query.Query(
+                                        org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
+                                            .andOperator(
+                                                org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                                                    org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                                                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                                                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                                                )
+                                            )
+                                    ),
+                                    Message::class.java
+                                )
+                            }
+                        }
+                        receiverId != null -> {
+                            if (receiverId == principal) {
+                                messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
+                            } else {
+                                messageRepository.findAllBySenderIdAndReceiverId(principal, receiverId)
+                                    .mergeWith(messageRepository.findAllBySenderIdAndReceiverId(receiverId, principal))
+                            }
+                        }
+                        isAdmin -> {
+                            messageRepository.findAll()
+                        }
+                        else -> {
+                            messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
+                                .mergeWith(messageRepository.findAllByReceiverId("all"))
+                        }
+                    }
+
+                    query.flatMap { encryptedMessage ->
+                        Mono.fromCallable { decryptMessage(encryptedMessage) }
+                            .subscribeOn(Schedulers.boundedElastic())
+                    }
                 }
             }
     }

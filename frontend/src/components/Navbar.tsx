@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Menu, Radio } from 'lucide-react';
+import Avatar from './Avatar';
 
 interface NavbarProps {
   prefix?: string;
@@ -11,7 +12,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
   const { username, displayName, logout } = useAuthStore();
-  const { currentTheme, setTheme, toggleSidebar } = useUIStore();
+  const { currentTheme, setTheme, toggleSidebar, toggleInjectionPanel } = useUIStore();
   const navigate = useNavigate();
 
   const isDark = currentTheme.mode !== 'light';
@@ -33,12 +34,21 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           onClick={() => toggleSidebar()}
           aria-label="Toggle navigation menu"
         >
-          ☰
+          <Menu size={20} />
         </button>
         {prefix && <span className="context-prefix" aria-hidden="true">{prefix}</span>}
         <span className="context-name">{contextName}</span>
       </div>
       <div className="user-controls">
+        <button 
+          className="lumina-button secondary icon-only" 
+          onClick={() => toggleInjectionPanel()}
+          aria-label="Toggle signal injections"
+          title="Signal Injections"
+        >
+          <Radio size={20} />
+        </button>
+
         <button 
           className="lumina-button secondary icon-only theme-toggle" 
           onClick={toggleTheme}
@@ -46,15 +56,15 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
           aria-pressed={isDark}
         >
-          {isDark ? <Sun/> : <Moon/>}
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
         
         <button 
           className="user-badge glass-card clickable" 
           onClick={() => navigate('/profile')}
           aria-label="View your profile"
-          style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}
         >
+          <Avatar seed={username || 'me'} size="sm" />
           <span className="username">{displayName || username}</span>
         </button>
         

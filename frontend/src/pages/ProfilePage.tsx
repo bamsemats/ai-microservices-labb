@@ -3,14 +3,14 @@ import { motion } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 
 interface SocialLinks {
   twitter?: string;
   github?: string;
   website?: string;
 }
-
-import MainLayout from '../components/MainLayout';
 
 const ProfilePage: React.FC = () => {
   const { username, token } = useAuthStore();
@@ -81,7 +81,7 @@ const ProfilePage: React.FC = () => {
             className="glass-panel profile-editor"
           >
             <div className="editor-header">
-              <div className="profile-avatar-large">{username?.charAt(0)?.toUpperCase() ?? '?'}</div>
+              <Avatar seed={username || 'me'} size="xl" />
               <div className="header-text">
                 <h2>{username}</h2>
                 <p>Customize your digital identity across the Adapta Network.</p>

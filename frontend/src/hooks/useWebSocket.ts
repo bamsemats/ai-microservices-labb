@@ -175,14 +175,9 @@ export const useWebSocket = () => {
     };
   }, [connect]);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((message: Message) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      const payload = {
-        type: 'CHAT_MESSAGE',
-        content,
-        timestamp: new Date().toISOString()
-      };
-      socketRef.current.send(JSON.stringify(payload));
+      socketRef.current.send(JSON.stringify(message));
     } else {
       console.error('WebSocket is not open');
     }

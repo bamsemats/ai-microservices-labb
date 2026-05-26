@@ -10,4 +10,6 @@ interface UserRepository : ReactiveMongoRepository<User, String> {
     fun findByUsername(username: String): Mono<User>
     fun findByEmailHash(emailHash: String): Mono<User>
     fun findByEmail(email: String): Mono<User>
+    fun findByUsernameContainingIgnoreCase(username: String, pageable: org.springframework.data.domain.Pageable): reactor.core.publisher.Flux<User>
+    fun countByUsernameContainingIgnoreCase(username: String): Mono<Long>
 }

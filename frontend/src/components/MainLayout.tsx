@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import RightPanel from './RightPanel';
+import TopDrawer from './TopDrawer';
 import { useUIStore } from '../store/useUIStore';
 
 interface MainLayoutProps {
@@ -23,7 +25,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <div className="chat-page-layout">
-      <Sidebar activeReceiver={activeReceiver} onSelectReceiver={onSelectReceiver} />
+      <TopDrawer />
+      <Sidebar 
+        activeReceiver={activeReceiver} 
+        onSelectReceiver={onSelectReceiver} 
+        className={!sidebarOpen ? 'closed' : ''}
+      />
       
       <AnimatePresence>
         {sidebarOpen && (
@@ -42,6 +49,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         <Navbar prefix={prefix} contextName={contextName} />
         {children}
       </main>
+
+      <RightPanel />
     </div>
   );
 };

@@ -262,10 +262,14 @@ const InsightsPage: React.FC = () => {
               </div>
               
               <div className="theme-preview">
+                {/* 
+                  Note: Using inline style for dynamic CSS variables is permitted 
+                  by GEMINI.md as they are determined at runtime.
+                */}
                 <div className="preview-bubble own" style={{ 
-                  backgroundColor: currentTheme.primaryColor || 'var(--primary-glow)',
-                  boxShadow: `0 0 ${currentTheme.intensity * 20}px ${currentTheme.primaryColor || 'var(--primary-glow)'}`
-                }}>
+                  '--preview-color': currentTheme.primaryColor || 'var(--color-accent-primary)',
+                  '--preview-intensity': currentTheme.intensity
+                } as React.CSSProperties}>
                   Luminous Preview
                 </div>
                 <div className="preview-bubble">Adaptive Context</div>

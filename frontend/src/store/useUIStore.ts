@@ -16,9 +16,11 @@ export interface UITheme {
 interface UIState {
   currentTheme: UITheme;
   sidebarOpen: boolean;
+  injectionPanelOpen: boolean;
   setTheme: (theme: Partial<UITheme>) => void;
   resetTheme: () => void;
   toggleSidebar: (open?: boolean) => void;
+  toggleInjectionPanel: (open?: boolean) => void;
 }
 
 const DEFAULT_THEME: UITheme = {
@@ -40,7 +42,8 @@ const getPersistedUI = (): Partial<UITheme> | null => {
 
 export const useUIStore = create<UIState>((set) => ({
   currentTheme: { ...DEFAULT_THEME, ...getPersistedUI() },
-  sidebarOpen: false,
+  sidebarOpen: window.innerWidth > 768,
+  injectionPanelOpen: false,
   setTheme: (theme) => set((state) => {
     const newTheme = { ...state.currentTheme, ...theme };
     localStorage.setItem('ui-theme', JSON.stringify(newTheme));
@@ -52,5 +55,8 @@ export const useUIStore = create<UIState>((set) => ({
   }),
   toggleSidebar: (open) => set((state) => ({
     sidebarOpen: open !== undefined ? open : !state.sidebarOpen
+  })),
+  toggleInjectionPanel: (open) => set((state) => ({
+    injectionPanelOpen: open !== undefined ? open : !state.injectionPanelOpen
   })),
 }));
