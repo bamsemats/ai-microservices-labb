@@ -67,7 +67,7 @@ class AuthController(
         val username = claims?.subject ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
         val userId = claims["userId"] as? String ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
         @Suppress("UNCHECKED_CAST")
-        val roles = claims["roles"] as? List<String> ?: emptyList()
+        val roles = (claims["roles"] as? List<*>)?.filterIsInstance<String>()?.ifEmpty { listOf("ROLE_USER") } ?: listOf("ROLE_USER")
         
         val newAccessToken = jwtService.generateAccessToken(username, userId, roles)
         val newRefreshToken = jwtService.generateRefreshToken(username, userId, roles)

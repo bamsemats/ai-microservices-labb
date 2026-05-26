@@ -45,6 +45,10 @@
     --color-accent-glow: rgb(from var(--color-accent-primary) r g b / calc(var(--sentiment-glow-intensity) * 0.5));
     --glass-bg: rgb(var(--glass-base) / var(--sentiment-opacity));
     --glass-border: rgb(var(--glass-base) / 0.08);
+
+    /* --- UI Preview Tokens --- */
+    --preview-color: var(--color-accent-primary);
+    --preview-intensity: 0;
   }
 
   [data-theme="light"] {
