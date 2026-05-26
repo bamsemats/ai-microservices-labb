@@ -18,10 +18,6 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
         val request = exchange.request
         val path = request.uri.path
         
-        if (path.startsWith("/actuator/")) {
-            return chain.filter(exchange)
-        }
-
         val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         val tokenParam = request.queryParams.getFirst("token")
         val isWebSocketHandshake = request.headers.getFirst("Upgrade")?.equals("websocket", ignoreCase = true) == true || path.startsWith("/ws")

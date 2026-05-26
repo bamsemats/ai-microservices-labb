@@ -20,6 +20,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return (isAuthenticated && token) ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, token, isAdmin } = useAuthStore();
+  if (!isAuthenticated || !token) return <Navigate to="/login" />;
+  return isAdmin ? <>{children}</> : <Navigate to="/" />;
+};
+
 function AppContent() {
   useKeyboardShortcuts();
   return (
@@ -62,9 +68,9 @@ function AppContent() {
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminPage />
-            </ProtectedRoute>
+            </AdminRoute>
           } 
         />
       </Routes>

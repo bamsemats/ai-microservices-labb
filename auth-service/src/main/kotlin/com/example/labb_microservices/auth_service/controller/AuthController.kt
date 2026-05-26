@@ -32,7 +32,7 @@ class AuthController(
                     val primaryRole = roles.firstOrNull { it == "ROLE_ADMIN" } ?: roles.firstOrNull() ?: "ROLE_USER"
                     
                     val accessToken = jwtService.generateAccessToken(response.username, response.userId, roles)
-                    val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
+                    val refreshToken = jwtService.generateRefreshToken(response.username, response.userId, roles)
                     refreshTokenService.saveRefreshToken(response.userId, refreshToken)
                         .flatMap { saved ->
                             if (saved) {
@@ -66,9 +66,11 @@ class AuthController(
         val claims = jwtService.getClaims(request.refreshToken)
         val username = claims?.subject ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
         val userId = claims["userId"] as? String ?: return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+        @Suppress("UNCHECKED_CAST")
+        val roles = claims["roles"] as? List<String> ?: emptyList()
         
-        val newAccessToken = jwtService.generateAccessToken(username, userId)
-        val newRefreshToken = jwtService.generateRefreshToken(username, userId)
+        val newAccessToken = jwtService.generateAccessToken(username, userId, roles)
+        val newRefreshToken = jwtService.generateRefreshToken(username, userId, roles)
         
         return refreshTokenService.rotateRefreshToken(userId, request.refreshToken, newRefreshToken)
             .flatMap { success ->

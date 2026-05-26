@@ -63,7 +63,15 @@ class UserController(private val userService: UserService) {
     @PutMapping("/users/{id}/roles")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     fun updateRoles(@PathVariable id: String, @RequestBody roles: List<String>): Mono<UserDto> {
-        return userService.updateRoles(id, roles)
+        if (roles.isEmpty()) {
+            return Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST, "Roles list cannot be empty"))
+        }
+        val rolePattern = Regex("^ROLE_[A-Z0-9_]+$")
+        if (roles.any { !it.trim().matches(rolePattern) }) {
+            return Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role format detected"))
+        }
+
+        return userService.updateRoles(id, roles.map { it.trim() })
             .map { it.toUserDto() }
     }
 

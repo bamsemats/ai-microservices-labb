@@ -29,8 +29,8 @@ class JwtService(
         return generateToken(username, userId, accessTokenExpirationTimeInMs, "access", roles)
     }
 
-    fun generateRefreshToken(username: String, userId: String): String {
-        return generateToken(username, userId, refreshTokenExpirationTimeInMs, "refresh", emptyList())
+    fun generateRefreshToken(username: String, userId: String, roles: List<String> = emptyList()): String {
+        return generateToken(username, userId, refreshTokenExpirationTimeInMs, "refresh", roles)
     }
 
     private fun generateToken(username: String, userId: String, expirationMs: Int, tokenType: String, roles: List<String>): String {
