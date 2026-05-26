@@ -9,7 +9,7 @@ This project is designed to run on **Kubernetes (Minikube)**. To ensure your loc
 ### Initial Setup
 1. **Start Minikube**: `minikube start`
 2. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
-3. **Apply Services**: `kubectl apply -k k8s/overlays/local`
+3. **Point to Minikube Docker Daemon**: ``minikube docker-env | Invoke-Expression`` (Ensures builds go directly into the cluster cache).`n  4. **Apply Services**: ``kubectl apply -k k8s/overlays/local``
 
 ### The Development Loop (Restarting with Changes)
 When you modify code in any service, follow these steps to update the running system:
@@ -20,8 +20,8 @@ When you modify code in any service, follow these steps to update the running sy
    docker-compose build
    ```
 
-2. **Load Images into Minikube**:
-   Minikube cannot see your local Docker images automatically. You must load them:
+2. **The Golden Path (Optimized Workflow)**:
+   Instead of loading images manually, run ``minikube docker-env | Invoke-Expression`` in your terminal. This points your Docker client to the Minikube daemon, making builds available instantly to Kubernetes.
    ```powershell
    minikube image load ai-service:latest
    minikube image load message-service:latest
@@ -113,7 +113,7 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 - [x] **#26 mTLS Enforcement**: inter-service identity with certificates.
 - [x] **#27 UI Adaptation**: Real-time aesthetic shifts based on AI sentiment.
 - [x] **#28 Content Aggregator**: Contextual widget injection (Twitch, etc.).
-- [x] **#29 UI Foundation**: "Lumina Fluid" style system with glassmorphism.
+- [x] **#29 UI Foundation**: `Lumina Fluid` style system with glassmorphism.
 - [x] **#30 Chat Hub**: Sidebar and channel navigation architecture.
 - [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
 - [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
@@ -155,12 +155,16 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
     - Optimized frontend `ChatPage` with memoization and secure read-receipt guards.
 - [x] **#66 Semantic UI Adaptation**: 
     - Transitioned from keyword-based triggers to semantic sentiment analysis using Mistral-7B.
-    - Implemented a "grace period" stabilization mechanism to prevent theme flickering.
+    - Implemented a `grace period` stabilization mechanism to prevent theme flickering.
     - Refined design tokens for more subtle, integrated transitions.
 - [x] **#67 Public Hosting & Feedback Loop**:
     - Prepared Kubernetes manifests for public cloud deployment with SSL/TLS (cert-manager).
     - Configured API Gateway routing and Ingress rules for production readiness.
     - Implemented a dedicated `feedback-service` and a floating UI widget for user reports.
+- [x] **#73 Admin Command Center & Role Management**:
+    - Implemented a full-stack admin dashboard for broadcasting and feedback review.
+    - Added role-based JWT issuance and automated system-admin seeding.
+    - Enabled real-time role modulation (promotion/revocation) from the UI.
 
 ---
 
@@ -180,16 +184,16 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
 To prevent logic drift, bot metadata and identification has been moved from ad-hoc mappings in individual services to a canonical **BotRegistry** in the `ai-service`. This ensures that sentiment analysis and response generation always follow consistent naming and identity rules.
 
 ### Service Interface Hardening
-The `MessageDeliveryService` has been refactored to remove ambiguous magic strings (like the "all" channel special-case) and unused parameters. This enforces a stricter API contract and ensures that message routing is explicit and maintainable.
+The `MessageDeliveryService` has been refactored to remove ambiguous magic strings (like the `all` channel special-case) and unused parameters. This enforces a stricter API contract and ensures that message routing is explicit and maintainable.
 
 ### Prism Aura: Edge-to-Edge UI
 The visual identity has been evolved from a fragmented component-based layout to the **Prism Aura** system. 
 - **Edge-to-Edge Layout**: Sidebar and Navbar are now flush with the viewport, maximizing information density while maintaining high-fidelity glassmorphism.
 - **Scalable SVG Branding**: Replaced all raster logos with a themeable SVG `BrandLogo` component, supporting smooth scaling and AI-driven aesthetic transitions.
-- **Zero-Trust Auth Hygiene**: Authentication state follows a "non-persistent sensitive data" policy. While user profile info (name, id) is hydrated from storage for UX continuity, JWT access tokens are kept purely in-memory, requiring a secure re-authentication or server-driven refresh upon page reload.
+- **Zero-Trust Auth Hygiene**: Authentication state follows a `non-persistent sensitive data` policy. While user profile info (name, id) is hydrated from storage for UX continuity, JWT access tokens are kept purely in-memory, requiring a secure re-authentication or server-driven refresh upon page reload.
 
 ### Synchronized Presence & Bot Identities
-"Living Bots" now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution). Presence tracking utilizes a dual-namespace Redis strategy (`active:` for users, `static:` for bots) with automated cleanup to ensure high-fidelity availability status throughout the UI.
+`Living Bots` now have persistent identities synchronized between the `message-service` (for seeding) and `user-service` (for identity resolution). Presence tracking utilizes a dual-namespace Redis strategy (`active:` for users, `static:` for bots) with automated cleanup to ensure high-fidelity availability status throughout the UI.
 
 ### Production-Grade gRPC mTLS
 Inter-service communication is hardened with mandatory mTLS. Configuration properties have been standardized to camelCase (e.g., `privateKeyPassword`) and correctly mapped to the `grpc-client-spring-boot-starter` metadata, ensuring robust certificate management and IDE validation.

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import org.springframework.web.server.ResponseStatusException
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 
 data class ProfileRequest(
@@ -59,6 +58,21 @@ class UserController(private val userService: UserService) {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteMe(@AuthenticationPrincipal userId: String): Mono<Void> {
         return userService.deleteUser(userId)
+    }
+
+    @PutMapping("/users/{id}/roles")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    fun updateRoles(@PathVariable id: String, @RequestBody roles: List<String>): Mono<UserDto> {
+        return userService.updateRoles(id, roles)
+            .map { it.toUserDto() }
+    }
+
+    @GetMapping("/users/search")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    fun searchUsers(@RequestParam query: String): reactor.core.publisher.Flux<UserDto> {
+        return userService.findByUsername(query)
+            .map { it.toUserDto() }
+            .flux()
     }
 
     private fun User.toUserDto() = UserDto(

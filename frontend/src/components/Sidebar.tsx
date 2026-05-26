@@ -16,7 +16,7 @@ const CHANNELS = [
 
 const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) => {
   const navigate = useNavigate();
-  const { userId } = useAuthStore();
+  const { userId, isAdmin } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { presences } = usePresenceStore();
 
@@ -86,6 +86,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) =
           >
             <span className="icon" aria-hidden="true">📊</span> Insights
           </button>
+          {isAdmin && (
+            <button 
+              className={`channel-item ${activeReceiver === 'admin' ? 'active' : ''}`} 
+              onClick={() => handleNav('/admin')}
+              aria-label="Admin Command Center"
+            >
+              <span className="icon" aria-hidden="true">🛡️</span> Admin Panel
+            </button>
+          )}
         </div>
       </div>
 

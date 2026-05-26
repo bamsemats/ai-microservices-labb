@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn install -pl proto,common-security,co
 
 # Build the service
 COPY content-aggregator-service/src content-aggregator-service/src
-RUN --mount=type=cache,target=/root/.m2 mvn package -pl content-aggregator-service -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl content-aggregator-service -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
 
 # Run stage
 FROM eclipse-temurin:21-jre

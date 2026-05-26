@@ -125,6 +125,14 @@ class UserService(
         return userRepository.deleteById(userId)
     }
 
+    fun updateRoles(userId: String, roles: List<String>): Mono<User> {
+        return userRepository.findById(userId)
+            .flatMap { user ->
+                userRepository.save(user.copy(roles = roles))
+            }
+            .map { decryptUser(it) }
+    }
+
     private fun decryptUser(user: User): User {
         val encryptedEmail = user.email ?: return user
         return try {

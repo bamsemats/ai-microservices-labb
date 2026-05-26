@@ -1,11 +1,8 @@
 package com.example.labb_microservices.common.security
 
-import org.springframework.context.annotation.Bean
 import org.springframework.http.HttpHeaders
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
-import org.springframework.security.core.userdetails.MapReactiveUserDetailsService
-import org.springframework.security.core.userdetails.User
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
@@ -20,6 +17,11 @@ class JwtAuthenticationFilter(private val jwtTokenValidator: JwtTokenValidator) 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request = exchange.request
         val path = request.uri.path
+        
+        if (path.startsWith("/actuator/")) {
+            return chain.filter(exchange)
+        }
+
         val authHeader = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         val tokenParam = request.queryParams.getFirst("token")
         val isWebSocketHandshake = request.headers.getFirst("Upgrade")?.equals("websocket", ignoreCase = true) == true || path.startsWith("/ws")

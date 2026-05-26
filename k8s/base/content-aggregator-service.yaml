@@ -59,6 +59,16 @@ spec:
           value: rabbitmq
         - name: SPRING_DATA_REDIS_HOST
           value: redis
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: jwt-secret
+        - name: ENCRYPTION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: encryption-secret
         - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
           value: http://jaeger:4318/v1/traces
         volumeMounts:

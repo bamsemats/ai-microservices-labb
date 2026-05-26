@@ -1,7 +1,6 @@
 package com.example.labb_microservices.user_service.grpc
 
 import com.example.labb_microservices.proto.*
-import com.example.labb_microservices.user_service.repository.UserRepository
 import io.grpc.stub.StreamObserver
 import net.devh.boot.grpc.server.service.GrpcService
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -25,6 +24,7 @@ class UserGrpcService(
                         .setValid(true)
                         .setUserId(user.id ?: "")
                         .setUsername(user.username)
+                        .addAllRoles(user.roles)
                         .build()
                 } else {
                     CredentialsResponse.newBuilder().setValid(false).build()
@@ -52,6 +52,7 @@ class UserGrpcService(
                     .setEnabled(user.enabled)
                     .setDisplayName(user.displayName ?: "")
                     .setIsBot(user.isBot)
+                    .addAllRoles(user.roles)
                     .build()
             }
             .switchIfEmpty(reactor.core.publisher.Mono.error(io.grpc.Status.NOT_FOUND.withDescription("User not found").asRuntimeException()))

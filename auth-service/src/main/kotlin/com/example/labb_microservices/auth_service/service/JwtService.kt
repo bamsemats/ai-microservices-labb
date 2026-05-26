@@ -25,15 +25,15 @@ class JwtService(
         key = Keys.hmacShaKeyFor(secret.toByteArray())
     }
 
-    fun generateAccessToken(username: String, userId: String): String {
-        return generateToken(username, userId, accessTokenExpirationTimeInMs, "access")
+    fun generateAccessToken(username: String, userId: String, roles: List<String> = emptyList()): String {
+        return generateToken(username, userId, accessTokenExpirationTimeInMs, "access", roles)
     }
 
     fun generateRefreshToken(username: String, userId: String): String {
-        return generateToken(username, userId, refreshTokenExpirationTimeInMs, "refresh")
+        return generateToken(username, userId, refreshTokenExpirationTimeInMs, "refresh", emptyList())
     }
 
-    private fun generateToken(username: String, userId: String, expirationMs: Int, tokenType: String): String {
+    private fun generateToken(username: String, userId: String, expirationMs: Int, tokenType: String, roles: List<String>): String {
         val now = Date()
         val expiryDate = Date(now.time + expirationMs)
 
@@ -41,6 +41,7 @@ class JwtService(
             .subject(username)
             .claim("userId", userId)
             .claim("tokenType", tokenType)
+            .claim("roles", roles)
             .issuedAt(now)
             .expiration(expiryDate)
             .signWith(key)

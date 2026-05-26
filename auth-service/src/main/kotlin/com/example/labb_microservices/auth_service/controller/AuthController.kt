@@ -5,16 +5,13 @@ import com.example.labb_microservices.auth_service.service.JwtService
 import com.example.labb_microservices.auth_service.service.RefreshTokenService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
-import java.security.Principal
 
 data class LoginRequest(val username: String, val password: String)
 data class RefreshRequest(val userId: String, val refreshToken: String)
-data class LoginResponse(val accessToken: String, val refreshToken: String, val userId: String, val username: String)
+data class LoginResponse(val accessToken: String, val refreshToken: String, val userId: String, val username: String, val role: String)
 data class TokenResponse(val accessToken: String, val refreshToken: String)
 
 @RestController
@@ -31,7 +28,10 @@ class AuthController(
             .subscribeOn(Schedulers.boundedElastic())
             .flatMap { response ->
                 if (response.valid) {
-                    val accessToken = jwtService.generateAccessToken(response.username, response.userId)
+                    val roles = response.rolesList ?: listOf("ROLE_USER")
+                    val primaryRole = roles.firstOrNull { it == "ROLE_ADMIN" } ?: roles.firstOrNull() ?: "ROLE_USER"
+                    
+                    val accessToken = jwtService.generateAccessToken(response.username, response.userId, roles)
                     val refreshToken = jwtService.generateRefreshToken(response.username, response.userId)
                     refreshTokenService.saveRefreshToken(response.userId, refreshToken)
                         .flatMap { saved ->
@@ -46,7 +46,7 @@ class AuthController(
                                 
                                 Mono.just(ResponseEntity.ok()
                                     .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
-                                    .body(LoginResponse(accessToken, refreshToken, response.userId, response.username)))
+                                    .body(LoginResponse(accessToken, refreshToken, response.userId, response.username, primaryRole)))
                             } else {
                                 Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
                             }

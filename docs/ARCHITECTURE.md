@@ -36,5 +36,21 @@ To manage the coupling introduced by `common-security` and the `proto` module, t
 - **Scaling WebSockets**: Scaling the `message-service` requires external synchronization (implemented via RabbitMQ Fanout) to ensure messages are delivered to the correct instance holding the client's WebSocket session.
 - **Database-per-Service Complexity**: While providing isolation, this pattern requires gRPC or eventual consistency for cross-service data needs, increasing the complexity of "join" operations.
 
-## 4. Alternative Considered: Sidecar Pattern
+## 4. Role-Based Access Control (RBAC) Pipeline
+
+### Decision
+The system implements a multi-service RBAC pipeline where roles are managed by the `user-service`, embedded into JWTs by the `auth-service`, and enforced via Method Security (`@PreAuthorize`) in downstream services.
+
+### Rationale
+- **Decoupled Governance**: Roles are stored with user profiles, maintaining the "Identity Vault" role of the `user-service`.
+- **Token-Based Authorization**: By embedding roles into JWT claims, we avoid making a gRPC call to the `user-service` for every authorized request, significantly reducing internal latency.
+- **Zero-Trust Enforcement**: Even though the Gateway performs initial checks, each service re-validates the role claim in the JWT, ensuring that internal network lateral movement cannot bypass authorization.
+
+### The Flow
+1.  **Identity**: `user-service` (MongoDB) stores `roles: ["ROLE_ADMIN", "ROLE_USER"]`.
+2.  **Propagation**: `auth-service` retrieves roles via gRPC `ValidateCredentials` call.
+3.  **Issuance**: `auth-service` adds the `roles` claim to the JWT.
+4.  **Verification**: `message-service` / `feedback-service` use `@PreAuthorize("hasRole('ADMIN')")` to guard restricted endpoints like global broadcasting or feedback listing.
+
+## 5. Alternative Considered: Sidecar Pattern
 We considered using a sidecar proxy (like Envoy) to handle JWT validation. While this would have decoupled the security logic from the application code and allowed for polyglot services, it was deemed an unnecessary complexity for this project's current requirements and timeline. The zero-trust requirement is satisfied by the internal verification within the JVM process.

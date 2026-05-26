@@ -7,6 +7,7 @@ import ChatPage from './pages/ChatPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import InsightsPage from './pages/InsightsPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 import FeedbackWidget from './components/FeedbackWidget';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -55,6 +56,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <AdminPage />
             </ProtectedRoute>
           } 
         />

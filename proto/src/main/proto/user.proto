@@ -19,6 +19,7 @@ message CredentialsResponse {
   bool valid = 1;
   string userId = 2;
   string username = 3;
+  repeated string roles = 4;
 }
 
 message UserLookupRequest {
@@ -32,4 +33,5 @@ message UserResponse {
   optional bool enabled = 4;
   optional string displayName = 5;
   optional bool isBot = 6;
+  repeated string roles = 7;
 }
