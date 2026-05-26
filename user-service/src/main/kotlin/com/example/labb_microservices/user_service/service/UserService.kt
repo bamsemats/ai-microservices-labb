@@ -43,6 +43,14 @@ class UserService(
                 val status = if (friend.isBot) FriendshipStatus.ACCEPTED else FriendshipStatus.PENDING
                 val friendship = Friendship(userId = userId, friendId = friendId, status = status)
                 friendshipRepository.save(friendship)
+                    .flatMap { saved ->
+                        if (friend.isBot) {
+                            val reciprocal = Friendship(userId = friendId, friendId = userId, status = FriendshipStatus.ACCEPTED)
+                            friendshipRepository.save(reciprocal).thenReturn(saved)
+                        } else {
+                            Mono.just(saved)
+                        }
+                    }
             }
     }
 
@@ -173,7 +181,9 @@ class UserService(
     }
 
     fun deleteUser(userId: String): Mono<Void> {
-        return userRepository.deleteById(userId)
+        return friendshipRepository.deleteAllByUserId(userId)
+            .then(friendshipRepository.deleteAllByFriendId(userId))
+            .then(userRepository.deleteById(userId))
     }
 
     fun updateRoles(userId: String, roles: List<String>): Mono<User> {

@@ -220,7 +220,10 @@ const InsightsPage: React.FC = () => {
                   max="1" 
                   step="0.05" 
                   value={currentTheme.intensity} 
-                  onChange={(e) => setTheme({ intensity: parseFloat(e.target.value) })}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setTheme({ intensity: val, baseIntensity: val });
+                  }}
                   className="lumina-range"
                 />
                 <p className="helper-text">Controls how strongly the AI can influence visual properties like glow and blur.</p>

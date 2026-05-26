@@ -21,8 +21,17 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '' }) =>
     xl: 96
   }[size];
 
+  // Using a stable hash of the seed to avoid leaking PII (like usernames) to external services
+  const avatarSeed = React.useMemo(() => {
+    let hash = 5381;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash * 33) ^ seed.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(16);
+  }, [seed]);
+
   // Using DiceBear Identicon for a "techy/unique" look for bots and users
-  const avatarUrl = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
+  const avatarUrl = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=transparent`;
 
   return (
     <div 
@@ -42,7 +51,7 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '' }) =>
     >
       <img 
         src={avatarUrl} 
-        alt={`${seed}'s avatar`}
+        alt="User avatar"
         style={{
           width: '100%',
           height: '100%',

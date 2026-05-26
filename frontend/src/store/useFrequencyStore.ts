@@ -34,11 +34,11 @@ export const useFrequencyStore = create<FrequencyState>((set, get) => ({
     return newFreq;
   },
   joinFrequency: async (id) => {
-    await api.post(`/frequencies/${id}/join`);
+    await api.post(`/frequencies/${encodeURIComponent(id)}/join`);
     await get().fetchFrequencies();
   },
   leaveFrequency: async (id) => {
-    await api.post(`/frequencies/${id}/leave`);
+    await api.post(`/frequencies/${encodeURIComponent(id)}/leave`);
     set(state => ({ frequencies: state.frequencies.filter(f => f.id !== id) }));
   }
 }));

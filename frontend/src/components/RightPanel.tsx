@@ -7,9 +7,16 @@ import ContentWidget from './ContentWidget';
 const RightPanel: React.FC = () => {
   const { injectionPanelOpen } = useUIStore();
   const { injectedContent } = useChatStore();
+  const [isDesktop, setIsDesktop] = React.useState(typeof window !== 'undefined' ? window.innerWidth > 768 : true);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Desktop only view
-  if (window.innerWidth <= 768) return null;
+  if (!isDesktop) return null;
 
   return (
     <AnimatePresence>

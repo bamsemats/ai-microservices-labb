@@ -1,8 +1,10 @@
 # AdaptaChat: Distributed Microservices Chat System (Labb 2)
 
-A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes. This project demonstrates advanced microservices patterns, including hybrid synchronous/asynchronous communication, zero-trust security, and real-time data streaming.
+A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes.
 
-## Local Development & Kubernetes
+> **🚀 Getting Started**: For complete instructions on how to set up, build, and test this project locally in a Minikube cluster, please refer to the **[Setup & Demonstration Guide](SETUP.md)**.
+
+## Architecture Overview
 
 This project is designed to run on **Kubernetes (Minikube)**. To ensure your local code changes are reflected in the cluster, follow these procedures.
 

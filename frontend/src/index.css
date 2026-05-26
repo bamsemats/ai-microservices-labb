@@ -18,17 +18,21 @@
     background: rgb(var(--glass-base) / 0.03);
     backdrop-filter: blur(calc(var(--sentiment-blur) * 0.8));
     border: 1px solid var(--glass-border);
-    corner-shape: squircle;
     border-radius: var(--radius-lg);
     padding: var(--spacing-main);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  }
+
+  @supports (corner-shape: squircle) {
+    .glass-card {
+      corner-shape: squircle;
+    }
   }
 
   .lumina-button {
     background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
     color: var(--text-on-accent);
     border: none;
-    corner-shape: squircle;
     border-radius: var(--radius-md);
     padding: var(--spacing-main);
     font-weight: 600;
@@ -39,6 +43,12 @@
     justify-content: center;
     gap: 0.5rem;
     box-shadow: 0 4px 15px rgb(from var(--color-accent-primary) r g b / 0.3);
+  }
+
+  @supports (corner-shape: squircle) {
+    .lumina-button {
+      corner-shape: squircle;
+    }
   }
 
   .lumina-button:hover:not(:disabled) {

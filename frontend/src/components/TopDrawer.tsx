@@ -7,9 +7,16 @@ import ContentWidget from './ContentWidget';
 const TopDrawer: React.FC = () => {
   const { injectionPanelOpen, toggleInjectionPanel } = useUIStore();
   const { injectedContent } = useChatStore();
+  const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Mobile only view
-  if (window.innerWidth > 768) return null;
+  if (!isMobile) return null;
 
   return (
     <AnimatePresence>

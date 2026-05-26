@@ -173,6 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver, cla
                 key={u.id} 
                 className={`channel-item ${activeReceiver === u.id ? 'active' : ''}`}
                 onClick={() => handleReceiverSelect(u.id)}
+                aria-label={`${u.username} — ${u.status}`}
               >
                 <Avatar seed={u.username} size="sm" />
                 {u.username}

@@ -4,6 +4,7 @@ export interface UITheme {
   theme: string;
   mode: 'light' | 'dark';
   intensity: number;
+  baseIntensity: number; // Unmutated user preference
   adaptationEnabled: boolean;
   color?: string;
   primaryColor?: string;
@@ -27,6 +28,7 @@ const DEFAULT_THEME: UITheme = {
   theme: 'default',
   mode: 'dark',
   intensity: 0.5,
+  baseIntensity: 0.5,
   adaptationEnabled: true,
 };
 
@@ -34,7 +36,12 @@ const getPersistedUI = (): Partial<UITheme> | null => {
   const stored = localStorage.getItem('ui-theme');
   if (!stored) return null;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // Migration: ensure baseIntensity exists if intensity does
+    if (parsed.intensity !== undefined && parsed.baseIntensity === undefined) {
+      parsed.baseIntensity = parsed.intensity;
+    }
+    return parsed;
   } catch {
     return null;
   }

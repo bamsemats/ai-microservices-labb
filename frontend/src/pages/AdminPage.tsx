@@ -22,19 +22,21 @@ const AdminPage: React.FC = () => {
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = React.useCallback(async () => {
     try {
-      const response = await api.get(`/users/search?query=${query}&page=${page}&size=10`);
+      const response = await api.get('/users/search', {
+        params: { query, page, size: 10 }
+      });
       setUsers(response.data.content || []);
       setTotalPages(response.data.totalPages || 0);
-    } catch (error) {
-      console.error('Failed to fetch users', error);
+    } catch {
+      console.error('Failed to fetch users');
     }
-  };
+  }, [query, page]);
 
   useEffect(() => {
     fetchUsers();
-  }, [page]);
+  }, [fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,19 +51,19 @@ const AdminPage: React.FC = () => {
       await api.post('/messages/broadcast', { content: broadcastMsg });
       setStatus('Broadcast transmitted across all frequencies.');
       setBroadcastMsg('');
-    } catch (error) {
+    } catch {
       setStatus('Transmission failed. Frequency interference.');
     }
   };
 
-  const toggleRole = async (userId: string, currentRoles: string[] = ['ROLE_USER']) => {
+  const toggleRole = async (userId: string, currentRoles: string[]) => {
     const isCurrentlyAdmin = currentRoles.includes('ROLE_ADMIN');
     const newRoles = isCurrentlyAdmin ? ['ROLE_USER'] : ['ROLE_USER', 'ROLE_ADMIN'];
     try {
       await api.put(`/users/${userId}/roles`, newRoles);
       fetchUsers(); // Refresh
       setStatus(`Permissions updated for entity ${userId.substring(0,8)}.`);
-    } catch (error) {
+    } catch {
        setStatus('Permission override failed.');
     }
   };
@@ -112,7 +114,7 @@ const AdminPage: React.FC = () => {
                   <button 
                     className="lumina-button secondary icon-only" 
                     title="Toggle Admin Role"
-                    onClick={() => toggleRole(u.id)}
+                    onClick={() => toggleRole(u.id, u.roles)}
                   >
                     <Shield size={16} />
                   </button>

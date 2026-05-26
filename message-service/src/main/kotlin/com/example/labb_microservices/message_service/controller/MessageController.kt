@@ -110,7 +110,7 @@ class MessageController(
                             val message = Message(
                                 id = UUID.randomUUID().toString(),
                                 senderId = senderId,
-                                senderName = userResponse.username,
+                                senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
                                 receiverId = "all",
                                 channelId = channelId,
                                 content = request.content,
@@ -259,7 +259,11 @@ class MessageController(
                             if (freq.members.contains(principal)) Mono.just(true)
                             else Mono.just(false)
                         }
-                        .switchIfEmpty(Mono.just(true)) // Fallback for DMs
+                        .switchIfEmpty(Mono.defer {
+                            // Validate if it's a DM pattern where principal is a participant
+                            val isDm = channelId.contains("-") && (channelId.startsWith(principal) || channelId.endsWith(principal))
+                            Mono.just(isDm)
+                        })
                 } else {
                     Mono.just(true)
                 }

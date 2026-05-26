@@ -12,8 +12,9 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
   const { username, displayName, logout } = useAuthStore();
-  const { currentTheme, setTheme, toggleSidebar, toggleInjectionPanel } = useUIStore();
+  const { currentTheme, setTheme, injectionPanelOpen, toggleSidebar, toggleInjectionPanel } = useUIStore();
   const navigate = useNavigate();
+
 
   const isDark = currentTheme.mode !== 'light';
 
@@ -45,6 +46,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           onClick={() => toggleInjectionPanel()}
           aria-label="Toggle signal injections"
           title="Signal Injections"
+          aria-pressed={injectionPanelOpen}
         >
           <Radio size={20} />
         </button>

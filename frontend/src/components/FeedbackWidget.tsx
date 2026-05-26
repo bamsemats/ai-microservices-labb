@@ -38,8 +38,9 @@ const FeedbackWidget: React.FC = () => {
         setComment('');
         setRating(5);
       }, 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit feedback. Please try again later.');
+    } catch (err) {
+      const errorMsg = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to submit feedback. Please try again later.';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }

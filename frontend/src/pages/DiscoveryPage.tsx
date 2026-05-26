@@ -23,7 +23,10 @@ const DiscoveryPage: React.FC = () => {
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -59,6 +62,7 @@ const DiscoveryPage: React.FC = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="lumina-input"
+                aria-label="Search by username"
               />
               <button className="lumina-button" disabled={loading}>
                 {loading ? 'Searching...' : 'Scan'}

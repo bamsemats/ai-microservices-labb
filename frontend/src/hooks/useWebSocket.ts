@@ -38,13 +38,13 @@ export const useWebSocket = () => {
         
         if (data.type === 'UI_ADAPTATION') {
           const { theme, intensity, color, primaryColor, blurAmount, glassOpacity, glowIntensity } = data;
-          const { adaptationEnabled, intensity: userIntensity } = useUIStore.getState().currentTheme;
+          const { adaptationEnabled, baseIntensity } = useUIStore.getState().currentTheme;
           
           if (adaptationEnabled && typeof theme === 'string') {
             console.log('Applying AI UI Adaptation:', theme);
             useUIStore.getState().setTheme({ 
               theme, 
-              intensity: (typeof intensity === 'number' ? intensity : 0.5) * userIntensity,
+              intensity: (typeof intensity === 'number' ? intensity : 0.5) * baseIntensity,
               color: typeof color === 'string' ? color : undefined,
               primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
               blurAmount: typeof blurAmount === 'number' ? blurAmount : undefined,
@@ -178,8 +178,10 @@ export const useWebSocket = () => {
   const sendMessage = useCallback((message: Message) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));
+      return true;
     } else {
       console.error('WebSocket is not open');
+      return false;
     }
   }, []);
 

@@ -53,12 +53,15 @@ const ChatPage: React.FC = () => {
       channelId: activeChannelId,
       content,
       timestamp: new Date().toISOString(),
-      authorType: 'USER'
+      authorType: 'USER',
+      status: 'pending'
     };
 
     pushToStore(newMsg);
-    // useWebSocket sendMessage takes a Message object
-    sendWs(newMsg);
+    const sent = sendWs(newMsg);
+    if (!sent) {
+      pushToStore({ ...newMsg, status: 'failed' });
+    }
   };
 
   const handleTyping = (isTyping: boolean) => {

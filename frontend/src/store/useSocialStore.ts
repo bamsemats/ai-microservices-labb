@@ -27,15 +27,15 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     }
   },
   sendRequest: async (friendId) => {
-    await api.post(`/friends/request/${friendId}`);
+    await api.post(`/friends/request/${encodeURIComponent(friendId)}`);
     await get().fetchFriends();
   },
   acceptRequest: async (friendId) => {
-    await api.post(`/friends/accept/${friendId}`);
+    await api.post(`/friends/accept/${encodeURIComponent(friendId)}`);
     await get().fetchFriends();
   },
   removeFriend: async (friendId) => {
-    await api.delete(`/friends/${friendId}`);
+    await api.delete(`/friends/${encodeURIComponent(friendId)}`);
     set(state => ({ friends: state.friends.filter(f => f.id !== friendId) }));
   }
 }));

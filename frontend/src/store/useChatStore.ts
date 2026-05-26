@@ -10,6 +10,7 @@ export interface Message {
   authorType?: 'USER' | 'BOT';
   timestamp: string;
   readBy?: string[];
+  status?: 'pending' | 'sent' | 'failed';
 }
 
 export interface InjectedContent {

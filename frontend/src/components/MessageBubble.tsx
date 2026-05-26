@@ -11,6 +11,7 @@ interface Message {
   authorType?: string;
   receiverId?: string;
   readBy?: string[];
+  status?: 'pending' | 'sent' | 'failed';
 }
 
 interface MessageBubbleProps {
@@ -29,7 +30,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         stiffness: 260, 
         damping: 20 
       }}
-      className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''}`}
+      className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
     >
       {!isOwn && (
         <div className="sender-info">
@@ -45,6 +46,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
           {isOwn && message.readBy && message.readBy.length > 0 && (
             <span className="read-status">✓ Seen</span>
           )}
+          {message.status === 'pending' && <span className="status-label">...</span>}
+          {message.status === 'failed' && <span className="status-label error">!</span>}
         </div>
       )}
 
