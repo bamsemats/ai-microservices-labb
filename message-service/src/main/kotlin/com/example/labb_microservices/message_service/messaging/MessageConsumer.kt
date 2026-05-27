@@ -79,53 +79,56 @@ class MessageConsumer(
     }
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
-    fun consumeAiResponse(message: Message) {
-        val messageId = message.id ?: return
-        logger.debug("Received AI chunk for: $messageId")
-        
-        val encryptedContent = encryptionUtils.encrypt(message.content)
-        val hashes = tokenizeAndHash(message.content)
-
-        // Atomic update in MongoDB using Update.push to preserve duplicates and order
-        val query = Query(Criteria.where("id").`is`(messageId))
-        val update = Update().setOnInsert("id", messageId)
-            .setOnInsert("senderId", message.senderId)
-            .setOnInsert("receiverId", message.receiverId)
-            .setOnInsert("channelId", message.channelId)
-            .setOnInsert("authorType", message.authorType)
-            .setOnInsert("timestamp", message.timestamp)
-            .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
-            .push("contentChunks", encryptedContent)
-        
-        if (hashes.isNotEmpty()) {
-            update.addToSet("searchIndices").each(*hashes.toTypedArray())
-        }
-        
-        // Block to ensure persistence before delivery for consistency
-        mongoTemplate.upsert(query, update, Message::class.java).block()
-        
-        // Deliver to WebSockets after successful persistence
-        val jsonMessage = try {
-            objectMapper.writeValueAsString(message)
+    fun consumeAiResponse(payload: String) {
+        val message = try {
+            objectMapper.readValue(payload, Message::class.java)
         } catch (e: Exception) {
-            logger.error("Failed to serialize message ${message.id} for WebSocket", e)
+            logger.error("[TRACE] FAILED to deserialize AI response payload: {}", payload.take(100), e)
             return
         }
 
+        val messageId = message.id ?: return
+        logger.info("[TRACE] consumeAiResponse START - messageId: {}, bot: {}, user: {}", 
+            messageId, message.senderId, message.receiverId)
+        
         try {
+            val encryptedContent = encryptionUtils.encrypt(message.content)
+            val hashes = tokenizeAndHash(message.content)
+
+            // Atomic update in MongoDB using Update.push to preserve duplicates and order
+            val query = Query(Criteria.where("id").`is`(messageId))
+            val update = Update().setOnInsert("id", messageId)
+                .setOnInsert("senderId", message.senderId)
+                .setOnInsert("receiverId", message.receiverId)
+                .setOnInsert("channelId", message.channelId)
+                .setOnInsert("authorType", message.authorType)
+                .setOnInsert("timestamp", message.timestamp)
+                .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
+                .push("contentChunks", encryptedContent)
+            
+            if (hashes.isNotEmpty()) {
+                update.addToSet("searchIndices").each(*hashes.toTypedArray())
+            }
+            
+            logger.info("[TRACE] Upserting AI response {} to MongoDB", messageId)
+            mongoTemplate.upsert(query, update, Message::class.java).block()
+            
+            // Deliver to WebSockets after successful persistence
+            val jsonMessage = objectMapper.writeValueAsString(message)
+            
             if (message.receiverId == "all") {
+                logger.info("[TRACE] Broadcasting AI response {} to channel {}", messageId, message.channelId)
                 deliveryService.broadcastToChannel(message.channelId ?: "global", jsonMessage)
             } else {
-                val recipients = setOfNotNull(
-                    message.receiverId.takeIf { it.isNotBlank() },
-                    message.senderId.takeIf { it.isNotBlank() }
-                )
-                recipients.forEach { userId ->
-                    deliveryService.sendMessageToUser(userId, jsonMessage)
+                logger.info("[TRACE] Sending AI response {} to user {}", messageId, message.receiverId)
+                deliveryService.sendMessageToUser(message.receiverId, jsonMessage)
+                // Also send to the person who triggered it so they see the bot's reply in their DM
+                if (message.receiverId != message.senderId) {
+                    deliveryService.sendMessageToUser(message.senderId, jsonMessage)
                 }
             }
         } catch (e: Exception) {
-            logger.error("Transient failure broadcasting AI response message ${message.id}", e)
+            logger.error("[TRACE] FAILED to process AI response {}", messageId, e)
         }
     }
 

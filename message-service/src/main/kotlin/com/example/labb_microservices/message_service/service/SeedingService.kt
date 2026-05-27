@@ -19,7 +19,8 @@ import java.util.*
 class SeedingService(
     private val messageProducer: MessageProducer,
     private val messageRepository: MessageRepository,
-    private val presenceService: PresenceService
+    private val presenceService: PresenceService,
+    private val encryptionUtils: com.example.labb_microservices.common.security.EncryptionUtils
 ) : CommandLineRunner {
     private val logger = LoggerFactory.getLogger(SeedingService::class.java)
 
@@ -47,18 +48,22 @@ class SeedingService(
                                 if (exists) {
                                     Mono.empty()
                                 } else {
+                                    val content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?"
                                     val welcomeMessage = Message(
                                         id = messageId,
                                         senderId = bot.name,
                                         senderName = bot.name,
                                         receiverId = "all",
                                         channelId = "general",
-                                        content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?",
+                                        content = encryptionUtils.encrypt(content),
                                         authorType = AuthorType.BOT,
                                         timestamp = Instant.now()
                                     )
                                     messageRepository.save(welcomeMessage)
-                                        .doOnSuccess { messageProducer.deliverMessage(it) }
+                                        .doOnSuccess { 
+                                            // Deliver plain text for WebSocket
+                                            messageProducer.deliverMessage(it.copy(content = content)) 
+                                        }
                                 }
                             }
                             .then()

@@ -1,6 +1,7 @@
 package com.example.labb_microservices.message_service.model
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.io.Serializable
@@ -9,6 +10,7 @@ import java.time.Instant
 enum class AuthorType { USER, BOT }
 
 @Document(collection = "messages")
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class Message(
     @Id
     val id: String? = null,

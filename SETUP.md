@@ -46,7 +46,7 @@ docker-compose build
 ```
 
 ### 4. Deploy to Kubernetes
-Apply the infrastructure (MongoDB, RabbitMQ, Redis) and then the application services:
+Apply the infrastructure (MongoDB, RabbitMQ, Redis, Jaeger) and then the application services:
 ```powershell
 # 1. Apply Infrastructure
 kubectl apply -f k8s/infrastructure/

@@ -8,6 +8,7 @@ import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.repository.MessageRepository
 import com.example.labb_microservices.message_service.service.PresenceService
 import com.example.labb_microservices.message_service.service.FrequencyService
+import com.example.labb_microservices.message_service.service.MessageService
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -16,6 +17,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
+import java.time.Instant
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.http.HttpStatus
@@ -42,6 +44,7 @@ class MessageController(
     private val messageProducer: MessageProducer,
     private val presenceService: PresenceService,
     private val frequencyService: FrequencyService,
+    private val messageService: MessageService,
     private val messageRepository: MessageRepository,
     private val encryptionUtils: EncryptionUtils,
     private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate,
@@ -87,7 +90,7 @@ class MessageController(
                             metadata = metadata
                         )
                         
-                        processMessage(message)
+                        messageService.processMessage(message)
                             .thenReturn("Message received: ${message.id}")
                     }
             }
@@ -113,7 +116,8 @@ class MessageController(
                             content = request.content,
                             authorType = AuthorType.USER
                         )
-                        processMessage(message)
+                        
+                        messageService.processMessage(message)
                             .thenReturn("Broadcast message sent by $senderId in channel $channelId")
                     }
             }
@@ -191,30 +195,6 @@ class MessageController(
                         }
                 }
         }
-    }
-
-    companion object {
-        private val AI_BOT_IDS = setOf("ai", "ai-bot", "adaptaai", "nexusprime", "echoflow", "vibecheck", "helpdesk")
-        private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
-    }
-
-    private fun processMessage(message: Message): Mono<Void> {
-        return Mono.fromCallable {
-            logger.info("Processing message ${message.id} for dispatch")
-            messageProducer.sendMessage(message)
-            
-            val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
-            val hasAiMention = AI_MENTION_REGEX.containsMatchIn(message.content)
-            
-            if (isAiRecipient || hasAiMention) {
-                logger.info("Triggering AI request for message ${message.id}. recipientMatch=$isAiRecipient, mentionMatch=$hasAiMention")
-                try {
-                    messageProducer.sendAiRequest(message)
-                } catch (e: Exception) {
-                    logger.error("Failed to trigger AI request for message ${message.id}", e)
-                }
-            }
-        }.subscribeOn(Schedulers.boundedElastic()).then()
     }
 
     @GetMapping("/user/{userId}")
@@ -324,7 +304,7 @@ class MessageController(
                 content = encryptionUtils.decrypt(encryptedMessage.content)
             )
         } catch (e: Exception) {
-            logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
+            logger.error("Failed to decrypt message \${encryptedMessage.id}", e)
             encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
         }
     }

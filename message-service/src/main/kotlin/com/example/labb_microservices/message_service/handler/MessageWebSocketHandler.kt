@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import java.time.Duration
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 import org.springframework.beans.factory.annotation.Value
 
 @Component
@@ -24,6 +25,7 @@ class MessageWebSocketHandler(
     private val presenceService: PresenceService,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     private val sessionRegistry: com.example.labb_microservices.message_service.session.SessionRegistry,
+    private val messageService: com.example.labb_microservices.message_service.service.MessageService,
     private val messageProducer: com.example.labb_microservices.message_service.messaging.MessageProducer
 ) : WebSocketHandler {
 
@@ -93,13 +95,13 @@ class MessageWebSocketHandler(
                         }
                         "TYPING" -> {
                             val currentSession = sessionRegistry.getSession(sessionId)
-                            val userId = currentSession?.userId
-                            if (userId != null) {
+                            val sessionUserId = currentSession?.userId
+                            if (sessionUserId != null) {
                                 val isTyping = json.get("isTyping")?.asBoolean() ?: false
                                 val typingChannelId = json.get("channelId")?.asText() ?: currentSession.channelId
                                 val typingEvent = com.example.labb_microservices.message_service.model.TypingEvent(
-                                    userId = userId,
-                                    username = currentSession.username,
+                                    userId = sessionUserId,
+                                    username = currentSession.username ?: "anonymous",
                                     channelId = typingChannelId,
                                     isTyping = isTyping
                                 )
@@ -108,18 +110,53 @@ class MessageWebSocketHandler(
                         }
                         "READ_RECEIPT" -> {
                             val currentSession = sessionRegistry.getSession(sessionId)
-                            val userId = currentSession?.userId
+                            val sessionUserId = currentSession?.userId
                             val messageId = json.get("messageId")?.asText()
-                            if (userId != null && messageId != null) {
+                            if (sessionUserId != null && messageId != null) {
                                 val readChannelId = json.get("channelId")?.asText() ?: currentSession.channelId
-                                val readReceipt = com.example.labb_microservices.message_service.model.ReadReceiptEvent(
-                                    messageId = messageId,
-                                    userId = userId,
-                                    channelId = readChannelId
-                                )
-                                messageProducer.storeEvent(readReceipt)
+                                messageService.processMessage(com.example.labb_microservices.message_service.model.Message(
+                                    senderId = sessionUserId,
+                                    receiverId = "system",
+                                    content = "READ_RECEIPT",
+                                    metadata = mapOf("messageId" to messageId, "channelId" to readChannelId)
+                                ))
                             }
                         }
+                        else -> {
+                            // Try to parse as a regular message request
+                            val currentSession = sessionRegistry.getSession(sessionId)
+                            val sessionUserId = currentSession?.userId
+                            if (currentSession != null && sessionUserId != null) {
+                                logger.info("[TRACE] Received WebSocket payload from user: {}", sessionUserId)
+                                try {
+                                    val request = objectMapper.treeToValue(json, com.example.labb_microservices.message_service.controller.MessageRequest::class.java)
+                                    logger.info("[TRACE] Successfully parsed MessageRequest: receiver={}, channel={}", request.receiverId, request.channelId)
+                                    
+                                    val channelId = request.channelId?.takeIf { it.isNotBlank() }
+                                        ?: if (request.receiverId == "all") "global" else "general"
+
+                                    val message = com.example.labb_microservices.message_service.model.Message(
+                                        id = UUID.randomUUID().toString(),
+                                        senderId = sessionUserId,
+                                        senderName = currentSession.username ?: sessionUserId,
+                                        receiverId = request.receiverId,
+                                        channelId = channelId,
+                                        content = request.content,
+                                        authorType = com.example.labb_microservices.message_service.model.AuthorType.USER
+                                    )
+                                    
+                                    messageService.processMessage(message)
+                                        .doOnSuccess { logger.info("[TRACE] processMessage chain completed for {}", message.id) }
+                                        .doOnError { e -> logger.error("[TRACE] processMessage chain FAILED for {}", message.id, e) }
+                                        .subscribe()
+                                } catch (e: Exception) {
+                                    logger.warn("[TRACE] Payload from session {} is not a valid MessageRequest. Error: {}", sessionId, e.message)
+                                }
+                            } else {
+                                logger.warn("[TRACE] Received payload from unauthenticated or missing session: {}", sessionId)
+                            }
+                        }
+
                     }
                 } catch (e: Exception) {
                     logger.debug("Failed to parse incoming WebSocket frame from session {}: {}", sessionId, e.message)

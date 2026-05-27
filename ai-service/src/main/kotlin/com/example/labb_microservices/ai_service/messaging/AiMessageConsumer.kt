@@ -117,7 +117,8 @@ class AiMessageConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.AI_REQUEST_QUEUE_NAME])
     fun processAiRequest(message: Message) {
-        logger.info("Processing aggregated AI request for messageId: {} from user: {}", message.id, message.senderId)
+        logger.info("[TRACE] Received AI request - id: {}, sender: {}, receiver: {}, channel: {}", 
+            message.id, message.senderId, message.receiverId, message.channelId)
         
         readinessIndicator.incrementActiveRequests()
         val responseId = UUID.randomUUID().toString()
@@ -131,7 +132,7 @@ class AiMessageConsumer(
         }
         
         val botName = botRegistry.getBotDisplayName(targetBotId)
-        logger.info("Identified bot: {} ({}) as responder", targetBotId, botName)
+        logger.info("[TRACE] Responding as bot: {} ({}) for user: {}", targetBotId, botName, message.senderId)
         
         val receiverId = if (message.receiverId == "all") "all" else message.senderId
 
@@ -168,11 +169,13 @@ class AiMessageConsumer(
                         authorType = AuthorType.BOT
                     )
 
+                    logger.info("[TRACE] Sending AI response {} to RabbitMQ via {}", responseId, RabbitMQConfig.AI_EXCHANGE_NAME)
                     rabbitTemplate.convertAndSend(
                         RabbitMQConfig.AI_EXCHANGE_NAME,
                         "ai.response",
                         aiMessage
                     )
+                    logger.info("[TRACE] AI response {} successfully dispatched", responseId)
                 }.subscribeOn(Schedulers.boundedElastic())
             }
             .doOnTerminate {

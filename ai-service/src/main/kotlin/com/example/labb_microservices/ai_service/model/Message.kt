@@ -1,11 +1,13 @@
 package com.example.labb_microservices.ai_service.model
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.io.Serializable
 import java.time.Instant
 
 enum class AuthorType { USER, BOT }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class Message(
     val id: String? = null,
     val senderId: String,
