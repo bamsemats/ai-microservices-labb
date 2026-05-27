@@ -61,16 +61,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
     get().addMessage(message);
   },
   addMessage: (message) => set((state) => {
-    const existingIndex = state.messages.findIndex((m) => m.id === message.id);
-    const shouldResetAiStatus = message.authorType === 'BOT';
+    // Standardize incoming global channel IDs to match frontend state
+    const normalizedArrival = {
+      ...message,
+      channelId: (message.channelId === 'home' || message.channelId === 'all') ? 'general' : message.channelId
+    };
+
+    // 1. Exact ID match (covers server echoes of unique message IDs)
+    let existingIndex = state.messages.findIndex((m) => m.id === normalizedArrival.id);
+
+    // 2. Optimistic match (covers server echoes of our own messages that got a real ID)
+    if (existingIndex === -1 && normalizedArrival.authorType !== 'BOT') {
+      existingIndex = state.messages.findIndex((m) => 
+        m.status === 'pending' && 
+        m.content === normalizedArrival.content && 
+        m.senderId === normalizedArrival.senderId &&
+        Math.abs(new Date(m.timestamp).getTime() - new Date(normalizedArrival.timestamp).getTime()) < 5000
+      );
+    }
+
+    const shouldResetAiStatus = normalizedArrival.authorType === 'BOT';
 
     if (existingIndex !== -1) {
       const updatedMessages = [...state.messages];
       updatedMessages[existingIndex] = {
         ...updatedMessages[existingIndex],
-        ...message,
+        ...normalizedArrival,
+        status: 'sent' // Mark as sent if it was pending
       };
-      // Reset AI status once we start receiving messages from the bot
       return { 
         messages: updatedMessages, 
         aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
@@ -78,7 +96,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     return { 
-      messages: [...state.messages, message], 
+      messages: [...state.messages, normalizedArrival], 
       aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
     };
   }),

@@ -27,7 +27,8 @@ const ChatPage: React.FC = () => {
   const { sendMessage: sendWs, sendTyping } = useWebSocket();
 
   useEffect(() => {
-    setActiveChannelId(receiverId);
+    const effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
+    setActiveChannelId(effectiveChannelId);
     if (token) fetchMessages(receiverId);
   }, [receiverId, token, fetchMessages, setActiveChannelId]);
 

@@ -69,9 +69,11 @@ class JwtAuthenticationFilter(
                     .parseSignedClaims(token)
                     .payload
                 if (claims["tokenType"] != "access") {
+                    logger.warn("Token type mismatch for {}. Expected: access, Found: {}", path, claims["tokenType"])
                     return@GatewayFilter onError(exchange, "Invalid token type", HttpStatus.UNAUTHORIZED)
                 }
             } catch (e: Exception) {
+                logger.error("JWT validation failed for path {}: {} - {}", path, e.javaClass.simpleName, e.message)
                 return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
             }
 

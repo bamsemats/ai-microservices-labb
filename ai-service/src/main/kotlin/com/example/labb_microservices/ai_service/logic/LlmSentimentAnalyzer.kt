@@ -38,8 +38,8 @@ class LlmSentimentAnalyzer(
     private val sentimentModel = "openrouter/auto"
 
     override fun analyzeSentiment(content: String): Mono<AdaptationEvent?> {
-        if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}") {
-            logger.debug("OpenRouter API key missing for sentiment analysis. Using simulated sentiment.")
+        if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}" || apiKey.contains("dummy")) {
+            logger.debug("OpenRouter API key missing or dummy for sentiment analysis. Using simulated sentiment.")
             return generateSimulatedSentiment(content)
         }
 

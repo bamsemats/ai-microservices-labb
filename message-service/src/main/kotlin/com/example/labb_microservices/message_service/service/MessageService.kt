@@ -17,29 +17,37 @@ class MessageService(
     private val AI_MENTION_REGEX = Regex("(?i)(?:^|\\W)@(ai-bot|ai|adaptaai|nexusprime|echoflow|vibecheck|helpdesk)(?:\\W|$)")
 
     fun processMessage(message: Message): Mono<Void> {
+        val sanitizedChannelId = if (message.channelId == "home" || message.channelId == "all") "general" else message.channelId
+        val sanitizedReceiverId = if (message.receiverId == "home") "all" else message.receiverId
+        
+        val normalizedMessage = message.copy(
+            channelId = sanitizedChannelId,
+            receiverId = sanitizedReceiverId
+        )
+
         return Mono.fromCallable {
-            logger.info("[TRACE] processMessage START - id: {}, sender: {}, receiver: {}, channel: {}", 
-                message.id, message.senderId, message.receiverId, message.channelId)
+            logger.info("[TRACE] processMessage START - id: {}, sender: {}, senderName: {}, receiver: {}, channel: {}", 
+                normalizedMessage.id, normalizedMessage.senderId, normalizedMessage.senderName, normalizedMessage.receiverId, normalizedMessage.channelId)
             
             // 1. Send to storage queue
-            messageProducer.sendMessage(message)
-            logger.info("[TRACE] Sent message {} to storage queue", message.id)
+            messageProducer.sendMessage(normalizedMessage)
+            logger.info("[TRACE] Sent message {} to storage queue", normalizedMessage.id)
             
             // 2. Check for AI triggers
-            val isAiRecipient = AI_BOT_IDS.contains(message.receiverId.lowercase())
-            val hasAiMention = AI_MENTION_REGEX.containsMatchIn(message.content)
+            val isAiRecipient = AI_BOT_IDS.contains(normalizedMessage.receiverId.lowercase())
+            val hasAiMention = AI_MENTION_REGEX.containsMatchIn(normalizedMessage.content)
             
             if (isAiRecipient || hasAiMention) {
                 logger.info("[TRACE] AI Trigger DETECTED for message {}. isAiRecipient={}, hasAiMention={}", 
-                    message.id, isAiRecipient, hasAiMention)
+                    normalizedMessage.id, isAiRecipient, hasAiMention)
                 try {
-                    messageProducer.sendAiRequest(message)
-                    logger.info("[TRACE] AI request sent to RabbitMQ for message {}", message.id)
+                    messageProducer.sendAiRequest(normalizedMessage)
+                    logger.info("[TRACE] AI request sent to RabbitMQ for message {}", normalizedMessage.id)
                 } catch (e: Exception) {
                     logger.error("[TRACE] FAILED to send AI request to RabbitMQ", e)
                 }
             } else {
-                logger.info("[TRACE] No AI trigger for message {}", message.id)
+                logger.info("[TRACE] No AI trigger for message {}", normalizedMessage.id)
             }
         }.subscribeOn(Schedulers.boundedElastic()).then()
     }

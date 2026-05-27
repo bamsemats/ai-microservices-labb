@@ -79,11 +79,11 @@ class MessageConsumer(
     }
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
-    fun consumeAiResponse(payload: String) {
+    fun consumeAiResponse(data: Map<String, Any>) {
         val message = try {
-            objectMapper.readValue(payload, Message::class.java)
+            objectMapper.convertValue(data, Message::class.java)
         } catch (e: Exception) {
-            logger.error("[TRACE] FAILED to deserialize AI response payload: {}", payload.take(100), e)
+            logger.error("[TRACE] FAILED to convert AI response map: {}", data, e)
             return
         }
 

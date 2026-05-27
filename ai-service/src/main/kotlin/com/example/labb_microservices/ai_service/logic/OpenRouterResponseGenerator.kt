@@ -119,16 +119,19 @@ class OpenRouterResponseGenerator(
         val content = message.content.lowercase()
         val redactedContent = piiRedactor.redact(message.content)
         val response = when {
-            content.contains("hello") || content.contains("hi") -> 
-                "Greetings! I am the AdaptaChat AI. I am currently running in simulation mode because my external uplink is unauthorized or missing. How can I help you navigate these frequencies today?"
-            content.contains("weather") -> 
+            content.contains("hello") || content.contains("hi") || content.contains("greetings") ->
+                "Hello! I am the AdaptaChat AI. I'm currently running in high-performance simulation mode. How can I help you navigate these frequencies today?"
+            content.contains("weather") ->
                 "The climate in the digital realm is steady, with a 100% chance of data packets. For physical weather, please consult a atmospheric sensor."
-            content.contains("help") -> 
-                "I can assist with navigating the Discovery Hub, understanding your Insights, or just chatting. Note: I am currently in 'Offline Mode' due to API key issues."
-            else -> 
-                "I've received your transmission: '$redactedContent'. I'm currently operating in limited capacity, but I am standing by for your next synchronization."
+            content.contains("help") ->
+                "I can assist with navigating the Discovery Hub, understanding your Insights, or just chatting. I'm operating in 'offline optimization' mode right now, but I'm fully functional for conversation!"
+            content.contains("who are you") || content.contains("what are you") ->
+                "I am a distributed intelligence designed to assist users within the AdaptaChat ecosystem. My purpose is to ensure smooth communication across all frequencies."
+            else ->
+                "I've received your transmission: '$redactedContent'. I'm currently operating in optimized local mode, but I am standing by for your next synchronization."
         }
-        
+
         return Flux.just(response)
     }
+
 }

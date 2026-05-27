@@ -134,7 +134,10 @@ class AiMessageConsumer(
         val botName = botRegistry.getBotDisplayName(targetBotId)
         logger.info("[TRACE] Responding as bot: {} ({}) for user: {}", targetBotId, botName, message.senderId)
         
-        val receiverId = if (message.receiverId == "all") "all" else message.senderId
+        // If it's a broadcast channel (general/global) or receiver was "all", respond to "all"
+        val isBroadcastChannel = message.channelId.lowercase() in setOf("general", "global", "home")
+        val receiverId = if (message.receiverId == "all" || isBroadcastChannel) "all" else message.senderId
+        val channelId = if (isBroadcastChannel) "general" else message.channelId
 
         // Notify UI that AI is thinking
         val startNotify = Mono.fromRunnable<Unit> {

@@ -32,13 +32,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
       }}
       className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
     >
-      {!isOwn && (
-        <div className="sender-info">
-          <Avatar seed={message.senderName || message.senderId} size="sm" />
-          <span className="sender-name">{message.senderName || message.senderId}</span>
+      <div className="sender-info">
+        <Avatar seed={message.senderName || message.senderId} size="sm" />
+        <span className="sender-name">
+          {message.senderName || message.senderId}
           {message.authorType === 'BOT' && <span className="bot-tag">AI</span>}
-        </div>
-      )}
+        </span>
+      </div>
       <div className="bubble-content">{message.content}</div>
       {message.timestamp && (
         <div className="message-time">
