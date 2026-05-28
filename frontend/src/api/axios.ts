@@ -32,7 +32,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const { token, refreshToken, userId, logout, setAuth } = useAuthStore.getState();
+    const { refreshToken, userId, logout, setAuth } = useAuthStore.getState();
 
     // If 401 and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry) {

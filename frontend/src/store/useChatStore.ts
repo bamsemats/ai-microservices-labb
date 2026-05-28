@@ -36,7 +36,7 @@ interface ChatState {
   setMessages: (messages: Message[]) => void;
   clearMessages: () => void;
   setTyping: (username: string, channelId: string, isTyping: boolean) => void;
-  markMessageRead: (messageId, userId) => void;
+  markMessageRead: (messageId: never, userId: never) => void;
   }
 
   export const useChatStore = create<ChatState>((set, get) => ({
