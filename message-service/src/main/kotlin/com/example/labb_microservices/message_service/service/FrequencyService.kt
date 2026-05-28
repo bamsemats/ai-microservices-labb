@@ -89,6 +89,11 @@ class FrequencyService(
     }
 
     fun kickMember(frequencyId: String, memberId: String, userId: String): Mono<Void> {
+        if (memberId == userId) {
+            return Mono.error(
+                ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot kick themselves")
+            )
+        }
         val query = Query(Criteria.where("id").`is`(frequencyId).and("ownerId").`is`(userId))
         val update = Update().pull("members", memberId)
         return mongoTemplate.findAndModify(

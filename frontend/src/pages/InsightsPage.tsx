@@ -257,10 +257,6 @@ const InsightsPage: React.FC = () => {
               </div>
               
               <div className="theme-preview">
-                {/* 
-                  Note: Using inline style for dynamic CSS variables is permitted 
-                  by GEMINI.md as they are determined at runtime.
-                */}
                 <div className="preview-bubble own" style={{ 
                   '--preview-color': currentTheme.primaryColor || 'var(--color-accent-primary)',
                   '--preview-intensity': currentTheme.intensity

@@ -9,25 +9,6 @@ interface ContentWidgetProps {
 const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const commonStyles = (
-    <style>{`
-      .widget-badge {
-        font-size: 0.65rem;
-        font-weight: 800;
-        margin-bottom: 0.75rem;
-        letter-spacing: 0.1em;
-      }
-      .thumbnail-placeholder {
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-      }
-      .full-width {
-        width: 100%;
-      }
-    `}</style>
-  );
-
   if (content.contentType === 'TWITCH_STREAM') {
     const streamer = content.data.streamer || "Unknown streamer";
     const gameName = content.data.gameName || "Unknown game";
@@ -43,7 +24,6 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card twitch-widget"
       >
-        {commonStyles}
         <div className="widget-badge twitch">LIVE STREAM</div>
         <div className="twitch-header">
           <div className="streamer-avatar">
@@ -61,7 +41,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
               height="100%"
               width="100%"
               allowFullScreen
-              style={{ border: 'none' }}
+              className="border-none"
             ></iframe>
           ) : thumbnail ? (
             <img src={thumbnail} alt="Stream Preview" onError={(e) => (e.currentTarget.style.display = 'none')} />
@@ -75,83 +55,14 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex-gap-sm">
           <button className="lumina-button small full-width" onClick={() => setIsPlaying(!isPlaying)}>
             {isPlaying ? "Close Player" : "Watch Here"}
           </button>
-          <a href={twitchUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <a href={twitchUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
             Open Twitch
           </a>
         </div>
-
-        <style>{`
-          .twitch-widget {
-            max-width: 320px;
-            margin: 1rem 0;
-            border-left: 4px solid #9146ff !important;
-          }
-          .widget-badge.twitch {
-            color: #9146ff;
-          }
-          .twitch-header {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-          }
-          .streamer-avatar {
-            width: 2.5rem;
-            height: 2.5rem;
-            background: #9146ff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 800;
-          }
-          .stream-info h4 {
-            font-size: 0.9375rem;
-            margin: 0;
-          }
-          .stream-info p {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin: 0;
-          }
-          .twitch-preview {
-            position: relative;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            margin-bottom: 1rem;
-            background: #000;
-            aspect-ratio: 16/9;
-          }
-          .twitch-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.8;
-          }
-          .viewer-count {
-            position: absolute;
-            bottom: 0.5rem;
-            left: 0.5rem;
-            background: rgba(0,0,0,0.6);
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-          }
-          .live-dot {
-            width: 6px;
-            height: 6px;
-            background: #ff4a4a;
-            border-radius: 50%;
-            box-shadow: 0 0 6px #ff4a4a;
-          }
-        `}</style>
       </motion.div>
     );
   }
@@ -183,7 +94,14 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             <p>Channel: {channel}</p>
           </div>
         </div>
-        <div className="youtube-preview" onClick={() => !isPlaying && setIsPlaying(true)}>
+        <div
+          className="youtube-preview"
+          onClick={() => !isPlaying && setIsPlaying(true)}
+          onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !isPlaying) setIsPlaying(true); }}
+          role="button"
+          tabIndex={isPlaying ? -1 : 0}
+          aria-label="Play video"
+        >
           {isPlaying ? (
             <iframe
               width="100%"
@@ -215,94 +133,14 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           <span>•</span>
           <span>{publishedAt}</span>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex-gap-sm">
           <button className="lumina-button small full-width" onClick={() => setIsPlaying(!isPlaying)}>
             {isPlaying ? "Close Player" : "Watch Here"}
           </button>
-          <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
             Open YouTube
           </a>
         </div>
-
-        <style>{`
-          .youtube-widget {
-            max-width: 320px;
-            margin: 1rem 0;
-            border-left: 4px solid #ff0000 !important;
-          }
-          .widget-badge.youtube {
-            color: #ff0000;
-          }
-          .youtube-header {
-            margin-bottom: 0.75rem;
-          }
-          .video-info h4 {
-            font-size: 0.9375rem;
-            margin: 0;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          }
-          .video-info p {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin: 0.25rem 0 0 0;
-          }
-          .youtube-preview {
-            position: relative;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            margin-bottom: 0.75rem;
-            background: #000;
-            aspect-ratio: 16/9;
-            cursor: pointer;
-          }
-          .youtube-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.7;
-          }
-          .duration-tag {
-            position: absolute;
-            bottom: 0.5rem;
-            right: 0.5rem;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 0.1rem 0.3rem;
-            border-radius: 2px;
-            font-size: 0.65rem;
-            font-weight: 700;
-          }
-          .play-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 0, 0, 0.9);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.8;
-            transition: all 0.2s ease;
-          }
-          .youtube-preview:hover .play-overlay {
-            transform: translate(-50%, -50%) scale(1.1);
-            opacity: 1;
-          }
-          .video-stats {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-          }
-        `}</style>
       </motion.div>
     );
   }
@@ -322,16 +160,9 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           <p className="news-publisher">{publisher} • {publishedAt}</p>
           <p className="news-summary">{summary}</p>
         </div>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
           Read Full Article
         </a>
-        <style>{`
-          .news-widget { max-width: 320px; margin: 1rem 0; border-left: 4px solid #3b82f6 !important; }
-          .widget-badge.news { color: #3b82f6; }
-          .news-content h4 { font-size: 0.9375rem; margin: 0 0 0.25rem 0; line-height: 1.4; }
-          .news-publisher { font-size: 0.7rem; color: var(--text-muted); margin: 0 0 0.75rem 0; }
-          .news-summary { font-size: 0.8125rem; color: var(--text-secondary); margin: 0 0 1rem 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        `}</style>
       </motion.div>
     );
   }
@@ -352,18 +183,9 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         </div>
         <div className="social-content">{text}</div>
         <div className="social-stats">❤️ {likes} Likes</div>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
           View on {platform}
         </a>
-        <style>{`
-          .social-widget { max-width: 320px; margin: 1rem 0; border-left: 4px solid #14b8a6 !important; }
-          .widget-badge.social { color: #14b8a6; }
-          .social-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-          .social-avatar { width: 2rem; height: 2rem; background: #14b8a6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-          .social-author { font-weight: 600; font-size: 0.875rem; }
-          .social-content { font-size: 0.875rem; margin-bottom: 0.75rem; line-height: 1.4; color: var(--text-primary); }
-          .social-stats { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; }
-        `}</style>
       </motion.div>
     );
   }
@@ -385,17 +207,9 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           <div className="forum-excerpt">"{excerpt}"</div>
           <div className="forum-stats">💬 {replies} Replies</div>
         </div>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
           Join Discussion
         </a>
-        <style>{`
-          .forum-widget { max-width: 320px; margin: 1rem 0; border-left: 4px solid #f59e0b !important; }
-          .widget-badge.forum { color: #f59e0b; }
-          .forum-content h4 { font-size: 0.9375rem; margin: 0 0 0.25rem 0; line-height: 1.4; }
-          .forum-meta { font-size: 0.7rem; color: var(--text-muted); margin: 0 0 0.75rem 0; }
-          .forum-excerpt { font-size: 0.8125rem; font-style: italic; color: var(--text-secondary); margin: 0 0 0.75rem 0; border-left: 2px solid var(--glass-border); padding-left: 0.5rem; }
-          .forum-stats { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; }
-        `}</style>
       </motion.div>
     );
   }

@@ -23,13 +23,13 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
   };
 
   const sizes = {
-    sm: { icon: 24, font: '1rem' },
-    md: { icon: 32, font: '1.25rem' },
-    lg: { icon: 48, font: '1.75rem' },
-    xl: { icon: 64, font: '2.5rem' }
+    sm: 24,
+    md: 32,
+    lg: 48,
+    xl: 64
   };
 
-  const { icon, font } = sizes[size];
+  const icon = sizes[size];
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -66,7 +66,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
   }, [ids.pulseR, ids.pulseOpacity]);
 
   return (
-    <div className={`brand-logo-container ${styles.container} ${className}`}>
+    <div className={`brand-logo-container brand-logo-${size} ${styles.container} ${className}`}>
       <svg 
         ref={svgRef}
         width={icon} 
@@ -102,7 +102,8 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
           strokeWidth="2.5" 
           strokeLinecap="round" 
           strokeLinejoin="round"
-          style={{ filter: `url(#${ids.glow})` }}
+          className="brand-logo-network"
+          style={{ '--logo-glow': `url(#${ids.glow})` } as React.CSSProperties}
         />
         
         {/* Pulse Dot */}
@@ -127,7 +128,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       </svg>
       
       {showText && (
-        <span className="brand-logo-text" style={{ fontSize: font }}>
+        <span className="brand-logo-text">
           AdaptaChat
         </span>
       )}
