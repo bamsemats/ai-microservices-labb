@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
-import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
 import MainLayout from '../components/MainLayout';
@@ -100,16 +99,9 @@ const InsightsPage: React.FC = () => {
     }
   };
 
-  const navigate = useNavigate();
-
-  const handleSelectReceiver = (id: string) => {
-    navigate(`/?receiver=${encodeURIComponent(id)}`);
-  };
-
   return (
     <MainLayout
       activeReceiver="insights"
-      onSelectReceiver={handleSelectReceiver}
       prefix="📊"
       contextName="AI Insights & Profile"
     >

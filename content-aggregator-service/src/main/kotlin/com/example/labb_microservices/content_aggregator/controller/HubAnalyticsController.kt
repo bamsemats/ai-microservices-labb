@@ -22,7 +22,7 @@ class HubAnalyticsController(private val analyticsService: HubAnalyticsService) 
     }
 
     @GetMapping("/user-stats")
-    fun getUserStats(@AuthenticationPrincipal principal: Principal): Mono<UserStats> {
-        return analyticsService.getUserStats(principal.name)
+    fun getUserStats(@AuthenticationPrincipal userId: String): Mono<UserStats> {
+        return analyticsService.getUserStats(userId)
     }
 }

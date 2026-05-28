@@ -11,11 +11,10 @@ import { Plus, Hash, Globe, BarChart3, ShieldAlert, Users } from 'lucide-react';
 
 interface SidebarProps {
   activeReceiver?: string;
-  onSelectReceiver?: (id: string) => void;
   className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver, className }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
   const navigate = useNavigate();
   const { userId, username, isAdmin } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
@@ -39,11 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver, cla
   };
 
   const handleReceiverSelect = (id: string) => {
-    if (onSelectReceiver) {
-      onSelectReceiver(id);
-    } else {
-      navigate(`/?receiver=${encodeURIComponent(id)}`);
-    }
+    navigate({ pathname: '/', search: `?receiver=${encodeURIComponent(id)}` });
     if (window.innerWidth <= 768) {
       toggleSidebar(false);
     }

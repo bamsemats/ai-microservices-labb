@@ -49,6 +49,18 @@ kubectl port-forward service/frontend 3000:80
 ```
 Then visit `http://localhost:3000`.
 
+To inspect the backing infrastructure (e.g., via IntelliJ or local GUI tools), you can port-forward individual services:
+```powershell
+# MongoDB (Access via localhost:27017 in IntelliJ)
+kubectl port-forward service/mongodb 27017:27017
+
+# RabbitMQ Management UI (Access via http://localhost:15672, login: guest/guest)
+kubectl port-forward service/rabbitmq 15672:15672
+
+# Redis CLI (Access via localhost:6379)
+kubectl port-forward service/redis 6379:6379
+```
+
 ### Default Test Accounts
 To quickly explore the system, use the following pre-seeded test accounts:
 

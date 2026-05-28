@@ -21,13 +21,19 @@ const FriendsPage: React.FC = () => {
     fetchFriends();
   }, [fetchFriends]);
 
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) return;
+    navigate(`/explore?query=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
   const handleStartFrequency = async (friend: Friend) => {
     try {
       // Start a direct frequency with the friend
       const freqName = `Private: ${friend.username}`;
       const freq = await createFrequency(freqName, `Direct connection with ${friend.username}`);
       setActiveChannelId(freq.id);
-      navigate(`/?receiver=${freq.id}`);
+      navigate({ pathname: '/', search: `?receiver=${freq.id}` });
     } catch (error) {
       console.error('Failed to start frequency', error);
     }
@@ -48,7 +54,7 @@ const FriendsPage: React.FC = () => {
         </header>
 
         <section className="search-section glass-panel">
-          <div className="input-with-icon">
+          <form className="input-with-icon" onSubmit={handleSearch}>
             <Search size={18} />
             <input 
               type="text" 
@@ -57,7 +63,10 @@ const FriendsPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+            <button className="lumina-button primary mini-btn" type="submit">
+              Scan
+            </button>
+          </form>
           {searchQuery && (
             <div className="search-hint">
               Press Enter to deep-scan the network for "{searchQuery}"

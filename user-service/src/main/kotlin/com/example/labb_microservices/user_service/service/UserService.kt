@@ -74,6 +74,13 @@ class UserService(
             .flatMap { userRepository.findById(it) }
     }
 
+    fun getPendingRequests(userId: String): Flux<User> {
+        return friendshipRepository.findByUserId(userId)
+            .filter { it.status == FriendshipStatus.PENDING }
+            .map { it.friendId }
+            .flatMap { userRepository.findById(it) }
+    }
+
     fun deleteFriend(userId: String, friendId: String): Mono<Void> {
         return friendshipRepository.findByUserIdAndFriendId(userId, friendId)
             .switchIfEmpty(friendshipRepository.findByUserIdAndFriendId(friendId, userId))

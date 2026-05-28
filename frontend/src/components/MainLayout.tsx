@@ -9,7 +9,6 @@ import { useUIStore } from '../store/useUIStore';
 interface MainLayoutProps {
   children: React.ReactNode;
   activeReceiver?: string;
-  onSelectReceiver?: (id: string) => void;
   prefix?: string;
   contextName?: string;
 }
@@ -17,7 +16,6 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ 
   children, 
   activeReceiver, 
-  onSelectReceiver,
   prefix,
   contextName = 'AdaptaChat'
 }) => {
@@ -28,7 +26,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       <TopDrawer />
       <Sidebar 
         activeReceiver={activeReceiver} 
-        onSelectReceiver={onSelectReceiver} 
         className={!sidebarOpen ? 'closed' : ''}
       />
       

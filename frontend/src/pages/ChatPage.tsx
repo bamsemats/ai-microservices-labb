@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -10,7 +11,9 @@ import ThinkingBubble from '../components/ThinkingBubble';
 import MainLayout from '../components/MainLayout';
 
 const ChatPage: React.FC = () => {
-  const [receiverId, setReceiverId] = useState('home');
+  const [searchParams] = useSearchParams();
+  const receiverId = searchParams.get('receiver') || 'home';
+  
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   
@@ -72,7 +75,6 @@ const ChatPage: React.FC = () => {
   return (
     <MainLayout
       activeReceiver={receiverId}
-      onSelectReceiver={setReceiverId}
       prefix={receiverId === 'all' || receiverId === 'home' ? '#' : '@'}
       contextName={receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId)}
     >

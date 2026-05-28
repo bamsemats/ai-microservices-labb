@@ -115,6 +115,12 @@ class UserController(private val userService: UserService) {
             .map { it.toUserDto() }
     }
 
+    @GetMapping("/friends/pending")
+    fun getPendingRequests(@AuthenticationPrincipal userId: String): Flux<UserDto> {
+        return userService.getPendingRequests(userId)
+            .map { it.toUserDto() }
+    }
+
     @DeleteMapping("/friends/{friendId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteFriend(

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSocialStore } from '../store/useSocialStore';
 import api from '../api/axios';
@@ -15,24 +16,30 @@ interface UserResult {
 }
 
 const DiscoveryPage: React.FC = () => {
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('query') || '';
+  
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<UserResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const { friends, sendRequest } = useSocialStore();
+  const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
+  const { friends, pendingFriends, sendRequest, fetchPendingFriends } = useSocialStore();
   const { userId } = useAuthStore();
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = async (e?: React.FormEvent, searchQuery: string = query) => {
     if (e) e.preventDefault();
-    if (!query.trim()) {
+    if (!searchQuery.trim()) {
       setResults([]);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.get(`/users/search?query=${encodeURIComponent(query)}`);
+      const response = await api.get(`/users/search?query=${encodeURIComponent(searchQuery.trim())}`);
       // Backend returns a Page object
       setResults(response.data.content || []);
+      // Update URL without triggering reload
+      setSearchParams({ query: searchQuery.trim() }, { replace: true });
     } catch (error) {
       console.error('Search failed', error);
     } finally {
@@ -40,7 +47,26 @@ const DiscoveryPage: React.FC = () => {
     }
   };
 
+  const handleConnect = async (targetId: string) => {
+    setConnectingUserId(targetId);
+    try {
+      await sendRequest(targetId);
+    } catch (error) {
+      console.error('Connection failed', error);
+    } finally {
+      setConnectingUserId(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingFriends();
+    if (initialQuery) {
+      handleSearch(undefined, initialQuery);
+    }
+  }, []);
+
   const isFriend = (id: string) => friends.some(f => f.id === id);
+  const isPending = (id: string) => pendingFriends.some(f => f.id === id);
 
   return (
     <MainLayout
@@ -86,11 +112,18 @@ const DiscoveryPage: React.FC = () => {
                     </div>
                     {user.id !== userId && (
                       <button 
-                        className={`lumina-button ${isFriend(user.id) ? 'secondary' : ''}`}
-                        onClick={() => sendRequest(user.id)}
-                        disabled={isFriend(user.id)}
+                        className={`lumina-button ${isFriend(user.id) || isPending(user.id) ? 'secondary' : ''}`}
+                        onClick={() => handleConnect(user.id)}
+                        disabled={isFriend(user.id) || isPending(user.id) || connectingUserId === user.id}
                       >
-                        {isFriend(user.id) ? 'Connected' : <><UserPlus size={16} className="btn-icon" /> Connect</>}
+                        {isFriend(user.id) 
+                          ? 'Connected' 
+                          : connectingUserId === user.id
+                            ? 'Connecting...'
+                            : isPending(user.id) 
+                              ? 'Pending' 
+                              : <><UserPlus size={16} className="btn-icon" /> Connect</>
+                        }
                       </button>
                     )}
                   </motion.div>

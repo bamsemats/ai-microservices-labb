@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../api/axios';
-import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
 import Avatar from '../components/Avatar';
 
@@ -14,7 +13,6 @@ interface SocialLinks {
 
 const ProfilePage: React.FC = () => {
   const { username, token } = useAuthStore();
-  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
@@ -62,14 +60,9 @@ const ProfilePage: React.FC = () => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSelectReceiver = (id: string) => {
-    navigate(`/?receiver=${encodeURIComponent(id)}`);
-  };
-
   return (
     <MainLayout
       activeReceiver="profile"
-      onSelectReceiver={handleSelectReceiver}
       prefix="👤"
       contextName="User Profile"
     >
