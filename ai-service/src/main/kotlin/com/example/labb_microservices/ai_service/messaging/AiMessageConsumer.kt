@@ -44,40 +44,51 @@ class AiMessageConsumer(
 
         val content = message.content
         
-        // Entity Extraction (Keyword-based for speed, can be upgraded later)
+        // Entity Extraction (Keyword and URL based)
         val entityProcessing = Mono.fromRunnable<Unit> {
-            val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
-            if (entityTriggerMatch != null) {
-                val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
-                val rawSubject = entityTriggerMatch.groupValues[1].trim()
-                val subject = sanitizeSubject(rawSubject)
-                
-                val (type, value) = when {
-                    content.lowercase().contains("elden ring") -> "GAME" to "Elden Ring"
-                    content.lowercase().contains("valorant") -> "GAME" to "Valorant"
-                    content.lowercase().contains("minecraft") -> "GAME" to "Minecraft"
-                    matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
-                    content.lowercase().contains("react") -> "VIDEO" to "React Tutorial"
-                    content.lowercase().contains("python") -> "VIDEO" to "Python Tutorial"
-                    content.lowercase().contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
-                    content.lowercase().contains("lofi") || content.lowercase().contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                    subject.length > 2 && subject.length < 50 && rawSubject.firstOrNull()?.isUpperCase() == true -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
-                    else -> null to null
+            val twitchMatch = Regex("twitch\\.tv/([\\w]+)", RegexOption.IGNORE_CASE).find(content)
+            val youtubeMatch = Regex("(?:youtube\\.com/watch\\?v=|youtu\\.be/)([\\w\\-]+)", RegexOption.IGNORE_CASE).find(content)
+
+            val (type, value) = when {
+                twitchMatch != null -> "GAME" to twitchMatch.groupValues[1].replaceFirstChar { it.titlecase() }
+                youtubeMatch != null -> "VIDEO" to youtubeMatch.groupValues[1]
+                else -> {
+                    val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
+                    if (entityTriggerMatch != null) {
+                        val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
+                        val rawSubject = entityTriggerMatch.groupValues[1].trim()
+                        val subject = sanitizeSubject(rawSubject)
+                        
+                        when {
+                            content.lowercase().contains("elden ring") -> "GAME" to "Elden Ring"
+                            content.lowercase().contains("valorant") -> "GAME" to "Valorant"
+                            content.lowercase().contains("minecraft") -> "GAME" to "Minecraft"
+                            matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
+                            content.lowercase().contains("react") -> "VIDEO" to "React Tutorial"
+                            content.lowercase().contains("python") -> "VIDEO" to "Python Tutorial"
+                            content.lowercase().contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
+                            content.lowercase().contains("lofi") || content.lowercase().contains("music") -> "VIDEO" to "Lofi Hip Hop"
+                            subject.length > 2 && subject.length < 50 && rawSubject.firstOrNull()?.isUpperCase() == true -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
+                            else -> null to null
+                        }
+                    } else {
+                        null to null
+                    }
                 }
+            }
                 
-                if (type != null && value != null) {
-                    logger.info("Entity detected: $type = $value")
-                    rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.ENTITY_EXCHANGE_NAME,
-                        "entity.detected",
-                        EntityMessage(
-                            entityType = type,
-                            entityValue = value,
-                            originalMessageId = message.id ?: UUID.randomUUID().toString(),
-                            senderId = message.senderId
-                        )
+            if (type != null && value != null) {
+                logger.info("Entity detected: $type = $value")
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ENTITY_EXCHANGE_NAME,
+                    "entity.detected",
+                    EntityMessage(
+                        entityType = type,
+                        entityValue = value,
+                        originalMessageId = message.id ?: UUID.randomUUID().toString(),
+                        senderId = message.senderId
                     )
-                }
+                )
             }
         }.subscribeOn(Schedulers.boundedElastic())
 

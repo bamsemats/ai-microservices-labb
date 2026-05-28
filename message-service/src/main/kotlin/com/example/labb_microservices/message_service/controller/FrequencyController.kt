@@ -9,6 +9,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 data class CreateFrequencyRequest(val name: String, val description: String? = null)
+data class RenameFrequencyRequest(val name: String)
 
 @RestController
 @RequestMapping("/frequencies")
@@ -37,5 +38,33 @@ class FrequencyController(private val frequencyService: FrequencyService) {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun leaveFrequency(@PathVariable id: String, @AuthenticationPrincipal userId: String): Mono<Void> {
         return frequencyService.leaveFrequency(id, userId)
+    }
+
+    @PutMapping("/{id}/rename")
+    fun renameFrequency(
+        @PathVariable id: String, 
+        @RequestBody request: RenameFrequencyRequest, 
+        @AuthenticationPrincipal userId: String
+    ): Mono<Frequency> {
+        return frequencyService.renameFrequency(id, request.name, userId)
+    }
+
+    @PostMapping("/{id}/members/{memberId}")
+    fun inviteMember(
+        @PathVariable id: String, 
+        @PathVariable memberId: String, 
+        @AuthenticationPrincipal userId: String
+    ): Mono<Frequency> {
+        return frequencyService.inviteMember(id, memberId, userId)
+    }
+
+    @DeleteMapping("/{id}/members/{memberId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun kickMember(
+        @PathVariable id: String, 
+        @PathVariable memberId: String, 
+        @AuthenticationPrincipal userId: String
+    ): Mono<Void> {
+        return frequencyService.kickMember(id, memberId, userId)
     }
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
+import { useFrequencyStore } from '../store/useFrequencyStore';
 import { useWebSocket } from '../hooks/useWebSocket';
 import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
@@ -26,6 +27,7 @@ const ChatPage: React.FC = () => {
     setActiveChannelId,
     aiStatus
   } = useChatStore();
+  const { frequencies } = useFrequencyStore();
 
   const { sendMessage: sendWs, sendTyping } = useWebSocket();
 
@@ -72,11 +74,14 @@ const ChatPage: React.FC = () => {
     sendTyping(activeChannelId, isTyping);
   };
 
+  const currentFreq = frequencies.find(f => f.id === receiverId);
+  const contextName = currentFreq ? currentFreq.name : (receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId));
+
   return (
     <MainLayout
       activeReceiver={receiverId}
-      prefix={receiverId === 'all' || receiverId === 'home' ? '#' : '@'}
-      contextName={receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId)}
+      prefix={receiverId === 'all' || receiverId === 'home' ? '#' : (currentFreq ? '#' : '@')}
+      contextName={contextName}
     >
       <section className="message-stream">
         <div className="message-list" ref={scrollRef}>

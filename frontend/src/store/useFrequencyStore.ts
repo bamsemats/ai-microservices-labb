@@ -15,6 +15,9 @@ interface FrequencyState {
   createFrequency: (name: string, description?: string) => Promise<Frequency>;
   joinFrequency: (id: string) => Promise<void>;
   leaveFrequency: (id: string) => Promise<void>;
+  renameFrequency: (id: string, newName: string) => Promise<void>;
+  inviteMember: (id: string, memberId: string) => Promise<void>;
+  kickMember: (id: string, memberId: string) => Promise<void>;
 }
 
 export const useFrequencyStore = create<FrequencyState>((set, get) => ({
@@ -40,5 +43,17 @@ export const useFrequencyStore = create<FrequencyState>((set, get) => ({
   leaveFrequency: async (id) => {
     await api.post(`/frequencies/${encodeURIComponent(id)}/leave`);
     set(state => ({ frequencies: state.frequencies.filter(f => f.id !== id) }));
+  },
+  renameFrequency: async (id, newName) => {
+    await api.put(`/frequencies/${encodeURIComponent(id)}/rename`, { name: newName });
+    await get().fetchFrequencies();
+  },
+  inviteMember: async (id, memberId) => {
+    await api.post(`/frequencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}`);
+    await get().fetchFrequencies();
+  },
+  kickMember: async (id, memberId) => {
+    await api.delete(`/frequencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}`);
+    await get().fetchFrequencies();
   }
 }));

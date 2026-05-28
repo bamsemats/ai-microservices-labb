@@ -46,6 +46,11 @@
     --glass-bg: rgb(var(--glass-base) / var(--sentiment-opacity));
     --glass-border: rgb(var(--glass-base) / 0.08);
 
+    /* --- Interactive & Border Tokens --- */
+    --bg-hover: rgb(var(--glass-base) / 0.05);
+    --bg-elevated-hover: rgb(var(--glass-base) / 0.08);
+    --border-subtle: rgb(var(--glass-base) / 0.1);
+
     /* --- UI Preview Tokens --- */
     --preview-color: var(--color-accent-primary);
     --preview-intensity: 0;

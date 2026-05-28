@@ -25,7 +25,7 @@ class GatewayConfig(
                     .uri(authServiceUrl)
             }
             .route("user-service") { r ->
-                r.path("/register", "/users/**", "/friends/**")
+                r.path("/register", "/users/**", "/friends/**", "/events/**")
                     .filters { f -> f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) }
                     .uri(userServiceUrl)
             }

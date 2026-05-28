@@ -65,6 +65,40 @@ class FrequencyService(
                 }
             }
     }
+
+    fun renameFrequency(frequencyId: String, newName: String, userId: String): Mono<Frequency> {
+        val query = Query(Criteria.where("id").`is`(frequencyId).and("ownerId").`is`(userId))
+        val update = Update().set("name", newName)
+        return mongoTemplate.findAndModify(
+            query, 
+            update, 
+            FindAndModifyOptions.options().returnNew(true), 
+            Frequency::class.java
+        ).switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized or frequency not found")))
+    }
+
+    fun inviteMember(frequencyId: String, memberId: String, userId: String): Mono<Frequency> {
+        val query = Query(Criteria.where("id").`is`(frequencyId).and("ownerId").`is`(userId))
+        val update = Update().addToSet("members", memberId)
+        return mongoTemplate.findAndModify(
+            query, 
+            update, 
+            FindAndModifyOptions.options().returnNew(true), 
+            Frequency::class.java
+        ).switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized or frequency not found")))
+    }
+
+    fun kickMember(frequencyId: String, memberId: String, userId: String): Mono<Void> {
+        val query = Query(Criteria.where("id").`is`(frequencyId).and("ownerId").`is`(userId))
+        val update = Update().pull("members", memberId)
+        return mongoTemplate.findAndModify(
+            query, 
+            update, 
+            Frequency::class.java
+        )
+        .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized or frequency not found")))
+        .then()
+    }
     
     fun findById(id: String): Mono<Frequency> = frequencyRepository.findById(id)
 }

@@ -40,34 +40,7 @@ class SeedingService(
             .flatMap { bot ->
                 // Set bot online in presence service (Redis)
                 presenceService.setBotOnline(bot.name)
-                    .then(Mono.defer {
-                        // Create a welcome message from the bot if it doesn't exist
-                        val messageId = "seed-${bot.name}-welcome"
-                        messageRepository.existsById(messageId)
-                            .flatMap { exists ->
-                                if (exists) {
-                                    Mono.empty()
-                                } else {
-                                    val content = "Hello! I am ${bot.name}, the ${bot.role} of this frequency. How can I assist your synchronization today?"
-                                    val welcomeMessage = Message(
-                                        id = messageId,
-                                        senderId = bot.name,
-                                        senderName = bot.name,
-                                        receiverId = "all",
-                                        channelId = "general",
-                                        content = encryptionUtils.encrypt(content),
-                                        authorType = AuthorType.BOT,
-                                        timestamp = Instant.now()
-                                    )
-                                    messageRepository.save(welcomeMessage)
-                                        .doOnSuccess { 
-                                            // LOG, but do NOT deliver to WebSocket to prevent startup noise
-                                            logger.debug("Seeded welcome message for bot: ${bot.name}") 
-                                        }
-                                }
-                            }
-                            .then()
-                    })
+                    .then(Mono.empty<Void>())
             }
             .then()
             .doOnSuccess { logger.info("Data seeding completed for living bots.") }

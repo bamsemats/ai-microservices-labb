@@ -32,12 +32,14 @@ class MessageConsumer(
         val messageToSave = if (message.id.isNullOrBlank()) {
             message.copy(
                 id = java.util.UUID.randomUUID().toString(),
-                content = encryptionUtils.encrypt(message.content),
+                content = message.content,
+                /*content = encryptionUtils.encrypt(message.content),  <-- encrypted version*/
                 searchIndices = tokenizeAndHash(message.content)
             )
         } else {
             message.copy(
-                content = encryptionUtils.encrypt(message.content),
+                content = message.content,
+                /*content = encryptionUtils.encrypt(message.content),  <-- encrypted version*/
                 searchIndices = tokenizeAndHash(message.content)
             )
         }
@@ -103,8 +105,10 @@ class MessageConsumer(
                 .setOnInsert("channelId", message.channelId)
                 .setOnInsert("authorType", message.authorType)
                 .setOnInsert("timestamp", message.timestamp)
-                .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
-                .push("contentChunks", encryptedContent)
+                .setOnInsert("content", message.content) // Set initial encrypted content on insert
+                .push("contentChunks").each(*message.contentChunks.toTypedArray())
+                /*.setOnInsert("content", encryptedContent)
+                .push("contentChunks", encryptedContent)  <--- encrypted version*/
             
             if (hashes.isNotEmpty()) {
                 update.addToSet("searchIndices").each(*hashes.toTypedArray())

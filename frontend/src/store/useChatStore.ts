@@ -90,13 +90,13 @@ interface ChatState {
         status: 'sent' // Mark as sent if it was pending
       };
       return { 
-        messages: updatedMessages, 
+        messages: updatedMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()), 
         aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
       };
     }
 
     return { 
-      messages: [...state.messages, normalizedArrival], 
+      messages: [...state.messages, normalizedArrival].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()), 
       aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
     };
   }),

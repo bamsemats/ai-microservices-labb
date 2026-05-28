@@ -92,6 +92,91 @@ class EntityConsumer(
                     }
                 }
                 .then()
+        } else if (entityMessage.entityType == "NEWS") {
+            val cacheKey = "content:news:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
+            
+            redisTemplate.opsForValue().get(cacheKey)
+                .switchIfEmpty(
+                    Mono.defer {
+                        logger.info("Cache miss for ${entityMessage.entityValue}. Simulating News API call...")
+                        val newsData = mapOf(
+                            "title" to "Breaking: ${entityMessage.entityValue}",
+                            "publisher" to "Global Tech News",
+                            "summary" to "New developments have emerged regarding ${entityMessage.entityValue}. Experts suggest this could change the industry landscape significantly.",
+                            "url" to "https://example.com/news/${entityMessage.entityValue.lowercase().replace(" ", "-")}",
+                            "publishedAt" to "Just now"
+                        )
+                        redisTemplate.opsForValue().set(cacheKey, newsData, Duration.ofMinutes(10))
+                            .thenReturn(newsData)
+                    }
+                )
+                .flatMap { data ->
+                    val event = ContentInjectionEvent(
+                        contentType = "NEWS_ARTICLE",
+                        data = data as Map<String, String>
+                    )
+                    
+                    logger.info("Publishing Content Injection Event for news: ${entityMessage.entityValue}")
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                }
+                .then()
+        } else if (entityMessage.entityType == "SOCIAL") {
+            val cacheKey = "content:social:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
+            
+            redisTemplate.opsForValue().get(cacheKey)
+                .switchIfEmpty(
+                    Mono.defer {
+                        logger.info("Cache miss for ${entityMessage.entityValue}. Simulating Social API call...")
+                        val socialData = mapOf(
+                            "author" to "@TechGuru",
+                            "platform" to "X/Twitter",
+                            "text" to "I can't believe the recent updates to ${entityMessage.entityValue}. Absolutely mind-blowing! 🤯 #tech #update",
+                            "url" to "https://example.com/social/post/12345",
+                            "likes" to "4.2k"
+                        )
+                        redisTemplate.opsForValue().set(cacheKey, socialData, Duration.ofMinutes(10))
+                            .thenReturn(socialData)
+                    }
+                )
+                .flatMap { data ->
+                    val event = ContentInjectionEvent(
+                        contentType = "SOCIAL_POST",
+                        data = data as Map<String, String>
+                    )
+                    
+                    logger.info("Publishing Content Injection Event for social: ${entityMessage.entityValue}")
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                }
+                .then()
+        } else if (entityMessage.entityType == "FORUM") {
+            val cacheKey = "content:forum:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
+            
+            redisTemplate.opsForValue().get(cacheKey)
+                .switchIfEmpty(
+                    Mono.defer {
+                        logger.info("Cache miss for ${entityMessage.entityValue}. Simulating Forum API call...")
+                        val forumData = mapOf(
+                            "threadTitle" to "Discussion: ${entityMessage.entityValue} - Pros & Cons",
+                            "forumName" to "DevTalk",
+                            "author" to "code_ninja",
+                            "excerpt" to "I've been trying out ${entityMessage.entityValue} lately and wanted to hear everyone's thoughts on the new features. Are they worth the hype?",
+                            "url" to "https://example.com/forum/thread/9876",
+                            "replies" to "128"
+                        )
+                        redisTemplate.opsForValue().set(cacheKey, forumData, Duration.ofMinutes(10))
+                            .thenReturn(forumData)
+                    }
+                )
+                .flatMap { data ->
+                    val event = ContentInjectionEvent(
+                        contentType = "FORUM_POST",
+                        data = data as Map<String, String>
+                    )
+                    
+                    logger.info("Publishing Content Injection Event for forum: ${entityMessage.entityValue}")
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                }
+                .then()
         } else {
             Mono.empty()
         }
