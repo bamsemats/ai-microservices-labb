@@ -59,7 +59,11 @@ export const useAuthStore = create<AuthState>((set) => {
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('userId', userId);
       localStorage.setItem('username', username);
-      if (displayName) localStorage.setItem('displayName', displayName);
+      if (displayName) {
+        localStorage.setItem('displayName', displayName);
+      } else {
+        localStorage.removeItem('displayName');
+      }
       localStorage.setItem('role', role);
       
       set({ 
