@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import api from '../api/axios';
 
 export interface Message {
   id: string;
@@ -35,12 +36,11 @@ interface ChatState {
   setMessages: (messages: Message[]) => void;
   clearMessages: () => void;
   setTyping: (username: string, channelId: string, isTyping: boolean) => void;
-  markMessageRead: (messageId: string, userId: string) => void;
-}
+  markMessageRead: (messageId, userId) => void;
+  }
 
-import api from '../api/axios';
+  export const useChatStore = create<ChatState>((set, get) => ({
 
-export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   injectedContent: [],
   aiStatus: 'IDLE',

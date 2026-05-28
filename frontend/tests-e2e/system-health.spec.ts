@@ -122,13 +122,21 @@ test.describe('AdaptaChat Health Check', () => {
     // Select a channel
     await page.click('text=#general');
 
-    // Send high-sentiment message
-    await page.fill('input[placeholder*="Type your message"]', "I absolutely love this new update, it is amazing!");
+    // 1. Capture initial state
+    const initialBlur = await page.evaluate(() => 
+      getComputedStyle(document.documentElement).getPropertyValue('--sentiment-blur').trim()
+    );
+
+    // 2. Trigger sentiment change
+    await page.fill('input[placeholder*="Type your message"]', "I absolutely love this new update, it is amazing! I am so happy!");
     await page.press('input[placeholder*="Type your message"]', 'Enter');
 
-    // Verify CSS variable change on document root (Sentiment Adaptation)
-    // We check if --sentiment-blur or similar exists and is non-zero
-    const blur = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--sentiment-blur'));
-    expect(parseFloat(blur)).toBeGreaterThanOrEqual(0);
+    // 3. Verify CSS variable change (wait for adaptation)
+    await page.waitForTimeout(2000);
+    const postBlur = await page.evaluate(() => 
+      getComputedStyle(document.documentElement).getPropertyValue('--sentiment-blur').trim()
+    );
+
+    expect(parseFloat(postBlur)).not.toBe(parseFloat(initialBlur));
   });
 });

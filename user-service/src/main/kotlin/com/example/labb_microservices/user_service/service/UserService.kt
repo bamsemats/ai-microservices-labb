@@ -56,10 +56,10 @@ class UserService(
 
     fun acceptFriendRequest(userId: String, friendId: String): Mono<Friendship> {
         return friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Friend request not found")))
             .flatMap { 
                 friendshipRepository.save(it.copy(status = FriendshipStatus.ACCEPTED))
             }
-            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Friend request not found")))
     }
 
     fun getFriends(userId: String): Flux<User> {

@@ -49,7 +49,7 @@ const getPersistedUI = (): Partial<UITheme> | null => {
 
 export const useUIStore = create<UIState>((set) => ({
   currentTheme: { ...DEFAULT_THEME, ...getPersistedUI() },
-  sidebarOpen: window.innerWidth > 768,
+  sidebarOpen: typeof window !== 'undefined' ? window.innerWidth > 768 : false,
   injectionPanelOpen: false,
   setTheme: (theme) => set((state) => {
     const newTheme = { ...state.currentTheme, ...theme };

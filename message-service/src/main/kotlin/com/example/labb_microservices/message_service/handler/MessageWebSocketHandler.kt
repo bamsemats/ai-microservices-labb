@@ -138,7 +138,6 @@ class MessageWebSocketHandler(
                                     val message = com.example.labb_microservices.message_service.model.Message(
                                         id = UUID.randomUUID().toString(),
                                         senderId = sessionUserId,
-                                        senderName = currentSession.username ?: sessionUserId,
                                         receiverId = request.receiverId,
                                         channelId = channelId,
                                         content = request.content,
@@ -148,7 +147,7 @@ class MessageWebSocketHandler(
                                     messageService.processMessage(message)
                                         .doOnSuccess { logger.info("[TRACE] processMessage chain completed for {}", message.id) }
                                         .doOnError { e -> logger.error("[TRACE] processMessage chain FAILED for {}", message.id, e) }
-                                        .subscribe()
+                                        .subscribe({}, { e -> logger.error("Fatal error processing WebSocket message {}: {}", message.id, e.message, e) })
                                 } catch (e: Exception) {
                                     logger.warn("[TRACE] Payload from session {} is not a valid MessageRequest. Error: {}", sessionId, e.message)
                                 }

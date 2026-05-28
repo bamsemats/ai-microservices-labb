@@ -49,7 +49,7 @@ class FrequencyService(
             .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "Frequency not found")))
             .flatMap { freq ->
                 if (freq.ownerId == userId) {
-                    val nextOwner = freq.members.filter { it != userId }.firstOrNull()
+                    val nextOwner = freq.members.filter { it != userId }.minOrNull()
                     if (nextOwner != null) {
                         val query = Query(Criteria.where("id").`is`(frequencyId))
                         val update = Update().pull("members", userId).set("ownerId", nextOwner)

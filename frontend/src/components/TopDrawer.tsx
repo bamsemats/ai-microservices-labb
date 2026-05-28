@@ -35,12 +35,18 @@ const TopDrawer: React.FC = () => {
             exit={{ y: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="top-drawer glass-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="active-injections-title"
           >
             <div className="drawer-header">
-              <h3>Active Injections</h3>
+              <h3 id="active-injections-title">Active Injections</h3>
               <button 
+                type="button"
                 onClick={() => toggleInjectionPanel(false)}
                 className="close-drawer-btn"
+                aria-label="Close Active Injections"
+                title="Close"
               >
                 ×
               </button>

@@ -83,7 +83,7 @@ class MessageConsumer(
         val message = try {
             objectMapper.convertValue(data, Message::class.java)
         } catch (e: Exception) {
-            logger.error("[TRACE] FAILED to convert AI response map: {}", data, e)
+            logger.error("[TRACE] FAILED to convert AI response map. Keys present: {}, Error: {}", data.keys, e.message)
             return
         }
 

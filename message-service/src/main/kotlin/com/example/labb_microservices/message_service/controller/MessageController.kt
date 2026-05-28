@@ -68,31 +68,24 @@ class MessageController(
                     return@flatMap Mono.error<String>(AccessDeniedException("Only admins can send broadcast messages"))
                 }
 
-                getUserWithFallback(senderId)
-                    .flatMap { userResponse ->
-                        val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
-                        val channelId = request.channelId?.takeIf { it.isNotBlank() }
-                            ?: if (request.receiverId == "all") "global" else "general"
-                        
-                        val metadata = mutableMapOf<String, String>()
-                        if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
-                            metadata["X-Adapta-Test-Mode"] = "true"
-                        }
-                        
-                        val message = Message(
-                            id = idPrefix + UUID.randomUUID().toString(),
-                            senderId = senderId,
-                            senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
-                            receiverId = request.receiverId,
-                            channelId = channelId,
-                            content = request.content,
-                            authorType = AuthorType.USER,
-                            metadata = metadata
-                        )
-                        
-                        messageService.processMessage(message)
-                            .thenReturn("Message received: ${message.id}")
-                    }
+                val idPrefix = if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) "test-" else ""
+                val metadata = mutableMapOf<String, String>()
+                if (isTestModeHeaderAllowed && testMode?.equals("true", ignoreCase = true) == true) {
+                    metadata["X-Adapta-Test-Mode"] = "true"
+                }
+                
+                val message = Message(
+                    id = idPrefix + UUID.randomUUID().toString(),
+                    senderId = senderId,
+                    receiverId = request.receiverId,
+                    channelId = request.channelId ?: "general",
+                    content = request.content,
+                    authorType = AuthorType.USER,
+                    metadata = metadata
+                )
+                
+                messageService.processMessage(message)
+                    .thenReturn("Message received: ${message.id}")
             }
     }
 
@@ -104,22 +97,17 @@ class MessageController(
                 val auth = context.authentication
                 val senderId = auth.name
                 
-                getUserWithFallback(senderId)
-                    .flatMap { userResponse ->
-                        val channelId = request.channelId?.takeIf { it.isNotBlank() } ?: "global"
-                        val message = Message(
-                            id = UUID.randomUUID().toString(),
-                            senderId = senderId,
-                            senderName = if (userResponse.displayName.isNotBlank()) userResponse.displayName else userResponse.username,
-                            receiverId = "all",
-                            channelId = channelId,
-                            content = request.content,
-                            authorType = AuthorType.USER
-                        )
-                        
-                        messageService.processMessage(message)
-                            .thenReturn("Broadcast message sent by $senderId in channel $channelId")
-                    }
+                val message = Message(
+                    id = UUID.randomUUID().toString(),
+                    senderId = senderId,
+                    receiverId = "all",
+                    channelId = request.channelId ?: "global",
+                    content = request.content,
+                    authorType = AuthorType.USER
+                )
+                
+                messageService.processMessage(message)
+                    .thenReturn("Broadcast message sent by $senderId in channel ${message.channelId}")
             }
     }
 
@@ -241,8 +229,9 @@ class MessageController(
                             else Mono.just(false)
                         }
                         .switchIfEmpty(Mono.defer {
-                            // Validate if it's a DM pattern where principal is a participant
-                            val isDm = channelId.contains("-") && (channelId.startsWith(principal) || channelId.endsWith(principal))
+                            // Tightened DM heuristic: ensure channelId is exactly "user1-user2" and principal is one of them
+                            val parts = channelId.split("-")
+                            val isDm = parts.size == 2 && principal in parts
                             Mono.just(isDm)
                         })
                 } else {
@@ -304,7 +293,7 @@ class MessageController(
                 content = encryptionUtils.decrypt(encryptedMessage.content)
             )
         } catch (e: Exception) {
-            logger.error("Failed to decrypt message \${encryptedMessage.id}", e)
+            logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
             encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
         }
     }

@@ -165,6 +165,7 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             id = UUID.randomUUID().toString(),
             senderId = "user-test",
             receiverId = "ai-bot",
+            channelId = "general", // Standard broadcast channel
             content = "What is the meaning of microservices?",
             authorType = AuthorType.USER,
             metadata = mapOf("X-Adapta-Test-Mode" to "true")
@@ -177,7 +178,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
         assertNotNull(response, "AI response should not be null")
         assertEquals("ai-bot", response?.senderId)
-        assertEquals("user-test", response?.receiverId)
+        // New routing: AI responses in broadcast channels go to "all"
+        assertEquals("all", response?.receiverId)
         assertEquals(AuthorType.BOT, response?.authorType)
         assertEquals("Deterministic mock response. Context found: [Test Context]", response?.content)
     }

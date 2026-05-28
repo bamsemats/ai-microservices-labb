@@ -100,7 +100,7 @@ const AdminPage: React.FC = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 className="lumina-input"
               />
-              <button className="lumina-button secondary icon-only"><Filter size={18} /></button>
+              <button type="button" aria-label="Filter" className="lumina-button secondary icon-only"><Filter size={18} /></button>
             </form>
 
             <div className="user-table">
@@ -112,6 +112,8 @@ const AdminPage: React.FC = () => {
                     <div className="user-id">ID: {u.id.substring(0,8)}...</div>
                   </div>
                   <button 
+                    type="button"
+                    aria-label="Toggle Admin Role"
                     className="lumina-button secondary icon-only" 
                     title="Toggle Admin Role"
                     onClick={() => toggleRole(u.id, u.roles)}
@@ -123,9 +125,9 @@ const AdminPage: React.FC = () => {
             </div>
 
             <div className="admin-pagination">
-              <button className="lumina-button secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
+              <button type="button" className="lumina-button secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
               <span className="pagination-info">Cycle {page + 1} / {totalPages || 1}</span>
-              <button className="lumina-button secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
+              <button type="button" className="lumina-button secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
             </div>
           </motion.div>
         </div>
@@ -139,7 +141,7 @@ const AdminPage: React.FC = () => {
               className="glass-panel admin-status-toast"
             >
               {status}
-              <button onClick={() => setStatus(null)} className="close-status-btn">×</button>
+              <button type="button" aria-label="Close status" onClick={() => setStatus(null)} className="close-status-btn">×</button>
             </motion.div>
           )}
         </AnimatePresence>

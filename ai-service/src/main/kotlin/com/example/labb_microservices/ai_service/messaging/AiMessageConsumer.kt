@@ -146,7 +146,7 @@ class AiMessageConsumer(
                 "",
                 AiStatusEvent(
                     status = AiStatus.THINKING,
-                    channelId = message.channelId,
+                    channelId = channelId,
                     userId = message.senderId
                 )
             )
@@ -167,7 +167,7 @@ class AiMessageConsumer(
                         senderId = targetBotId,
                         senderName = botName,
                         receiverId = receiverId,
-                        channelId = message.channelId,
+                        channelId = channelId,
                         content = fullContent,
                         authorType = AuthorType.BOT
                     )
@@ -193,7 +193,7 @@ class AiMessageConsumer(
                         "",
                         AiStatusEvent(
                             status = AiStatus.COMPLETED,
-                            channelId = message.channelId,
+                            channelId = channelId,
                             userId = message.senderId
                         )
                     )
@@ -207,7 +207,7 @@ class AiMessageConsumer(
                         "",
                         AiStatusEvent(
                             status = AiStatus.ERROR,
-                            channelId = message.channelId,
+                            channelId = channelId,
                             userId = message.senderId
                         )
                     )

@@ -80,7 +80,13 @@ class JwtAuthenticationFilter(
             // For WebSocket routes, ensure the Bearer token is added to the headers 
             // downstream services (message-service) can find it via extractToken()
             if (path == "/ws/messages" || path.startsWith("/ws/")) {
+                val newUri = org.springframework.web.util.UriComponentsBuilder.fromUri(request.uri)
+                    .replaceQueryParam("token", null)
+                    .build()
+                    .toUri()
+
                 val mutatedRequest = request.mutate()
+                    .uri(newUri)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                     .build()
                 return@GatewayFilter chain.filter(exchange.mutate().request(mutatedRequest).build())
