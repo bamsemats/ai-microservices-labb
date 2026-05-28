@@ -7,6 +7,7 @@ import ChatPage from './pages/ChatPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import InsightsPage from './pages/InsightsPage';
 import ProfilePage from './pages/ProfilePage';
+import FriendsPage from './pages/FriendsPage';
 import AdminPage from './pages/AdminPage';
 import FeedbackWidget from './components/FeedbackWidget';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
@@ -62,6 +63,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/friends" 
+          element={
+            <ProtectedRoute>
+              <FriendsPage />
             </ProtectedRoute>
           } 
         />

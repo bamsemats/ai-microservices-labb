@@ -49,6 +49,15 @@ kubectl port-forward service/frontend 3000:80
 ```
 Then visit `http://localhost:3000`.
 
+### Default Test Accounts
+To quickly explore the system, use the following pre-seeded test accounts:
+
+| Username | Password | Role | Description |
+| :--- | :--- | :--- | :--- |
+| `user1` | `password123` | `USER` | Standard beta tester account. |
+| `user2` | `password123` | `USER` | Standard beta tester account. |
+| `admin` | *(From .env)* | `ADMIN` | System administrator account (requires `ADMIN_SETUP_PASSWORD` in `.env`). |
+
 ### Graceful Shutdown
 To reclaim system resources without losing your configuration or data:
 
@@ -168,6 +177,8 @@ The system follows a **Database-per-Service** pattern and utilizes a **Monorepo*
     - Implemented a full-stack admin dashboard for broadcasting and feedback review.
     - Added role-based JWT issuance and automated system-admin seeding.
     - Enabled real-time role modulation (promotion/revocation) from the UI.
+- [x] **#78 WebSocket & Proxy Stability**: Hardened Nginx and Gateway proxy configurations for reliable protocol upgrades (Error 1006).
+- [x] **#79 Hardened Identity Persistence & Build Stability**: Hardened Auth store synchronization and resolved TypeScript environment mismatches.
 
 ---
 

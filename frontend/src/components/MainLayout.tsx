@@ -11,7 +11,7 @@ interface MainLayoutProps {
   activeReceiver?: string;
   onSelectReceiver?: (id: string) => void;
   prefix?: string;
-  contextName: string;
+  contextName?: string;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ 
@@ -19,7 +19,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   activeReceiver, 
   onSelectReceiver,
   prefix,
-  contextName
+  contextName = 'AdaptaChat'
 }) => {
   const { sidebarOpen, toggleSidebar } = useUIStore();
 

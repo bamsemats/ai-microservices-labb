@@ -28,11 +28,11 @@ export const useUIAdaptation = () => {
       root.removeAttribute('data-theme-base');
     }
     
-    // Stop previous animations
+    // Stop previous manual animations
     controlsRef.current.forEach(c => c.stop());
     controlsRef.current = [];
 
-    // Animate Glow Intensity
+    // Animate Glow Intensity (Manual JS animation for precision)
     const currentGlow = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-glow-intensity'), 0.5, 0, 1);
     const targetGlow = safeNum(currentTheme.glowIntensity ?? currentTheme.intensity, 0.5, 0, 1);
     
@@ -51,7 +51,7 @@ export const useUIAdaptation = () => {
     );
     controlsRef.current.push(intensityAnim);
 
-    // Animate Color if present
+    // Animate Color if present (Manual JS animation for smooth interpolation)
     const targetColor = currentTheme.primaryColor ?? currentTheme.color;
     if (targetColor) {
       const sourceColor = getComputedStyle(root).getPropertyValue('--color-accent-primary').trim() || "#6366f1";
@@ -70,11 +70,12 @@ export const useUIAdaptation = () => {
       }
     }
     
-    // Animate Blur and Opacity
+    // For Blur and Opacity, we now use CSS transitions defined in base.css
+    // We just set the properties directly
     let targetBlurRaw = currentTheme.blurAmount;
     let targetOpacityRaw = currentTheme.glassOpacity;
 
-    // Fallback for old themes if tokens are missing
+    // Fallback logic for derived tokens
     if (targetBlurRaw === undefined || targetOpacityRaw === undefined) {
       switch (currentTheme.theme) {
         case 'emergency':
@@ -99,31 +100,8 @@ export const useUIAdaptation = () => {
       }
     }
 
-    const currentBlur = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-blur'), 16, 0, 100);
-    const targetBlur = safeNum(targetBlurRaw, 16, 0, 100);
-    const blurAnim = animate(currentBlur, targetBlur, {
-      duration: 1.5,
-      ease: "backOut",
-      onUpdate: (latest) => {
-        if (Number.isFinite(latest)) {
-          root.style.setProperty('--sentiment-blur', `${latest.toFixed(1)}px`);
-        }
-      }
-    });
-    controlsRef.current.push(blurAnim);
-
-    const currentOpacity = safeNum(getComputedStyle(root).getPropertyValue('--sentiment-opacity'), 0.04, 0, 1);
-    const targetOpacity = safeNum(targetOpacityRaw, 0.04, 0, 1);
-    const opacityAnim = animate(currentOpacity, targetOpacity, {
-      duration: 1.5,
-      onUpdate: (latest) => {
-        if (Number.isFinite(latest)) {
-          root.style.setProperty('--sentiment-opacity', latest.toFixed(3));
-        }
-      }
-    });
-    controlsRef.current.push(opacityAnim);
-
+    root.style.setProperty('--sentiment-blur', `${safeNum(targetBlurRaw, 16, 0, 100).toFixed(1)}px`);
+    root.style.setProperty('--sentiment-opacity', safeNum(targetOpacityRaw, 0.04, 0, 1).toFixed(3));
 
     return () => {
       controlsRef.current.forEach(c => c.stop());

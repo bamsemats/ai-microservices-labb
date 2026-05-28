@@ -61,8 +61,8 @@ class SeedingService(
                                     )
                                     messageRepository.save(welcomeMessage)
                                         .doOnSuccess { 
-                                            // Deliver plain text for WebSocket
-                                            messageProducer.deliverMessage(it.copy(content = content)) 
+                                            // LOG, but do NOT deliver to WebSocket to prevent startup noise
+                                            logger.debug("Seeded welcome message for bot: ${bot.name}") 
                                         }
                                 }
                             }

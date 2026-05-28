@@ -8,6 +8,18 @@
   }
 
   :root {
+    /* Global transition for theme and sentiment properties */
+    transition: 
+      background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+      color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+      --sentiment-glow-intensity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+      --sentiment-blur 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+      --sentiment-opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+      --color-accent-primary 1.5s ease-in-out;
+  }
+
+  body {
     color-scheme: dark light;
     font-synthesis: none;
     text-rendering: optimizelegibility;

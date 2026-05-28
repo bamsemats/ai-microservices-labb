@@ -140,6 +140,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver, cla
           >
             <BarChart3 size={16} /> Insights
           </button>
+          <button 
+            className={`channel-item ${activeReceiver === 'friends' ? 'active' : ''}`} 
+            onClick={() => handleNav('/friends')}
+          >
+            <Users size={16} /> Social Hub
+          </button>
           {isAdmin && (
             <button 
               className={`channel-item ${activeReceiver === 'admin' ? 'active' : ''}`} 

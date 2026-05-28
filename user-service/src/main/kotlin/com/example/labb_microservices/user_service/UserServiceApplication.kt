@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Bean
 import com.example.labb_microservices.user_service.service.UserService
 import org.slf4j.LoggerFactory
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @SpringBootApplication
@@ -52,6 +53,34 @@ class UserServiceApplication {
                         Mono.error(e)
                     }
                 }
+                .block(java.time.Duration.ofSeconds(10))
+
+            logger.info("Seeding dummy test accounts...")
+            val testUsers = listOf(
+                com.example.labb_microservices.user_service.model.User(
+                    id = "test-user-1",
+                    username = "user1",
+                    password = "password123",
+                    email = "user1@example.com",
+                    roles = listOf("ROLE_USER"),
+                    displayName = "Beta Tester One"
+                ),
+                com.example.labb_microservices.user_service.model.User(
+                    id = "test-user-2",
+                    username = "user2",
+                    password = "password123",
+                    email = "user2@example.com",
+                    roles = listOf("ROLE_USER"),
+                    displayName = "Beta Tester Two"
+                )
+            )
+
+            Flux.fromIterable(testUsers)
+                .flatMap { u ->
+                    userService.register(u)
+                        .onErrorResume { Mono.empty() }
+                }
+                .collectList()
                 .block(java.time.Duration.ofSeconds(10))
             
             logger.info("System stabilization completed.")
