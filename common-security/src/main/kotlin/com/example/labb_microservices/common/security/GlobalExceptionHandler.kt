@@ -3,6 +3,8 @@ package com.example.labb_microservices.common.security
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.core.AuthenticationException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.bind.support.WebExchangeBindException
@@ -52,6 +54,34 @@ class GlobalExceptionHandler {
             path = exchange.request.path.value()
         )
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
+    }
+
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDeniedException(
+        ex: AccessDeniedException,
+        exchange: ServerWebExchange
+    ): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            status = HttpStatus.FORBIDDEN.value(),
+            error = "Forbidden",
+            message = ex.message ?: "Access Denied",
+            path = exchange.request.path.value()
+        )
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response)
+    }
+
+    @ExceptionHandler(AuthenticationException::class)
+    fun handleAuthenticationException(
+        ex: AuthenticationException,
+        exchange: ServerWebExchange
+    ): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            status = HttpStatus.UNAUTHORIZED.value(),
+            error = "Unauthorized",
+            message = ex.message ?: "Authentication Failed",
+            path = exchange.request.path.value()
+        )
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response)
     }
 
     @ExceptionHandler(Exception::class)
