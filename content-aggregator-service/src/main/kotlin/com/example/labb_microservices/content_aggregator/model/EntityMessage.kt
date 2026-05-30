@@ -1,5 +1,9 @@
 package com.example.labb_microservices.content_aggregator.model
 
+/**
+ * Shared Contract: This DTO matches the one in ai-service.
+ * Decoupled intentionally to preserve Bounded Context.
+ */
 data class EntityMessage(
     val entityType: String,
     val entityValue: String,
