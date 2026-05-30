@@ -125,33 +125,46 @@ const ProfilePage: React.FC = () => {
                 <h3>Basic Identity</h3>
                 <div className="settings-group">
                   <label htmlFor="displayName">Display Name</label>
-                  <input 
-                    id="displayName"
-                    type="text" 
-                    value={displayName} 
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your public name..."
-                    className="lumina-input"
+                  <input
+                      id="displayName"
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your public name..."
+                      className="lumina-input"
                   />
                 </div>
                 <div className="settings-group">
                   <label htmlFor="bio">Bio (AI Context)</label>
-                  <textarea 
-                    id="bio"
-                    value={bio} 
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell the community and AI about yourself..."
-                    className="lumina-input"
-                    rows={5}
+                  <textarea
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Tell the community and AI about yourself..."
+                      className="lumina-input"
+                      rows={5}
                   />
                   <p className="helper-text">This bio helps the AI understand your preferences and personality.</p>
                 </div>
-
-                <div className="editor-footer" style={{ border: 'none', padding: 0, marginTop: '1.5rem' }}>
-                  <button 
-                    className="lumina-button" 
-                    onClick={handleSave}
-                    disabled={isSaving}
+                <div className="settings-group">
+                   <label htmlFor="website">Website</label>
+                   <div className="input-with-icon">
+                     <span className="input-icon">🔗</span>
+                     <input
+                                          id="website"
+                     type="url"
+                     value={socialLinks.website || ''}
+                     onChange={(e) => handleSocialChange('website', e.target.value)}
+                     placeholder="https://example.com"
+                     className="lumina-input"
+                     />
+                   </div>
+                </div>
+                <div className="editor-footer" style={{border: 'none', padding: 0, marginTop: '1.5rem'}}>
+                  <button
+                      className="lumina-button"
+                      onClick={handleSave}
+                      disabled={isSaving}
                   >
                     {isSaving ? 'Syncing...' : 'Save Profile'}
                   </button>
@@ -163,13 +176,13 @@ const ProfilePage: React.FC = () => {
                 <form onSubmit={handleChangePassword} className="password-change-form">
                   <div className="settings-group">
                     <label htmlFor="oldPassword">Current Password</label>
-                    <input 
-                      id="oldPassword"
-                      type="password" 
-                      value={oldPassword} 
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      className="lumina-input"
-                      required
+                    <input
+                        id="oldPassword"
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        className="lumina-input"
+                        required
                     />
                   </div>
                   <div className="settings-group">

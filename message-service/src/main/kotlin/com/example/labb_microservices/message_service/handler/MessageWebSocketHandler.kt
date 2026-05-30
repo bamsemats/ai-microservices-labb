@@ -218,12 +218,10 @@ class MessageWebSocketHandler(
                     policyViolations.incrementAndGet()
                     logger.warn("Closing session {} due to policy violation: {}", sessionId, e.message)
                     session.close(CloseStatus(1008, e.message))
-                        .then(Mono.delay(Duration.ofSeconds(2))) // Increased delay for stability
                         .then()
                 } else {
                     logger.error("WebSocket error for session $sessionId", e)
                     session.close(CloseStatus.SERVER_ERROR)
-                        .then(Mono.delay(Duration.ofSeconds(2)))
                         .then()
                 }
             }

@@ -77,6 +77,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
     
     // Check if we have a direct videoId provided
     const videoId = content.data.videoId;
+    const fallbackUrl = content.data.url;
     if (!videoId) return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -93,6 +94,11 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         <div className="thumbnail-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Video content unavailable</p>
         </div>
+        {fallbackUrl && (
+           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
+              Open YouTube
+           </a>
+        )}
       </motion.div>
     );
 

@@ -34,14 +34,18 @@ const AdminPage: React.FC = () => {
     }
   }, [query, page]);
 
+  // Initial fetch and updates on page/query change
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const triggerFetch = async () => {
+      await fetchUsers();
+    };
+    triggerFetch();
+  }, [page, query, fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
-    fetchUsers();
+    // fetchUsers will trigger via the useEffect dependency on page/query
   };
 
   const handleBroadcast = async (e: React.FormEvent) => {

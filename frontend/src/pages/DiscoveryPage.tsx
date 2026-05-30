@@ -33,7 +33,7 @@ const DiscoveryPage: React.FC = () => {
   const { friends, pendingFriends, sendRequest, fetchPendingFriends } = useSocialStore();
   const { userId } = useAuthStore();
 
-  const handleSearch = async (e?: React.FormEvent, searchQuery: string = query) => {
+  const handleSearch = React.useCallback(async (e?: React.FormEvent, searchQuery: string = query) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) {
       setResults([]);
@@ -52,7 +52,7 @@ const DiscoveryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, setSearchParams]);
 
   const handleConnect = async (targetId: string) => {
     setConnectingUserId(targetId);
@@ -103,10 +103,16 @@ const DiscoveryPage: React.FC = () => {
     };
 
     fetchTrending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Trigger initial search if query exists in URL
+  useEffect(() => {
     if (initialQuery) {
       handleSearch(undefined, initialQuery);
     }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isFriend = (id: string) => friends.some(f => f.id === id);

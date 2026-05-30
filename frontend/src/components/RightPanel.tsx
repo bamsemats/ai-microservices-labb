@@ -26,7 +26,7 @@ const RightPanel: React.FC = () => {
   const [isDesktop, setIsDesktop] = React.useState(typeof window !== 'undefined' ? window.innerWidth > 768 : true);
   
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editNameValue, setEditNameValue] = useState('');
+  const [internalEditName, setInternalEditName] = useState<string | null>(null);
   const [showInviteMenu, setShowInviteMenu] = useState(false);
 
   React.useEffect(() => {
@@ -35,13 +35,15 @@ const RightPanel: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Sync state when active frequency changes
+  const activeFreqId = currentFreq?.id;
   React.useEffect(() => {
-    if (currentFreq) {
-      setEditNameValue(currentFreq.name);
-    }
     setIsEditingName(false);
     setShowInviteMenu(false);
-  }, [currentFreq?.id]);
+    setInternalEditName(null);
+  }, [activeFreqId]);
+
+  const editNameValue = (internalEditName ?? currentFreq?.name) || '';
 
   // Desktop only view
   if (!isDesktop) return null;
@@ -51,6 +53,7 @@ const RightPanel: React.FC = () => {
       await renameFrequency(currentFreq.id, editNameValue.trim());
     }
     setIsEditingName(false);
+    setInternalEditName(null);
   };
 
   const isOwner = currentFreq?.ownerId === userId;
@@ -77,7 +80,7 @@ const RightPanel: React.FC = () => {
                       autoFocus
                       className="lumina-input mini"
                       value={editNameValue}
-                      onChange={(e) => setEditNameValue(e.target.value)}
+                      onChange={(e) => setInternalEditName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                     />
                     <button className="icon-btn success" onClick={handleRename}><Check size={16} /></button>

@@ -56,8 +56,8 @@ class UserServiceApplication {
                 }
                 .block(java.time.Duration.ofSeconds(10))
 
-            val shouldSeedUsers = env.getProperty("seed.test.users", Boolean::class.java, false) 
-                || env.activeProfiles.contains("dev")
+            val isDev = env.activeProfiles.contains("dev")
+            val shouldSeedUsers = env.getProperty("seed.test.users", Boolean::class.java, false) || isDev
 
             if (shouldSeedUsers) {
                 logger.info("Seeding dummy test accounts...")
