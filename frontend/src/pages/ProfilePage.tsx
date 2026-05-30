@@ -12,11 +12,15 @@ interface SocialLinks {
 }
 
 const ProfilePage: React.FC = () => {
-  const { username, token } = useAuthStore();
+  const { username, token, forcePasswordChange, setForcePasswordChange } = useAuthStore();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -56,6 +60,30 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setFeedback({ message: 'New passwords do not match.', type: 'error' });
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    setFeedback(null);
+    try {
+      await api.put('/users/password', { oldPassword, newPassword });
+      setFeedback({ message: 'Password updated successfully!', type: 'success' });
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setForcePasswordChange(false);
+    } catch (error) {
+      console.error('Failed to change password', error);
+      setFeedback({ message: 'Failed to change password. Check your current password.', type: 'error' });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleSocialChange = (key: keyof SocialLinks, value: string) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
@@ -68,6 +96,17 @@ const ProfilePage: React.FC = () => {
     >
       <section className="profile-content">
         <div className="profile-card-wrapper">
+          {forcePasswordChange && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="error-toast"
+              style={{ position: 'relative', inset: 'auto', marginBottom: '1.5rem', width: '100%' }}
+            >
+              <span>Security Alert: You are using a temporary password. Please update it to continue using the platform.</span>
+            </motion.div>
+          )}
+
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -107,10 +146,65 @@ const ProfilePage: React.FC = () => {
                   />
                   <p className="helper-text">This bio helps the AI understand your preferences and personality.</p>
                 </div>
+
+                <div className="editor-footer" style={{ border: 'none', padding: 0, marginTop: '1.5rem' }}>
+                  <button 
+                    className="lumina-button" 
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Syncing...' : 'Save Profile'}
+                  </button>
+                </div>
               </div>
 
               <div className="editor-section">
-                <h3>Social Frequencies</h3>
+                <h3>Security & Access</h3>
+                <form onSubmit={handleChangePassword} className="password-change-form">
+                  <div className="settings-group">
+                    <label htmlFor="oldPassword">Current Password</label>
+                    <input 
+                      id="oldPassword"
+                      type="password" 
+                      value={oldPassword} 
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className="lumina-input"
+                      required
+                    />
+                  </div>
+                  <div className="settings-group">
+                    <label htmlFor="newPassword">New Password</label>
+                    <input 
+                      id="newPassword"
+                      type="password" 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="lumina-input"
+                      required
+                      minLength={8}
+                    />
+                  </div>
+                  <div className="settings-group">
+                    <label htmlFor="confirmPassword">Confirm New Password</label>
+                    <input 
+                      id="confirmPassword"
+                      type="password" 
+                      value={confirmPassword} 
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="lumina-input"
+                      required
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    className={`lumina-button ${forcePasswordChange ? 'primary' : 'secondary'} full-width`}
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+
+                <h3 style={{ marginTop: '2rem' }}>Social Frequencies</h3>
                 <div className="settings-group">
                   <label htmlFor="twitter">Twitter / X</label>
                   <div className="input-with-icon">
@@ -139,31 +233,10 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div className="settings-group">
-                  <label htmlFor="website">Personal Frequency (Website)</label>
-                  <div className="input-with-icon">
-                    <span className="input-icon">🌐</span>
-                    <input 
-                      id="website"
-                      type="text" 
-                      value={socialLinks.website || ''} 
-                      onChange={(e) => handleSocialChange('website', e.target.value)}
-                      placeholder="https://..."
-                      className="lumina-input"
-                    />
-                  </div>
-                </div>
               </div>
             </div>
 
             <div className="editor-footer">
-              <button 
-                className="lumina-button" 
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Syncing...' : 'Save Profile'}
-              </button>
               {feedback && (
                 <motion.span 
                   initial={{ opacity: 0, x: 10 }}

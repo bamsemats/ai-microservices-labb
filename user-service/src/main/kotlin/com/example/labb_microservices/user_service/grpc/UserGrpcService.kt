@@ -20,11 +20,13 @@ class UserGrpcService(
         userService.findByUsername(request.username)
             .map { user ->
                 if (passwordEncoder.matches(request.password, user.password)) {
+                    val forceChange = user.metadata["forcePasswordChange"] == "true"
                     CredentialsResponse.newBuilder()
                         .setValid(true)
                         .setUserId(user.id ?: "")
                         .setUsername(user.username)
                         .addAllRoles(user.roles)
+                        .setForcePasswordChange(forceChange)
                         .build()
                 } else {
                     CredentialsResponse.newBuilder().setValid(false).build()

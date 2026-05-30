@@ -75,9 +75,27 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
     const views = content.data.views || "—";
     const publishedAt = content.data.publishedAt || "Recently";
     
-    // Check if we have a direct videoId provided, otherwise fallback to standard link based on title search
-    // (In a real app, videoId should come directly from the backend injection)
-    const videoId = content.data.videoId || "dQw4w9WgXcQ"; 
+    // Check if we have a direct videoId provided
+    const videoId = content.data.videoId;
+    if (!videoId) return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="glass-card youtube-widget"
+      >
+        <div className="widget-badge youtube">YOUTUBE CONTENT</div>
+        <div className="youtube-header">
+          <div className="video-info">
+            <h4>{title}</h4>
+            <p>Channel: {channel}</p>
+          </div>
+        </div>
+        <div className="thumbnail-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Video content unavailable</p>
+        </div>
+      </motion.div>
+    );
+
     const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
 

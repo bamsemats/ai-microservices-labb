@@ -212,23 +212,21 @@ class MessageWebSocketHandler(
                 Mono.`when`(validation, presenceHeartbeat)
             }
 
-        val securityTask = authenticationTasks
+        return Mono.`when`(input, output, authenticationTasks)
             .onErrorResume { e ->
                 if (e is PolicyViolationException) {
                     policyViolations.incrementAndGet()
-                    logger.warn("Closing session due to policy violation: {}", e.message)
+                    logger.warn("Closing session {} due to policy violation: {}", sessionId, e.message)
                     session.close(CloseStatus(1008, e.message))
-                        .delayElement(Duration.ofMillis(500))
+                        .then(Mono.delay(Duration.ofSeconds(2))) // Increased delay for stability
                         .then()
                 } else {
                     logger.error("WebSocket error for session $sessionId", e)
                     session.close(CloseStatus.SERVER_ERROR)
-                        .delayElement(Duration.ofMillis(500))
+                        .then(Mono.delay(Duration.ofSeconds(2)))
                         .then()
                 }
             }
-
-        return Mono.`when`(input, output, securityTask)
     }
 
     private fun checkUserStatus(userId: String): Mono<Void> {

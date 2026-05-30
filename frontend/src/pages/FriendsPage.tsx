@@ -62,6 +62,7 @@ const FriendsPage: React.FC = () => {
               placeholder="Search for entities to sync..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search entities to sync"
             />
             <button className="lumina-button primary mini-btn" type="submit">
               Scan
@@ -121,6 +122,7 @@ const FriendsPage: React.FC = () => {
                         className="lumina-button danger ghost" 
                         title="Remove Connection"
                         onClick={() => handleRemoveFriend(friend.id)}
+                        aria-label="Remove friend"
                       >
                         <UserMinus size={18} />
                       </button>

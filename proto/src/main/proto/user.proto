@@ -20,6 +20,7 @@ message CredentialsResponse {
   string userId = 2;
   string username = 3;
   repeated string roles = 4;
+  bool forcePasswordChange = 5;
 }
 
 message UserLookupRequest {

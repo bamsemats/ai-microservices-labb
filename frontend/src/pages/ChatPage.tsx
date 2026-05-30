@@ -66,7 +66,8 @@ const ChatPage: React.FC = () => {
     pushToStore(newMsg);
     const sent = sendWs(newMsg);
     if (!sent) {
-      pushToStore({ ...newMsg, status: 'failed' });
+      // Update the existing pending message to 'failed' status
+      pushToStore({ ...newMsg, id: tempId, status: 'failed' });
     }
   };
 

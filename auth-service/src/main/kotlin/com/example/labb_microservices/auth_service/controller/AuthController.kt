@@ -11,7 +11,14 @@ import reactor.core.scheduler.Schedulers
 
 data class LoginRequest(val username: String, val password: String)
 data class RefreshRequest(val userId: String, val refreshToken: String)
-data class LoginResponse(val accessToken: String, val refreshToken: String, val userId: String, val username: String, val role: String)
+data class LoginResponse(
+    val accessToken: String, 
+    val refreshToken: String, 
+    val userId: String, 
+    val username: String, 
+    val role: String,
+    val forcePasswordChange: Boolean = false
+)
 data class TokenResponse(val accessToken: String, val refreshToken: String)
 
 @RestController
@@ -46,7 +53,14 @@ class AuthController(
                                 
                                 Mono.just(ResponseEntity.ok()
                                     .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
-                                    .body(LoginResponse(accessToken, refreshToken, response.userId, response.username, primaryRole)))
+                                    .body(LoginResponse(
+                                        accessToken, 
+                                        refreshToken, 
+                                        response.userId, 
+                                        response.username, 
+                                        primaryRole,
+                                        response.forcePasswordChange
+                                    )))
                             } else {
                                 Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build())
                             }

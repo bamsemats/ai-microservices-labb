@@ -18,5 +18,6 @@ data class User(
     val bio: String? = null,
     val socialLinks: Map<String, String>? = null,
     val isBot: Boolean = false,
-    val roles: List<String> = listOf("ROLE_USER")
+    val roles: List<String> = listOf("ROLE_USER"),
+    val metadata: Map<String, String> = emptyMap()
 )

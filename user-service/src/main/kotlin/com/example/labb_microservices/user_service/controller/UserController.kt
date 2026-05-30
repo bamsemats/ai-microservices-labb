@@ -22,6 +22,7 @@ data class ProfileRequest(
 )
 
 data class RegisterUserRequest(val username: String, val email: String, val password: String)
+data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
 
 @RestController
 @RequestMapping
@@ -36,6 +37,14 @@ class UserController(private val userService: UserService) {
             password = request.password
         )
         return userService.register(user).map { it.toUserDto() }
+    }
+
+    @PutMapping("/users/password")
+    fun changePassword(
+        @RequestBody request: ChangePasswordRequest,
+        @AuthenticationPrincipal userId: String
+    ): Mono<Void> {
+        return userService.changePassword(userId, request.oldPassword, request.newPassword)
     }
 
     @GetMapping("/users/me")

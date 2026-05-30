@@ -21,11 +21,23 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await api.post('/login', { username, password });
-      const { accessToken, refreshToken, userId, username: loggedInUsername, role, displayName } = response.data;
+      const { 
+        accessToken, 
+        refreshToken, 
+        userId, 
+        username: loggedInUsername, 
+        role, 
+        displayName,
+        forcePasswordChange 
+      } = response.data;
       
-      const success = setAuth(accessToken, userId, loggedInUsername, role, displayName, refreshToken);
+      const success = setAuth(accessToken, userId, loggedInUsername, role, displayName, refreshToken, forcePasswordChange);
       if (success) {
-        navigate('/');
+        if (forcePasswordChange) {
+          navigate('/profile');
+        } else {
+          navigate('/');
+        }
       } else {
         setError('Login failed: Authentication session could not be established.');
       }

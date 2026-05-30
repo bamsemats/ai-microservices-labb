@@ -37,10 +37,11 @@ class UserServiceApplication {
             val adminUser = com.example.labb_microservices.user_service.model.User(
                 id = "system-admin",
                 username = adminUsername,
-                password = adminPassword, // TODO: Require forced password change on first login
+                password = adminPassword,
                 email = adminEmail,
                 roles = listOf("ROLE_ADMIN", "ROLE_USER"),
-                displayName = "System Administrator"
+                displayName = "System Administrator",
+                metadata = mapOf("forcePasswordChange" to "true")
             )
             userService.register(adminUser)
                 .doOnSuccess { logger.info("System admin account created/synchronized.") }
@@ -55,33 +56,47 @@ class UserServiceApplication {
                 }
                 .block(java.time.Duration.ofSeconds(10))
 
-            logger.info("Seeding dummy test accounts...")
-            val testUsers = listOf(
-                com.example.labb_microservices.user_service.model.User(
-                    id = "test-user-1",
-                    username = "user1",
-                    password = "password123",
-                    email = "user1@example.com",
-                    roles = listOf("ROLE_USER"),
-                    displayName = "Beta Tester One"
-                ),
-                com.example.labb_microservices.user_service.model.User(
-                    id = "test-user-2",
-                    username = "user2",
-                    password = "password123",
-                    email = "user2@example.com",
-                    roles = listOf("ROLE_USER"),
-                    displayName = "Beta Tester Two"
-                )
-            )
+            val shouldSeedUsers = env.getProperty("seed.test.users", Boolean::class.java, false) 
+                || env.activeProfiles.contains("dev")
 
-            Flux.fromIterable(testUsers)
-                .flatMap { u ->
-                    userService.register(u)
-                        .onErrorResume { Mono.empty() }
-                }
-                .collectList()
-                .block(java.time.Duration.ofSeconds(10))
+            if (shouldSeedUsers) {
+                logger.info("Seeding dummy test accounts...")
+                val testUsers = listOf(
+                    com.example.labb_microservices.user_service.model.User(
+                        id = "test-user-1",
+                        username = env.getProperty("test.user1.username", "user1"),
+                        password = env.getProperty("test.user1.password", "password123"),
+                        email = env.getProperty("test.user1.email", "user1@example.com"),
+                        roles = listOf("ROLE_USER"),
+                        displayName = "Beta Tester One"
+                    ),
+                    com.example.labb_microservices.user_service.model.User(
+                        id = "test-user-2",
+                        username = env.getProperty("test.user2.username", "user2"),
+                        password = env.getProperty("test.user2.password", "password123"),
+                        email = env.getProperty("test.user2.email", "user2@example.com"),
+                        roles = listOf("ROLE_USER"),
+                        displayName = "Beta Tester Two"
+                    )
+                )
+
+                Flux.fromIterable(testUsers)
+                    .flatMap { u ->
+                        userService.register(u)
+                            .onErrorResume { e ->
+                                if (e is org.springframework.dao.DuplicateKeyException || e.message?.contains("exists", ignoreCase = true) == true) {
+                                    Mono.empty()
+                                } else {
+                                    logger.warn("Non-critical failure seeding test user ${u.username}: ${e.message}")
+                                    Mono.empty() // Still continue but log it
+                                }
+                            }
+                    }
+                    .collectList()
+                    .block(java.time.Duration.ofSeconds(10))
+            } else {
+                logger.info("Skipping test account seeding (seed.test.users=false).")
+            }
             
             logger.info("System stabilization completed.")
         } catch (e: Exception) {

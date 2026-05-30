@@ -62,7 +62,7 @@ interface ChatState {
   },
   addMessage: (message) => set((state) => {
     // Standardize incoming global channel IDs to match frontend state
-    const normalizedArrival = {
+    const normalizedArrival: Message = {
       ...message,
       channelId: (message.channelId === 'home' || message.channelId === 'all') ? 'general' : message.channelId
     };
@@ -84,19 +84,45 @@ interface ChatState {
 
     if (existingIndex !== -1) {
       const updatedMessages = [...state.messages];
+      const existingMsg = updatedMessages[existingIndex];
+      
+      // Merge fields but preserve 'failed' status unless the incoming payload explicitly indicates success
+      const newStatus = (normalizedArrival.status === 'sent' || !normalizedArrival.status) 
+        ? (existingMsg.status === 'failed' ? 'failed' : 'sent')
+        : normalizedArrival.status;
+
       updatedMessages[existingIndex] = {
-        ...updatedMessages[existingIndex],
+        ...existingMsg,
         ...normalizedArrival,
-        status: 'sent' // Mark as sent if it was pending
+        status: newStatus
       };
+      
       return { 
-        messages: updatedMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()), 
+        messages: updatedMessages, 
         aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
       };
     }
 
+    // Binary search to find correct insertion index for ordered messages
+    const newMessages = [...state.messages];
+    const arrivalTime = new Date(normalizedArrival.timestamp).getTime();
+    
+    let low = 0;
+    let high = newMessages.length;
+    
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (new Date(newMessages[mid].timestamp).getTime() < arrivalTime) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    
+    newMessages.splice(low, 0, normalizedArrival);
+
     return { 
-      messages: [...state.messages, normalizedArrival].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()), 
+      messages: newMessages, 
       aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
     };
   }),

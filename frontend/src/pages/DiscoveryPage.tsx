@@ -15,12 +15,19 @@ interface UserResult {
   bio?: string;
 }
 
+interface TrendingTopic {
+  name: string;
+  activity: string;
+  color: string;
+}
+
 const DiscoveryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('query') || '';
   
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<UserResult[]>([]);
+  const [trending, setTrending] = useState<TrendingTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
   const { friends, pendingFriends, sendRequest, fetchPendingFriends } = useSocialStore();
@@ -60,6 +67,43 @@ const DiscoveryPage: React.FC = () => {
 
   useEffect(() => {
     fetchPendingFriends();
+    
+    const fetchTrending = async () => {
+      try {
+        const response = await api.get('/analytics/trending-channels?limit=5');
+        const mapped = response.data.map((item: { channelId: string; score: number }) => {
+          let activity = 'Low';
+          if (item.score > 20) activity = 'High';
+          else if (item.score > 5) activity = 'Med';
+          
+          // Generate a deterministic color based on the name
+          const hash = item.channelId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const hue = hash % 360;
+          const color = `hsl(${hue}, 70%, 60%)`;
+
+          return {
+            name: item.channelId,
+            activity,
+            color
+          };
+        });
+        setTrending(mapped.length > 0 ? mapped : [
+          { name: 'general', activity: 'High', color: '#6366f1' },
+          { name: 'tech-stack', activity: 'Med', color: '#ec4899' },
+          { name: 'ai-lounge', activity: 'High', color: '#10b981' }
+        ]);
+      } catch (error) {
+        console.error('Failed to fetch trending channels', error);
+        setTrending([
+          { name: 'general', activity: 'High', color: '#6366f1' },
+          { name: 'tech-stack', activity: 'Med', color: '#ec4899' },
+          { name: 'ai-lounge', activity: 'High', color: '#10b981' }
+        ]);
+      }
+    };
+
+    fetchTrending();
+
     if (initialQuery) {
       handleSearch(undefined, initialQuery);
     }
@@ -137,12 +181,7 @@ const DiscoveryPage: React.FC = () => {
           <div className="discovery-section">
             <h3><TrendingUp size={24} /> Trending Frequencies</h3>
             <div className="horizontal-scroll">
-              {/* TODO: Replace hard-coded topics with dynamic data from content-aggregator-service or message-service metrics */}
-              {[
-                { name: 'general', activity: 'High', color: '#6366f1' },
-                { name: 'tech-stack', activity: 'Med', color: '#ec4899' },
-                { name: 'ai-lounge', activity: 'High', color: '#10b981' }
-              ].map(topic => (
+              {trending.map(topic => (
                 <div key={topic.name} className="glass-panel topic-card">
                    <div className="topic-glow" style={{ '--topic-color': topic.color } as never}></div>
                    <span className="topic-hash">#</span>

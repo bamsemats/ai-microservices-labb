@@ -6,6 +6,7 @@ import { useChatStore } from '../store/useChatStore';
 import { useFrequencyStore } from '../store/useFrequencyStore';
 import { useSocialStore } from '../store/useSocialStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { usePresenceStore } from '../store/usePresenceStore';
 import ContentWidget from './ContentWidget';
 import Avatar from './Avatar';
 import { Users, UserPlus, UserMinus, Edit2, Check, X } from 'lucide-react';
@@ -15,6 +16,7 @@ const RightPanel: React.FC = () => {
   const { injectedContent } = useChatStore();
   const { frequencies, renameFrequency, kickMember, inviteMember } = useFrequencyStore();
   const { friends } = useSocialStore();
+  const { presences } = usePresenceStore();
   const { userId } = useAuthStore();
   
   const [searchParams] = useSearchParams();
@@ -134,23 +136,30 @@ const RightPanel: React.FC = () => {
                 )}
 
                 <ul className="member-list">
-                  {currentFreq.members.map(memberId => (
-                    <li key={memberId} className="member-item">
-                      <div className="member-info">
-                        <Avatar seed={memberId} size="sm" />
-                        <span className="member-name">{memberId} {memberId === currentFreq.ownerId ? '(Owner)' : ''}</span>
-                      </div>
-                      {isOwner && memberId !== userId && (
-                        <button 
-                          className="icon-btn danger"
-                          onClick={() => kickMember(currentFreq.id, memberId)}
-                          title="Kick Member"
-                        >
-                          <UserMinus size={16} />
-                        </button>
-                      )}
-                    </li>
-                  ))}
+                  {currentFreq.members.map(memberId => {
+                    const presence = presences[memberId];
+                    const displayName = presence?.username || memberId;
+                    
+                    return (
+                      <li key={memberId} className="member-item">
+                        <div className="member-info">
+                          <Avatar seed={memberId} size="sm" />
+                          <span className="member-name">
+                            {displayName} {memberId === currentFreq.ownerId ? '(Owner)' : ''}
+                          </span>
+                        </div>
+                        {isOwner && memberId !== userId && (
+                          <button 
+                            className="icon-btn danger"
+                            onClick={() => kickMember(currentFreq.id, memberId)}
+                            title="Kick Member"
+                          >
+                            <UserMinus size={16} />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

@@ -87,6 +87,22 @@ class UserService(
             .flatMap { friendshipRepository.delete(it) }
     }
 
+    fun changePassword(userId: String, oldPassword: String, newPassword: String): Mono<Void> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { user ->
+                if (!passwordEncoder.matches(oldPassword, user.password)) {
+                    Mono.error<Void>(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid old password"))
+                } else {
+                    val encodedPassword = passwordEncoder.encode(newPassword)
+                    val updatedMetadata = user.metadata.toMutableMap()
+                    updatedMetadata.remove("forcePasswordChange")
+                    userRepository.save(user.copy(password = encodedPassword, metadata = updatedMetadata))
+                        .then()
+                }
+            }
+    }
+
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
