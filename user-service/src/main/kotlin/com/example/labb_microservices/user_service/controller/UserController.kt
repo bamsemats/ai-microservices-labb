@@ -12,6 +12,9 @@ import org.springframework.web.server.ResponseStatusException
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Size
 
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Email
+
 data class ProfileRequest(
     @field:Size(max = 50)
     val displayName: String?,
@@ -21,8 +24,24 @@ data class ProfileRequest(
     val socialLinks: Map<String, String>? = null
 )
 
-data class RegisterUserRequest(val username: String, val email: String, val password: String)
-data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
+data class RegisterUserRequest(
+    @field:NotBlank @field:Size(min = 3, max = 50) val username: String, 
+    @field:NotBlank @field:Email val email: String, 
+    @field:NotBlank @field:Size(min = 8, max = 100) val password: String
+)
+
+data class ChangePasswordRequest(
+    @field:NotBlank val oldPassword: String, 
+    @field:NotBlank @field:Size(min = 8, max = 100) val newPassword: String
+)
+
+data class AdminOverrideRequest(
+    val displayName: String? = null,
+    val bio: String? = null,
+    val enabled: Boolean? = null,
+    val metadata: Map<String, String>? = null,
+    val newPassword: String? = null
+)
 
 @RestController
 @RequestMapping
@@ -30,7 +49,7 @@ class UserController(private val userService: UserService) {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    fun register(@RequestBody request: RegisterUserRequest): Mono<UserDto> {
+    fun register(@Valid @RequestBody request: RegisterUserRequest): Mono<UserDto> {
         val user = User(
             username = request.username,
             email = request.email,
@@ -41,7 +60,7 @@ class UserController(private val userService: UserService) {
 
     @PutMapping("/users/password")
     fun changePassword(
-        @RequestBody request: ChangePasswordRequest,
+        @Valid @RequestBody request: ChangePasswordRequest,
         @AuthenticationPrincipal userId: String
     ): Mono<Void> {
         return userService.changePassword(userId, request.oldPassword, request.newPassword)
@@ -85,12 +104,28 @@ class UserController(private val userService: UserService) {
             .map { it.toUserDto() }
     }
 
+    @PatchMapping("/users/{id}/admin-override")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    fun adminOverride(
+        @PathVariable id: String,
+        @RequestBody request: AdminOverrideRequest
+    ): Mono<UserDto> {
+        return userService.adminOverride(
+            userId = id,
+            displayName = request.displayName,
+            bio = request.bio,
+            enabled = request.enabled,
+            metadata = request.metadata,
+            newPassword = request.newPassword
+        ).map { it.toUserDto() }
+    }
+
     @GetMapping("/users/search")
     fun searchUsers(
         @RequestParam query: String,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
-        @AuthenticationPrincipal userId: String
+        @AuthenticationPrincipal _userId: String
     ): Mono<org.springframework.data.domain.Page<UserDto>> {
         return userService.searchUsers(query, page, size)
             .map { pageObj -> 

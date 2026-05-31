@@ -4,9 +4,10 @@ interface AvatarProps {
   seed: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  isBot?: boolean;
 }
 
-const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '' }) => {
+const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '', isBot = false }) => {
   const pixelSize = {
     sm: 24,
     md: 40,
@@ -23,8 +24,9 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '' }) =>
     return (hash >>> 0).toString(16);
   }, [seed]);
 
-  // Using DiceBear Identicon for a "techy/unique" look for bots and users
-  const avatarUrl = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=transparent`;
+  // Using DiceBear Identicon for users and Bottts for bots
+  const style = isBot ? 'bottts' : 'identicon';
+  const avatarUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=transparent`;
 
   return (
     <div className={`avatar-wrapper avatar-${size} ${className}`}>

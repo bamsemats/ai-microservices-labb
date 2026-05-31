@@ -1,4 +1,4 @@
-package com.example.common.observability
+package com.example.labb_microservices.common.observability
 
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.aop.ObservedAspect

@@ -6,6 +6,7 @@ export interface Friend {
   username: string;
   displayName?: string;
   enabled: boolean;
+  isBot?: boolean;
 }
 
 interface SocialState {

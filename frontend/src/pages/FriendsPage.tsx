@@ -99,7 +99,7 @@ const FriendsPage: React.FC = () => {
                   <div key={friend.id} className="friend-card glass-panel animate-in">
                     <div className="friend-card-info">
                       <div className="avatar-wrapper">
-                        <Avatar seed={friend.username} size="lg" />
+                        <Avatar seed={friend.username} size="lg" isBot={friend.isBot} />
                         <span className={`status-indicator-large ${status.toLowerCase()}`}></span>
                       </div>
                       <div className="friend-details">

@@ -8,6 +8,7 @@ import DiscoveryPage from './pages/DiscoveryPage';
 import InsightsPage from './pages/InsightsPage';
 import ProfilePage from './pages/ProfilePage';
 import FriendsPage from './pages/FriendsPage';
+import SearchPage from './pages/SearchPage';
 import AdminPage from './pages/AdminPage';
 import FeedbackWidget from './components/FeedbackWidget';
 import { useUIAdaptation } from './hooks/useUIAdaptation';
@@ -71,6 +72,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <FriendsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/search" 
+          element={
+            <ProtectedRoute>
+              <SearchPage />
             </ProtectedRoute>
           } 
         />

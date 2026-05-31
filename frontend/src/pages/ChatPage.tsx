@@ -8,6 +8,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
 import ThinkingBubble from '../components/ThinkingBubble';
+import { getDMChannelId } from '../utils/dmUtils';
 
 import MainLayout from '../components/MainLayout';
 
@@ -32,10 +33,16 @@ const ChatPage: React.FC = () => {
   const { sendMessage: sendWs, sendTyping } = useWebSocket();
 
   useEffect(() => {
-    const effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
+    let effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
+    
+    // If it's a DM (not global and not a frequency), use sorted combined ID
+    if (receiverId !== 'home' && receiverId !== 'all' && !receiverId.startsWith('freq-') && userId) {
+      effectiveChannelId = getDMChannelId(userId, receiverId);
+    }
+
     setActiveChannelId(effectiveChannelId);
-    if (token) fetchMessages(receiverId);
-  }, [receiverId, token, fetchMessages, setActiveChannelId]);
+    if (token) fetchMessages(receiverId, userId || undefined);
+  }, [receiverId, token, userId, fetchMessages, setActiveChannelId]);
 
   useEffect(() => {
     if (scrollRef.current) {

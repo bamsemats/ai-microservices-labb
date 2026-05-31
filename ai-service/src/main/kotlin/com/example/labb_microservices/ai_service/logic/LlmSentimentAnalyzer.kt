@@ -11,15 +11,14 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
-import java.util.concurrent.TimeUnit
 
 @Primary
 @Service
 class LlmSentimentAnalyzer(
-    private val webClientBuilder: WebClient.Builder,
+    webClientBuilder: WebClient.Builder,
     private val objectMapper: ObjectMapper,
-    @Value("\${openrouter.api.key}") private val apiKey: String,
-    @Value("\${openrouter.url}") private val url: String
+    @param:Value("\${openrouter.api.key}") private val apiKey: String,
+    @param:Value("\${openrouter.url}") private val url: String
 ) : SentimentAnalyzer {
     private val logger = LoggerFactory.getLogger(LlmSentimentAnalyzer::class.java)
     private val webClient = webClientBuilder.build()
@@ -31,7 +30,14 @@ class LlmSentimentAnalyzer(
         val color: String? = null,
         val blurAmount: Double? = null,
         val glassOpacity: Double? = null,
-        val glowIntensity: Double? = null
+        val glowIntensity: Double? = null,
+        val detectedEntities: List<DetectedEntity>? = null
+    )
+
+    data class DetectedEntity(
+        val type: String, // e.g. "STREAMER", "GAME", "VIDEO"
+        val value: String,
+        val confidence: Double
     )
     
     // Using a reliable model for sentiment analysis
@@ -51,6 +57,12 @@ class LlmSentimentAnalyzer(
             - 'deep': focused, working, studying, technical, serious.
             - 'neutral': standard, casual, no strong emotion.
 
+            ALSO detect any third-party signals mentioned in the text. 
+            Identify these entity types:
+            - 'STREAMER': A person's name mentioned in context of Twitch or streaming (e.g. "watching wagamama").
+            - 'GAME': A video game title mentioned (e.g. "playing elden ring").
+            - 'VIDEO': A video title or topic (e.g. "watching react tutorial").
+
             Return ONLY a JSON object with these fields:
             {
               "theme": "theme_name",
@@ -58,7 +70,10 @@ class LlmSentimentAnalyzer(
               "color": "HEX_COLOR",
               "blurAmount": 0.0 to 30.0,
               "glassOpacity": 0.0 to 0.2,
-              "glowIntensity": 0.0 to 1.0
+              "glowIntensity": 0.0 to 1.0,
+              "detectedEntities": [
+                { "type": "TYPE", "value": "Entity Name", "confidence": 0.0 to 1.0 }
+              ]
             }
             
             Theme colors guidance (Monochrome Indigo Palette):
@@ -98,14 +113,8 @@ class LlmSentimentAnalyzer(
 
                     val response = objectMapper.readValue(jsonMatch, SentimentResponse::class.java)
                     
-                    val allowedThemes = setOf("emergency", "vibrant", "zen", "deep")
                     val theme = response.theme.lowercase()
-                    if (theme == "neutral") return@flatMap Mono.empty<AdaptationEvent>()
-                    if (theme !in allowedThemes) {
-                        logger.warn("Received unknown theme from LLM: {}", theme)
-                        return@flatMap Mono.empty<AdaptationEvent>()
-                    }
-
+                    
                     // Normalize and clamp properties
                     val intensity = (response.intensity).coerceIn(0.0, 1.0)
                     val blurAmount = (response.blurAmount ?: 0.0).coerceIn(0.0, 30.0)
@@ -115,13 +124,27 @@ class LlmSentimentAnalyzer(
                     // Basic hex color validation
                     val color = response.color?.takeIf { it.matches(Regex("^#[0-9A-Fa-f]{6}$")) }
                     
+                    // Map detected entities (only high confidence ones)
+                    val entities = response.detectedEntities
+                        ?.filter { it.confidence > 0.6 }
+                        ?.map { 
+                            com.example.labb_microservices.ai_service.model.EntityMessage(
+                                entityType = it.type,
+                                entityValue = it.value,
+                                originalMessageId = "internal", // Will be filled by consumer
+                                senderId = "internal",
+                                confidence = it.confidence
+                            )
+                        }
+
                     Mono.just(AdaptationEvent(
                         theme = theme,
                         intensity = intensity,
                         color = color,
                         blurAmount = blurAmount,
                         glassOpacity = glassOpacity,
-                        glowIntensity = glowIntensity
+                        glowIntensity = glowIntensity,
+                        entities = entities
                     ))
                 } catch (e: Exception) {
                     val sanitizedSnippet = if (json.length > 100) json.substring(0, 100) + "..." else json

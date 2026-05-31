@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const GATEWAY_URL = process.env.VITE_GATEWAY_URL || 'http://localhost:8080';
+const WS_GATEWAY_URL = GATEWAY_URL.replace(/^http/, 'ws');
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -12,12 +15,12 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://gateway:8080',
+        target: GATEWAY_URL,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
       '/ws': {
-        target: 'ws://gateway:8080',
+        target: WS_GATEWAY_URL,
         ws: true,
         rewrite: (path) => path.replace(/^\/ws/, '/ws')
       }

@@ -1,6 +1,6 @@
 package com.example.labb_microservices.auth_service
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.auth_service.client.UserGrpcClient
 import com.example.labb_microservices.auth_service.controller.LoginRequest
 import com.example.labb_microservices.proto.CredentialsResponse

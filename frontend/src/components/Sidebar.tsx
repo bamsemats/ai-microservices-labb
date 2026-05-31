@@ -7,7 +7,7 @@ import { useFrequencyStore } from '../store/useFrequencyStore';
 import { useSocialStore } from '../store/useSocialStore';
 import BrandLogo from './BrandLogo';
 import Avatar from './Avatar';
-import { Plus, Hash, Globe, BarChart3, ShieldAlert, Users } from 'lucide-react';
+import { Plus, Hash, Globe, BarChart3, ShieldAlert, Users, Search } from 'lucide-react';
 
 interface SidebarProps {
   activeReceiver?: string;
@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
   useEffect(() => {
     fetchFrequencies();
     fetchFriends();
-  }, []);
+  }, [fetchFrequencies, fetchFriends]);
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -141,6 +141,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           >
             <Users size={16} /> Social Hub
           </button>
+          <button 
+            className={`channel-item ${activeReceiver === 'search' ? 'active' : ''}`} 
+            onClick={() => handleNav('/search')}
+          >
+            <Search size={16} /> Search History
+          </button>
           {isAdmin && (
             <button 
               className={`channel-item ${activeReceiver === 'admin' ? 'active' : ''}`} 
@@ -176,7 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
                 onClick={() => handleReceiverSelect(u.id)}
                 aria-label={`${u.username} — ${u.status}`}
               >
-                <Avatar seed={u.username} size="sm" />
+                <Avatar seed={u.username} size="sm" isBot={u.isBot} />
                 {u.username}
                 <span className={`status-indicator ${u.status.toLowerCase()}`}></span>
               </button>

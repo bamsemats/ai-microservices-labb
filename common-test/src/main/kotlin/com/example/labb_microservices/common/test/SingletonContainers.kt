@@ -1,4 +1,4 @@
-package com.example.common.test
+package com.example.labb_microservices.common.test
 
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.MongoDBContainer

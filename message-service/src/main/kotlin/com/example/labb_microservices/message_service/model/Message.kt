@@ -1,6 +1,5 @@
 package com.example.labb_microservices.message_service.model
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -24,5 +23,7 @@ data class Message(
     val timestamp: Instant = Instant.now(),
     val contentChunks: List<String> = emptyList(),
     val searchIndices: Set<String> = emptySet(),
-    val readBy: Set<String> = emptySet()
+    val readBy: Set<String> = emptySet(),
+    val sentimentTheme: String? = null,
+    val sentimentIntensity: Double? = null
 ) : Serializable

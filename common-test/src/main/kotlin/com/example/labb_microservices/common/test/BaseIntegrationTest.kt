@@ -1,4 +1,4 @@
-package com.example.common.test
+package com.example.labb_microservices.common.test
 
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -7,6 +7,7 @@ abstract class BaseIntegrationTest {
     companion object {
         @JvmStatic
         @DynamicPropertySource
+        @Suppress("unused")
         fun registerProperties(registry: DynamicPropertyRegistry) {
             SingletonContainers.startAll()
             

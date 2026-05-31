@@ -87,18 +87,14 @@ const DiscoveryPage: React.FC = () => {
             color
           };
         });
-        setTrending(mapped.length > 0 ? mapped : [
-          { name: 'general', activity: 'High', color: '#6366f1' },
-          { name: 'tech-stack', activity: 'Med', color: '#ec4899' },
-          { name: 'ai-lounge', activity: 'High', color: '#10b981' }
-        ]);
+        Promise.resolve().then(() => {
+          setTrending(mapped);
+        });
       } catch (error) {
         console.error('Failed to fetch trending channels', error);
-        setTrending([
-          { name: 'general', activity: 'High', color: '#6366f1' },
-          { name: 'tech-stack', activity: 'Med', color: '#ec4899' },
-          { name: 'ai-lounge', activity: 'High', color: '#10b981' }
-        ]);
+        Promise.resolve().then(() => {
+          setTrending([]);
+        });
       }
     };
 

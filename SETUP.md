@@ -39,7 +39,7 @@ To ensure Minikube uses your local code changes, point your terminal to the Mini
 minikube docker-env | Invoke-Expression
 
 # Build all microservices
-mvn clean package -Dmaven.test.skip=true
+mvn clean package -DskipTests
 
 # Build Docker images
 docker-compose build
@@ -76,10 +76,19 @@ On first startup, the system seeds a default admin account based on the values i
 ### Core Features to Verify
 1.  **Registration/Login**: Create a new user account.
 2.  **Real-time Chat**: Open two different browsers/incognito tabs and chat between users.
-3.  **AI Sentiment**: Send messages with strong emotional keywords (e.g., "I love this!", "This is frustrating"). Observe the UI theme (colors/glow) shifting dynamically.
-4.  **Discovery Hub**: Navigate to the Discovery tab to see trending topics and available AI bots.
-5.  **Admin Dashboard**: Log in as `admin` and navigate to the Admin Shield icon in the sidebar to broadcast global messages or manage users.
-6.  **AI Interactions**: Mention `@ai` or specific bots like `@nexusprime` in any channel.
+3.  **Semantic Signal Detection**: Type phrases like "watching wagamama on twitch" or "playing elden ring". Observe the dynamic Twitch/YouTube widgets being injected.
+4.  **Global Search**: Navigate to the Search tab. Use filters like "Sentiment Theme" or "Date Range" to recover historical signals.
+5.  **Admin Dashboard**: Log in as `admin`. Navigate to the Admin Panel to broadcast global messages or perform an "Admin Override" on any user's profile.
+6.  **Lumina Fluid UI**: Send emotional messages and watch the global background aura (blur/opacity) shift smoothly.
+
+### E2E Testing (Playwright)
+To run automated end-to-end tests:
+```powershell
+cd frontend
+# Optional: Set custom gateway URL if not using default localhost:8080
+$env:VITE_GATEWAY_URL="http://localhost:8080" 
+npx playwright test
+```
 
 ---
 

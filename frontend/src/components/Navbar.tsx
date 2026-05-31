@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useFrequencyStore } from '../store/useFrequencyStore';
-import { Sun, Moon, Menu, Radio, MoreVertical, LogOut } from 'lucide-react';
+import { useSocialStore } from '../store/useSocialStore';
+import { Sun, Moon, Menu, Radio, MoreVertical, LogOut, UserPlus } from 'lucide-react';
 import Avatar from './Avatar';
 
 interface NavbarProps {
@@ -12,13 +13,15 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
-  const { username, displayName, logout } = useAuthStore();
+  const { userId, username, displayName, logout } = useAuthStore();
   const { currentTheme, setTheme, injectionPanelOpen, toggleSidebar, toggleInjectionPanel } = useUIStore();
-  const { frequencies, leaveFrequency } = useFrequencyStore();
+  const { frequencies, leaveFrequency, inviteMember } = useFrequencyStore();
+  const { friends } = useSocialStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [showContextActions, setShowContextActions] = useState(false);
+  const [showInviteSubmenu, setShowInviteSubmenu] = useState(false);
 
   const isDark = currentTheme.mode !== 'light';
 
@@ -27,10 +30,19 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
   const currentReceiverId = queryParams.get('receiver');
   
   const currentFreq = frequencies.find(f => f.id === currentReceiverId);
+  const isOwner = currentFreq?.ownerId === userId;
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme.mode);
   }, [currentTheme.mode]);
+
+  useEffect(() => {
+    // Close dropdowns on route change
+    Promise.resolve().then(() => {
+      setShowContextActions(false);
+      setShowInviteSubmenu(false);
+    });
+  }, [location.pathname, location.search]);
 
   const toggleTheme = () => {
     const newMode = isDark ? 'light' : 'dark';
@@ -44,6 +56,8 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
       setShowContextActions(false);
     }
   };
+
+  const invitableFriends = friends.filter(f => currentFreq && !currentFreq.members.includes(f.id));
 
   return (
     <header className="chat-navbar glass-panel" role="banner">
@@ -70,6 +84,40 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
             
             {showContextActions && (
               <div className="context-dropdown glass-panel animate-in">
+                {isOwner && (
+                  <div className="dropdown-submenu-wrapper">
+                    <button 
+                      className="dropdown-item" 
+                      onClick={() => setShowInviteSubmenu(!showInviteSubmenu)}
+                    >
+                      <UserPlus size={14} />
+                      <span>Invite Entity</span>
+                    </button>
+                    
+                    {showInviteSubmenu && (
+                      <div className="invite-submenu glass-panel">
+                        {invitableFriends.length > 0 ? (
+                          invitableFriends.map(friend => (
+                            <button 
+                              key={friend.id}
+                              className="dropdown-item mini"
+                              onClick={async () => {
+                                await inviteMember(currentFreq.id, friend.id);
+                                setShowInviteSubmenu(false);
+                                setShowContextActions(false);
+                              }}
+                            >
+                              <Avatar seed={friend.username} size="sm" isBot={friend.isBot} />
+                              <span>{friend.username}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="dropdown-item disabled">No entities available</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button className="dropdown-item danger" onClick={handleLeaveFrequency}>
                   <LogOut size={14} />
                   <span>Leave Frequency</span>

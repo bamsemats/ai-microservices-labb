@@ -8,5 +8,6 @@ data class EntityMessage(
     val entityType: String,
     val entityValue: String,
     val originalMessageId: String,
-    val senderId: String
+    val senderId: String,
+    val confidence: Double = 1.0
 )

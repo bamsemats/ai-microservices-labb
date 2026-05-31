@@ -1,6 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.messaging.RabbitMQConfig
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory

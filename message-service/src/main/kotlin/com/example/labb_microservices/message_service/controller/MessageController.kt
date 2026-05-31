@@ -1,21 +1,14 @@
 package com.example.labb_microservices.message_service.controller
 
-import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.message_service.client.UserGrpcClient
-import com.example.labb_microservices.message_service.messaging.MessageProducer
 import com.example.labb_microservices.message_service.model.AuthorType
 import com.example.labb_microservices.message_service.model.Message
-import com.example.labb_microservices.message_service.repository.MessageRepository
-import com.example.labb_microservices.message_service.service.PresenceService
-import com.example.labb_microservices.message_service.service.FrequencyService
 import com.example.labb_microservices.message_service.service.MessageService
-import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 import java.util.*
 import java.time.Instant
 import org.springframework.security.access.prepost.PreAuthorize
@@ -41,17 +34,9 @@ data class BroadcastRequest(
 @RequestMapping("/messages")
 class MessageController(
     private val userGrpcClient: UserGrpcClient,
-    private val messageProducer: MessageProducer,
-    private val presenceService: PresenceService,
-    private val frequencyService: FrequencyService,
     private val messageService: MessageService,
-    private val messageRepository: MessageRepository,
-    private val encryptionUtils: EncryptionUtils,
-    private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate,
-    @org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
+    @param:org.springframework.beans.factory.annotation.Value("\${app.test-mode.allowed:false}") private val isTestModeHeaderAllowed: Boolean
 ) {
-
-    private val logger = LoggerFactory.getLogger(MessageController::class.java)
 
     @PostMapping
     fun sendMessage(
@@ -111,78 +96,37 @@ class MessageController(
             }
     }
 
-    private fun getUserWithFallback(userId: String): Mono<com.example.labb_microservices.proto.UserResponse> {
-        return userGrpcClient.getUser(userId)
-            .onErrorResume { e ->
-                if (e is io.grpc.StatusRuntimeException && e.status.code == io.grpc.Status.Code.NOT_FOUND) {
-                    logger.debug("User $userId not found in user-service, using ID as name")
-                } else {
-                    logger.error("Failed to lookup user $userId via gRPC: ${e.message}")
-                }
-                Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
-            }
-            .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
-    }
-
     @GetMapping("/search")
     fun searchMessages(
         @RequestParam q: String,
         @RequestParam(required = false) channelId: String?,
-        @RequestParam(required = false) senderId: String?
+        @RequestParam(required = false) senderId: String?,
+        @RequestParam(required = false) startDate: String?,
+        @RequestParam(required = false) endDate: String?,
+        @RequestParam(required = false) sentimentTheme: String?,
+        @RequestParam(required = false) minIntensity: Double?
     ): Flux<Message> {
-        if (q.isBlank() || q.length < 2) return Flux.empty()
-        
-        val tokens = q.lowercase()
-            .split(Regex("[^\\p{L}\\p{N}]+"))
-            .filter { it.isNotBlank() && it.length > 1 }
-        
-        if (tokens.isEmpty()) return Flux.empty()
-        
-        return Mono.fromCallable { 
-            tokens.map { encryptionUtils.hash(it) } 
-        }
-        .subscribeOn(Schedulers.boundedElastic())
-        .flatMapMany { hashes ->
-            logger.info("Searching for blind indices. Token count: ${tokens.size}")
-            
-            ReactiveSecurityContextHolder.getContext()
-                .flatMapMany { context ->
-                    val auth = context.authentication
-                    val principal = auth.name
-                    val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
-                    
-                    val query = org.springframework.data.mongodb.core.query.Query(
-                        org.springframework.data.mongodb.core.query.Criteria.where("searchIndices").all(hashes)
-                    )
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMapMany { context ->
+                val auth = context.authentication
+                val principal = auth.name
+                val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
+                
+                val start = startDate?.let { try { Instant.parse(it) } catch(e: Exception) { null } }
+                val end = endDate?.let { try { Instant.parse(it) } catch(e: Exception) { null } }
 
-                    if (!isAdmin) {
-                        val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                            org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
-                        )
-                        query.addCriteria(visibilityCriteria)
-                    }
-
-                    if (!channelId.isNullOrBlank()) {
-                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId))
-                    }
-
-                    if (!senderId.isNullOrBlank()) {
-                        query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(senderId))
-                    }
-
-                    // Limit results for safety and sort by newest
-                    query.limit(100)
-                    query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
-
-                    mongoTemplate.find(query, Message::class.java)
-                        .flatMap { encryptedMessage ->
-                            Mono.fromCallable { decryptMessage(encryptedMessage) }
-                                .subscribeOn(Schedulers.boundedElastic())
-                        }
-                }
-        }
+                messageService.searchMessages(
+                    q = q, 
+                    channelId = channelId, 
+                    senderId = senderId, 
+                    startDate = start,
+                    endDate = end,
+                    sentimentTheme = sentimentTheme,
+                    minIntensity = minIntensity,
+                    principal = principal, 
+                    isAdmin = isAdmin
+                )
+            }
     }
 
     @GetMapping("/user/{userId}")
@@ -222,85 +166,13 @@ class MessageController(
                 val principal = auth.name
                 val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
 
-                val authCheck = if (channelId != null && channelId != "general" && channelId != "global" && !isAdmin) {
-                    frequencyService.findById(channelId)
-                        .flatMap { freq ->
-                            if (freq.members.contains(principal)) Mono.just(true)
-                            else Mono.just(false)
-                        }
-                        .switchIfEmpty(Mono.defer {
-                            // Tightened DM heuristic: ensure channelId is exactly "user1-user2" and principal is one of them
-                            val parts = channelId.split("-")
-                            val isDm = parts.size == 2 && principal in parts
-                            Mono.just(isDm)
-                        })
-                } else {
-                    Mono.just(true)
-                }
-
-                authCheck.flatMapMany { authorized ->
-                    if (!authorized) return@flatMapMany Flux.error<Message>(ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this frequency"))
-
-                    val query = when {
-                        channelId != null -> {
-                            if (isAdmin) {
-                                messageRepository.findAllByChannelId(channelId)
-                            } else {
-                                // Non-admins can see broadcast messages in this channel OR messages they are part of
-                                mongoTemplate.find(
-                                    org.springframework.data.mongodb.core.query.Query(
-                                        org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
-                                            .andOperator(
-                                                org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                                                    org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                                                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
-                                                )
-                                            )
-                                    ),
-                                    Message::class.java
-                                )
-                            }
-                        }
-                        receiverId != null -> {
-                            if (receiverId == principal) {
-                                messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
-                            } else {
-                                messageRepository.findAllBySenderIdAndReceiverId(principal, receiverId)
-                                    .mergeWith(messageRepository.findAllBySenderIdAndReceiverId(receiverId, principal))
-                            }
-                        }
-                        isAdmin -> {
-                            messageRepository.findAll()
-                        }
-                        else -> {
-                            messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
-                                .mergeWith(messageRepository.findAllByReceiverId("all"))
-                        }
-                    }
-
-                    query.flatMap { encryptedMessage ->
-                        Mono.fromCallable { decryptMessage(encryptedMessage) }
-                            .subscribeOn(Schedulers.boundedElastic())
-                    }
-                }
+                messageService.getMessages(receiverId, channelId, principal, isAdmin)
             }
-    }
-
-    private fun decryptMessage(encryptedMessage: Message): Message {
-        return try {
-            encryptedMessage.copy(
-                content = encryptionUtils.decrypt(encryptedMessage.content)
-            )
-        } catch (e: Exception) {
-            logger.error("Failed to decrypt message ${encryptedMessage.id}", e)
-            encryptedMessage.copy(content = "[DECRYPTION_ERROR]")
-        }
     }
 
     @GetMapping("/presence")
     @PreAuthorize("hasRole('ADMIN')")
     fun getOnlineUsers(): Flux<String> {
-        return presenceService.getAllOnlineUsers()
+        return messageService.getOnlineUsers()
     }
 }

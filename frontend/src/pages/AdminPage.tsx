@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import api from '../api/axios';
 import MainLayout from '../components/MainLayout';
 import Avatar from '../components/Avatar';
-import { Shield, Search, MessageSquare, Filter } from 'lucide-react';
+import { Shield, Search, MessageSquare, Filter, Edit2, X, Save, Lock } from 'lucide-react';
 
 interface User {
   id: string;
@@ -12,7 +12,112 @@ interface User {
   email?: string;
   enabled: boolean;
   roles: string[];
+  bio?: string;
 }
+
+interface EditProfileModalProps {
+  user: User;
+  onClose: () => void;
+  onSave: (updatedData: Partial<User> & { newPassword?: string }) => Promise<void>;
+}
+
+const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSave }) => {
+  const [displayName, setDisplayName] = useState(user.displayName || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [enabled, setEnabled] = useState(user.enabled);
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave({
+        displayName,
+        bio,
+        enabled,
+        newPassword: newPassword.trim() || undefined
+      });
+      onClose();
+    } catch {
+      console.error('Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+      className="modal-overlay"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="glass-panel modal-content admin-edit-modal"
+      >
+        <div className="modal-header">
+          <h3>Edit Entity: {user.username}</h3>
+          <button onClick={onClose} className="icon-only secondary lumina-button"><X size={18} /></button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Display Name</label>
+            <input 
+              type="text" 
+              value={displayName} 
+              onChange={(e) => setDisplayName(e.target.value)} 
+              className="lumina-input"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Bio</label>
+            <textarea 
+              value={bio} 
+              onChange={(e) => setBio(e.target.value)} 
+              className="lumina-input mini"
+            />
+          </div>
+
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input 
+                type="checkbox" 
+                checked={enabled} 
+                onChange={(e) => setEnabled(e.target.checked)} 
+              />
+              <span>Account Enabled</span>
+            </label>
+          </div>
+
+          <div className="form-divider"></div>
+
+          <div className="form-group">
+            <label><Lock size={14} className="inline-icon" /> Reset Password (Optional)</label>
+            <input 
+              type="password" 
+              value={newPassword} 
+              onChange={(e) => setNewPassword(e.target.value)} 
+              placeholder="Leave blank to keep current"
+              className="lumina-input"
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="lumina-button secondary">Cancel</button>
+            <button type="submit" className="lumina-button" disabled={saving}>
+              <Save size={16} className="btn-icon" /> {saving ? 'Saving...' : 'Apply Overrides'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,6 +126,7 @@ const AdminPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const fetchUsers = React.useCallback(async () => {
     try {
@@ -72,6 +178,18 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleAdminOverride = async (updatedData: Partial<User> & { newPassword?: string }) => {
+    if (!editingUser) return;
+    try {
+      await api.patch(`/users/${editingUser.id}/admin-override`, updatedData);
+      fetchUsers();
+      setStatus(`Entity ${editingUser.username} synchronized with new parameters.`);
+    } catch {
+      setStatus('Override protocol failed.');
+      throw new Error('Override failed');
+    }
+  };
+
   return (
     <MainLayout
       prefix="🛡️"
@@ -115,15 +233,26 @@ const AdminPage: React.FC = () => {
                     <div className="user-name">{u.displayName || u.username}</div>
                     <div className="user-id">ID: {u.id.substring(0,8)}...</div>
                   </div>
-                  <button 
-                    type="button"
-                    aria-label="Toggle Admin Role"
-                    className="lumina-button secondary icon-only" 
-                    title="Toggle Admin Role"
-                    onClick={() => toggleRole(u.id, u.roles)}
-                  >
-                    <Shield size={16} />
-                  </button>
+                  <div className="row-actions">
+                    <button 
+                      type="button"
+                      aria-label="Edit Profile"
+                      className="lumina-button secondary icon-only" 
+                      title="Edit Profile"
+                      onClick={() => setEditingUser(u)}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      type="button"
+                      aria-label="Toggle Admin Role"
+                      className="lumina-button secondary icon-only" 
+                      title="Toggle Admin Role"
+                      onClick={() => toggleRole(u.id, u.roles)}
+                    >
+                      <Shield size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -135,6 +264,16 @@ const AdminPage: React.FC = () => {
             </div>
           </motion.div>
         </div>
+
+        <AnimatePresence>
+          {editingUser && (
+            <EditProfileModal 
+              user={editingUser} 
+              onClose={() => setEditingUser(null)} 
+              onSave={handleAdminOverride}
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {status && (

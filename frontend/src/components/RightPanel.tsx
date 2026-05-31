@@ -38,9 +38,11 @@ const RightPanel: React.FC = () => {
   // Sync state when active frequency changes
   const activeFreqId = currentFreq?.id;
   React.useEffect(() => {
-    setIsEditingName(false);
-    setShowInviteMenu(false);
-    setInternalEditName(null);
+    Promise.resolve().then(() => {
+      setIsEditingName(false);
+      setShowInviteMenu(false);
+      setInternalEditName(null);
+    });
   }, [activeFreqId]);
 
   const editNameValue = (internalEditName ?? currentFreq?.name) || '';
@@ -142,11 +144,12 @@ const RightPanel: React.FC = () => {
                   {currentFreq.members.map(memberId => {
                     const presence = presences[memberId];
                     const displayName = presence?.username || memberId;
+                    const friend = friends.find(f => f.id === memberId);
                     
                     return (
                       <li key={memberId} className="member-item">
                         <div className="member-info">
-                          <Avatar seed={memberId} size="sm" />
+                          <Avatar seed={memberId} size="sm" isBot={friend?.isBot} />
                           <span className="member-name">
                             {displayName} {memberId === currentFreq.ownerId ? '(Owner)' : ''}
                           </span>

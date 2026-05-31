@@ -1,6 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.repository.MessageRepository

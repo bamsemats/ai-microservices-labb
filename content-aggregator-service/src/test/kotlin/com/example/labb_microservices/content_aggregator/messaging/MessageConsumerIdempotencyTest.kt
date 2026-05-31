@@ -1,6 +1,6 @@
 package com.example.labb_microservices.content_aggregator.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.content_aggregator.model.Message
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

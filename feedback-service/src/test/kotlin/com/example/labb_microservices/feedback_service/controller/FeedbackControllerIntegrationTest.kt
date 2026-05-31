@@ -1,6 +1,6 @@
 package com.example.labb_microservices.feedback_service.controller
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.feedback_service.model.Feedback
 import com.example.labb_microservices.feedback_service.repository.FeedbackRepository
 import org.junit.jupiter.api.Assertions.assertEquals

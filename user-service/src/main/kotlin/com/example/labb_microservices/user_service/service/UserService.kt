@@ -106,7 +106,7 @@ class UserService(
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
-            .flatMap { existingUser -> 
+            .flatMap { 
                 Mono.error<User>(RuntimeException("User already exists")) 
             }
             .switchIfEmpty(
@@ -186,23 +186,6 @@ class UserService(
             .map { decryptUser(it) }
     }
 
-    fun findByEmail(email: String): Mono<User> {
-        val emailHash = encryptionUtils.hash(email)
-        return userRepository.findByEmailHash(emailHash)
-            .switchIfEmpty(
-                Mono.defer {
-                    val legacyEncryptedEmail = encryptionUtils.encryptLegacy(email)
-                    userRepository.findByEmail(legacyEncryptedEmail)
-                        .flatMap { user ->
-                            val updatedUser = user.copy(emailHash = emailHash)
-                            userRepository.save(updatedUser)
-                                .doOnNext { logger.info("Backfilled emailHash for user: ${it.id}") }
-                        }
-                }
-            )
-            .map { decryptUser(it) }
-    }
-
     fun deleteUser(userId: String): Mono<Void> {
         return friendshipRepository.deleteAllByUserId(userId)
             .then(friendshipRepository.deleteAllByFriendId(userId))
@@ -214,6 +197,34 @@ class UserService(
             .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
             .flatMap { user ->
                 userRepository.save(user.copy(roles = roles))
+            }
+            .map { decryptUser(it) }
+    }
+
+    fun adminOverride(
+        userId: String, 
+        displayName: String?, 
+        bio: String?, 
+        enabled: Boolean?, 
+        metadata: Map<String, String>?,
+        newPassword: String?
+    ): Mono<User> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { user ->
+                var updated = user.copy(
+                    displayName = displayName ?: user.displayName,
+                    bio = bio ?: user.bio,
+                    enabled = enabled ?: user.enabled,
+                    metadata = metadata ?: user.metadata
+                )
+                
+                if (newPassword != null) {
+                    updated = updated.copy(password = passwordEncoder.encode(newPassword))
+                }
+                
+                logger.info("Admin override applied for user: {}", userId)
+                userRepository.save(updated)
             }
             .map { decryptUser(it) }
     }

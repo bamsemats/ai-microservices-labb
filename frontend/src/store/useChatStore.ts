@@ -28,7 +28,7 @@ interface ChatState {
   typingUsers: Record<string, string[]>; // channelId -> usernames
   activeChannelId: string;
   setActiveChannelId: (id: string) => void;
-  fetchMessages: (channelId: string) => Promise<void>;
+  fetchMessages: (channelId: string, currentUserId?: string) => Promise<void>;
   sendMessage: (message: Message) => void;
   addMessage: (message: Message) => void;
   addInjectedContent: (content: InjectedContent) => void;
@@ -39,19 +39,28 @@ interface ChatState {
   markMessageRead: (messageId: string, userId: string) => void;
 }
 
-  export const useChatStore = create<ChatState>((set, get) => ({
-
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   injectedContent: [],
   aiStatus: 'IDLE',
   typingUsers: {},
   activeChannelId: 'home',
   setActiveChannelId: (id) => set({ activeChannelId: id }),
-  fetchMessages: async (channelId) => {
+  fetchMessages: async (channelId, currentUserId?) => {
     try {
       const isGlobal = channelId === 'home' || channelId === 'all';
-      const params = isGlobal ? { channelId: 'general' } : { channelId };
-      const response = await api.get('/messages', { params });
+      const params: Record<string, string | undefined> = {};
+      
+      if (isGlobal) {
+        params.channelId = 'general';
+      } else if (currentUserId && channelId !== 'general' && !channelId.startsWith('freq-')) {
+        // Heuristic for DM: if it's not a known frequency, treat as DM to this user
+        params.receiverId = channelId;
+      } else {
+        params.channelId = channelId;
+      }
+
+      const response = await api.get<Message[]>('/messages', { params });
       set({ messages: response.data, injectedContent: [] });
     } catch (error) {
       console.error('Failed to fetch messages', error);

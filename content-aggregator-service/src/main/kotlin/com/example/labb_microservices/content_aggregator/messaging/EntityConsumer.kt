@@ -20,34 +20,54 @@ class EntityConsumer(
 
     @RabbitListener(queues = [RabbitMQConfig.ENTITY_QUEUE_NAME])
     fun processEntityDetection(entityMessage: EntityMessage): Mono<Void> {
-        logger.info("Processing detected entity: ${entityMessage.entityType} = ${entityMessage.entityValue}")
+        // Only process high-confidence semantic entities or legacy regex ones (conf = 1.0)
+        if (entityMessage.confidence < 0.6) {
+            logger.debug("Skipping low confidence entity: {} (conf: {})", entityMessage.entityValue, entityMessage.confidence)
+            return Mono.empty()
+        }
+
+        logger.info("Processing detected entity: ${entityMessage.entityType} = ${entityMessage.entityValue} (conf: ${entityMessage.confidence})")
         
-        return if (entityMessage.entityType == "GAME") {
-            val cacheKey = "content:game:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
+        return if (entityMessage.entityType == "GAME" || entityMessage.entityType == "STREAMER") {
+            val typeKey = if (entityMessage.entityType == "STREAMER") "streamer" else "game"
+            val cacheKey = "content:$typeKey:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
             
             redisTemplate.opsForValue().get(cacheKey)
                 .switchIfEmpty(
                     Mono.defer {
                         logger.info("Cache miss for ${entityMessage.entityValue}. Simulating API call...")
                         // Simulate fetching data from Twitch API
-                        val twitchData = mapOf(
-                            "gameName" to entityMessage.entityValue,
-                            "streamer" to "NexusPrime",
-                            "viewers" to "14.2k",
-                            "status" to "Live",
-                            "thumbnail" to "https://placeholder.com/twitch-thumb.jpg"
-                        )
+                        val twitchData = if (entityMessage.entityType == "STREAMER") {
+                             mapOf(
+                                "gameName" to "Just Chatting",
+                                "streamer" to entityMessage.entityValue,
+                                "viewers" to "${(5..20).random()}.${(0..9).random()}k",
+                                "status" to "Live",
+                                "thumbnail" to "https://placeholder.com/twitch-thumb.jpg",
+                                "confidence" to entityMessage.confidence.toString()
+                            )
+                        } else {
+                            mapOf(
+                                "gameName" to entityMessage.entityValue,
+                                "streamer" to listOf("Shroud", "Ninja", "Pokimane", "Lirik").random(),
+                                "viewers" to "${(10..50).random()}.${(0..9).random()}k",
+                                "status" to "Live",
+                                "thumbnail" to "https://placeholder.com/twitch-thumb.jpg",
+                                "confidence" to entityMessage.confidence.toString()
+                            )
+                        }
                         redisTemplate.opsForValue().set(cacheKey, twitchData, Duration.ofMinutes(10))
                             .thenReturn(twitchData)
                     }
                 )
                 .flatMap { data ->
+                    @Suppress("UNCHECKED_CAST")
                     val event = ContentInjectionEvent(
                         contentType = "TWITCH_STREAM",
                         data = data as Map<String, String>
                     )
                     
-                    logger.info("Publishing Content Injection Event for game: ${entityMessage.entityValue}")
+                    logger.info("Publishing Content Injection Event for ${entityMessage.entityType}: ${entityMessage.entityValue}")
                     Mono.fromCallable {
                         rabbitTemplate.convertAndSend(
                             RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME,

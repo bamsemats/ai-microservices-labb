@@ -6,7 +6,7 @@ import org.springframework.boot.runApplication
 @SpringBootApplication(scanBasePackages = [
     "com.example.labb_microservices.feedback_service",
     "com.example.labb_microservices.common.security",
-    "com.example.common.observability"
+    "com.example.labb_microservices.common.observability"
 ])
 class FeedbackServiceApplication
 

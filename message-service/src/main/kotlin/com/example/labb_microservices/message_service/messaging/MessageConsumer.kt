@@ -145,8 +145,26 @@ class MessageConsumer(
         val type = eventData["type"] as? String ?: "UI_ADAPTATION"
         val channelId = eventData["channelId"] as? String
         val userId = eventData["userId"] as? String
+        val messageId = eventData["messageId"] as? String
         
         logger.info("Received real-time event: $type for channel: ${channelId ?: "global"}, user: ${userId ?: "none"}")
+
+        // If this is a sentiment event for a specific message, persist the metadata
+        if (!messageId.isNullOrBlank() && eventData.containsKey("theme")) {
+            val theme = eventData["theme"] as? String
+            val intensity = (eventData["intensity"] as? Number)?.toDouble()
+            
+            if (theme != null && intensity != null) {
+                logger.info("Persisting sentiment for message $messageId: $theme ($intensity)")
+                val query = Query(Criteria.where("id").`is`(messageId))
+                val update = Update()
+                    .set("sentimentTheme", theme)
+                    .set("sentimentIntensity", intensity)
+                
+                mongoTemplate.updateFirst(query, update, Message::class.java).block()
+            }
+        }
+
         val jsonEvent = try {
             objectMapper.writeValueAsString(eventData)
         } catch (e: Exception) {

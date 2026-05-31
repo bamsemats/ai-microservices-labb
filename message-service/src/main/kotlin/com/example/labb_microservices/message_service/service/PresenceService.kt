@@ -17,11 +17,19 @@ class PresenceService(
     fun setUserOnline(userId: String): Mono<Boolean> {
         return redisTemplate.opsForValue()
             .set("${userPresencePrefix}$userId", "ONLINE", Duration.ofMinutes(5))
+            .flatMap { result ->
+                redisTemplate.delete("${botPresencePrefix}$userId")
+                    .thenReturn(result)
+            }
     }
 
     fun setBotOnline(botId: String): Mono<Boolean> {
         return redisTemplate.opsForValue()
-            .set("${botPresencePrefix}$botId", "ONLINE", Duration.ofDays(1))
+            .set("${botPresencePrefix}$botId", "ONLINE", Duration.ofDays(30))
+            .flatMap { result ->
+                redisTemplate.delete("${userPresencePrefix}$botId")
+                    .thenReturn(result)
+            }
     }
 
     fun setUserOffline(userId: String): Mono<Long> {

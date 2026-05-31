@@ -1,12 +1,11 @@
 package com.example.labb_microservices.message_service.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.Message
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.util.concurrent.CountDownLatch
@@ -96,12 +95,12 @@ class RabbitMQMessagingTests : BaseIntegrationTest() {
             BindingBuilder.bind(testQueue2).to(exchange)
 
         @RabbitListener(queues = ["test.queue.1"])
-        fun firstConsumer(message: Message) {
+        fun firstConsumer(@Suppress("unused") message: Message) {
             latch1.countDown()
         }
 
         @RabbitListener(queues = ["test.queue.2"])
-        fun secondConsumer(message: Message) {
+        fun secondConsumer(@Suppress("unused") message: Message) {
             latch2.countDown()
         }
     }

@@ -16,7 +16,8 @@
       --sentiment-glow-intensity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
       --sentiment-blur 1.5s cubic-bezier(0.4, 0, 0.2, 1),
       --sentiment-opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1),
-      --color-accent-primary 1.5s ease-in-out;
+      --color-accent-primary 1.5s ease-in-out,
+      --glass-bg 1s ease-in-out;
   }
 
   body {

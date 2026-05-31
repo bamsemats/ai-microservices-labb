@@ -1,6 +1,6 @@
 package com.example.labb_microservices.user_service
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.proto.CredentialsRequest
 import com.example.labb_microservices.proto.UserServiceGrpc
 import io.grpc.StatusRuntimeException

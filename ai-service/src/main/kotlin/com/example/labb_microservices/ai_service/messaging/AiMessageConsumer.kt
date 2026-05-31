@@ -2,9 +2,7 @@ package com.example.labb_microservices.ai_service.messaging
 
 import com.example.labb_microservices.ai_service.model.AiStatus
 import com.example.labb_microservices.ai_service.model.AiStatusEvent
-import com.example.labb_microservices.ai_service.model.AdaptationEvent
 import com.example.labb_microservices.ai_service.model.AuthorType
-import com.example.labb_microservices.ai_service.model.EntityMessage
 import com.example.labb_microservices.ai_service.model.Message
 import com.example.labb_microservices.ai_service.logic.AiReadinessIndicator
 import com.example.labb_microservices.ai_service.logic.ResponseGenerator
@@ -16,6 +14,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
+
 @Service
 class AiMessageConsumer(
     private val rabbitTemplate: RabbitTemplate,
@@ -44,82 +43,47 @@ class AiMessageConsumer(
 
         val content = message.content
         
-        // Entity Extraction (Keyword and URL based)
-        val entityProcessing = Mono.fromRunnable<Unit> {
-            val twitchMatch = Regex("twitch\\.tv/([\\w]+)", RegexOption.IGNORE_CASE).find(content)
-            val youtubeMatch = Regex("(?:youtube\\.com/watch\\?v=|youtu\\.be/)([\\w\\-]+)", RegexOption.IGNORE_CASE).find(content)
-
-            val (type, value) = when {
-                twitchMatch != null -> "GAME" to twitchMatch.groupValues[1].replaceFirstChar { it.titlecase() }
-                youtubeMatch != null -> "VIDEO" to youtubeMatch.groupValues[1]
-                else -> {
-                    val entityTriggerMatch = Regex("(?:play(?:ing)?|watch(?:ing)?|stream(?:ing)?|video|youtube|tutorial)\\b\\s*([\\w\\s]+)", RegexOption.IGNORE_CASE).find(content)
-                    if (entityTriggerMatch != null) {
-                        val matchedVerb = entityTriggerMatch.value.split(Regex("\\s+"))[0].lowercase()
-                        val rawSubject = entityTriggerMatch.groupValues[1].trim()
-                        val subject = sanitizeSubject(rawSubject)
-                        
-                        when {
-                            content.lowercase().contains("elden ring") -> "GAME" to "Elden Ring"
-                            content.lowercase().contains("valorant") -> "GAME" to "Valorant"
-                            content.lowercase().contains("minecraft") -> "GAME" to "Minecraft"
-                            matchedVerb.startsWith("play") -> "GAME" to subject.replaceFirstChar { it.titlecase() }
-                            content.lowercase().contains("react") -> "VIDEO" to "React Tutorial"
-                            content.lowercase().contains("python") -> "VIDEO" to "Python Tutorial"
-                            content.lowercase().contains("kubernetes") -> "VIDEO" to "Kubernetes Tutorial"
-                            content.lowercase().contains("lofi") || content.lowercase().contains("music") -> "VIDEO" to "Lofi Hip Hop"
-                            subject.length > 2 && subject.length < 50 && rawSubject.firstOrNull()?.isUpperCase() == true -> (if (matchedVerb.startsWith("play")) "GAME" else "VIDEO") to subject.replaceFirstChar { it.titlecase() }
-                            else -> null to null
-                        }
-                    } else {
-                        null to null
-                    }
-                }
-            }
-                
-            if (type != null && value != null) {
-                logger.info("Entity detected: $type = $value")
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ENTITY_EXCHANGE_NAME,
-                    "entity.detected",
-                    EntityMessage(
-                        entityType = type,
-                        entityValue = value,
-                        originalMessageId = message.id ?: UUID.randomUUID().toString(),
-                        senderId = message.senderId
-                    )
-                )
-            }
-        }.subscribeOn(Schedulers.boundedElastic())
-
-        // Semantic Sentiment Analysis
+        // Semantic Sentiment and Entity Analysis
         val sentimentProcessing = sentimentAnalyzer.analyzeSentiment(content)
             .flatMap { event ->
-                if (event != null && sentimentStabilizer.shouldPublish(message.channelId ?: "global", event)) {
-                    Mono.fromRunnable<Unit> {
-                        logger.info("Semantic sentiment detected! Theme: ${event.theme}, Intensity: ${event.intensity}")
+                if (event != null) {
+                    val enrichedEvent = event.copy(messageId = message.id)
+                    
+                    // 1. Check for adaptation publication
+                    if (sentimentStabilizer.shouldPublish(message.channelId, enrichedEvent)) {
+                        logger.info("Semantic sentiment detected! Theme: ${enrichedEvent.theme}, Intensity: ${enrichedEvent.intensity}")
                         rabbitTemplate.convertAndSend(
                             RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
                             "",
-                            event
+                            enrichedEvent
                         )
                     }
+
+                    // 2. Process and dispatch semantic entities
+                    enrichedEvent.entities?.forEach { entity ->
+                        val enrichedEntity = entity.copy(
+                            originalMessageId = message.id ?: UUID.randomUUID().toString(),
+                            senderId = message.senderId
+                        )
+                        logger.info("Semantic entity detected via AI: ${enrichedEntity.entityType} = ${enrichedEntity.entityValue} (conf: ${enrichedEntity.confidence})")
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.ENTITY_EXCHANGE_NAME,
+                            "entity.detected",
+                            enrichedEntity
+                        )
+                    }
+                    Mono.just(Unit)
                 } else {
                     Mono.empty()
                 }
             }
             .subscribeOn(Schedulers.boundedElastic())
             .onErrorResume { e -> 
-                logger.error("Sentiment analysis failed", e)
+                logger.error("Sentiment/Entity analysis failed", e)
                 Mono.empty()
             }
 
-        Mono.`when`(memoryPipeline, entityProcessing, sentimentProcessing).then().block(java.time.Duration.ofSeconds(60))
-    }
-
-
-    private fun sanitizeSubject(subject: String): String {
-        return subject.replace(Regex("(?:\\b(?:at|tonight|am|pm|the|a|an)\\b|\\d{1,2}(?::\\d{2})?)", RegexOption.IGNORE_CASE), "").trim()
+        Mono.`when`(memoryPipeline, sentimentProcessing).then().block(java.time.Duration.ofSeconds(60))
     }
 
     companion object {

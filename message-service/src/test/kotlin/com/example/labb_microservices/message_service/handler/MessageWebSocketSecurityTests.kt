@@ -1,6 +1,6 @@
 package com.example.labb_microservices.message_service.handler
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.service.PresenceService

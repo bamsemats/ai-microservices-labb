@@ -1,6 +1,6 @@
 package com.example.labb_microservices.user_service
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.user_service.dto.PersonaUpdateEvent
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
