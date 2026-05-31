@@ -29,14 +29,17 @@ class GlobalExceptionHandler {
         ex: ResponseStatusException, 
         exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        val status = ex.statusCode
+        val statusCode = ex.statusCode.value()
+        val httpStatus = HttpStatus.resolve(statusCode)
+        val errorPhrase = httpStatus?.reasonPhrase ?: "Error $statusCode"
+        
         val response = ErrorResponse(
-            status = status.value(),
-            error = HttpStatus.valueOf(status.value()).reasonPhrase,
+            status = statusCode,
+            error = errorPhrase,
             message = ex.reason ?: "No message available",
             path = exchange.request.path.value()
         )
-        return ResponseEntity.status(status).body(response)
+        return ResponseEntity.status(statusCode).body(response)
     }
 
     @ExceptionHandler(WebExchangeBindException::class)
@@ -89,12 +92,12 @@ class GlobalExceptionHandler {
         ex: Exception, 
         exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        logger.error("Unhandled exception at ${exchange.request.path.value()}", ex)
+        logger.error("Unhandled exception at ${exchange.request.path.value()}: ${ex.message}", ex)
         
         val response = ErrorResponse(
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
             error = "Internal Server Error",
-            message = ex.message ?: "An unexpected error occurred",
+            message = "An unexpected error occurred",
             path = exchange.request.path.value()
         )
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response)

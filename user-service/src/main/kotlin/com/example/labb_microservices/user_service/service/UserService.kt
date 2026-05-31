@@ -211,6 +211,7 @@ class UserService(
 
     fun updateRoles(userId: String, roles: List<String>): Mono<User> {
         return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
             .flatMap { user ->
                 userRepository.save(user.copy(roles = roles))
             }
@@ -240,9 +241,13 @@ class UserService(
             .flatMap { (name, role) ->
                 userRepository.findByUsername(name)
                     .flatMap { existing ->
-                        // Update existing user to ensure it's marked as bot
-                        val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")
-                        userRepository.save(updated)
+                        if (!existing.isBot) {
+                            Mono.error<User>(IllegalStateException("Collision: Username '$name' is already taken by a human user."))
+                        } else {
+                            // Update existing user to ensure it's marked as bot
+                            val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")
+                            userRepository.save(updated)
+                        }
                     }
                     .switchIfEmpty(
                         Mono.defer {
