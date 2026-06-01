@@ -91,7 +91,7 @@ const ChatPage: React.FC = () => {
       prefix={receiverId === 'all' || receiverId === 'home' ? '#' : (currentFreq ? '#' : '@')}
       contextName={contextName}
     >
-      <section className="message-stream">
+      <div className="site-page page--chat">
         <div className="message-list" ref={scrollRef}>
           <AnimatePresence initial={false} mode="popLayout">
             {receiverId === 'home' && filteredMessages.length === 0 ? (
@@ -100,9 +100,9 @@ const ChatPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="empty-state welcome-state"
+                className="message-empty welcome-state"
               >
-                <div className="empty-icon">🏠</div>
+                <div className="message-empty-icon">🏠</div>
                 <h2>Welcome to AdaptaChat</h2>
                 <p>Select a channel or direct message to start communicating across frequencies.</p>
               </motion.div>
@@ -112,9 +112,9 @@ const ChatPage: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="empty-state"
+                className="message-empty"
               >
-                <div className="empty-icon">💬</div>
+                <div className="message-empty-icon">💬</div>
                 <p>No messages in this frequency yet. Start the broadcast.</p>
               </motion.div>
             ) : (
@@ -143,20 +143,22 @@ const ChatPage: React.FC = () => {
           onSend={handleSendMessage} 
           onTyping={handleTyping}
         />
-      </section>
+      </div>
 
       <AnimatePresence>
-        {error && (
+        <div className="toast-stack">
+          {error && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="error-toast"
+            className="toast toast--error"
           >
             <span className="error-message">{error}</span>
-            <button className="close-toast" onClick={() => setError(null)}>×</button>
+            <button className="btn btn-icon" onClick={() => setError(null)}>×</button>
           </motion.div>
         )}
+        </div>
       </AnimatePresence>
     </MainLayout>
   );

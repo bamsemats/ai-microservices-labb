@@ -105,16 +105,22 @@ const InsightsPage: React.FC = () => {
       prefix="📊"
       contextName="AI Insights & Profile"
     >
-      <section className="insights-content">
-        <div className="insights-grid">
-          <div className="stats-row">
+      <div className="main-layout-content">
+        <div className="site-page page--settings">
+          <header className="page-header">
+            <h1 className="page-title">Network Insights</h1>
+            <p className="page-subtitle">Real-time synchronization analytics and personal adaptation parameters.</p>
+          </header>
+
+          <div className="insights-grid">
+          <div className="settings-row">
             {userStats.map((stat, index) => (
               <motion.div 
                 key={index}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
-                className="glass-card stat-card"
+                className="glass-card stat-card card "
               >
                 <div className="stat-icon">{stat.icon}</div>
                 <div className="stat-info">
@@ -133,7 +139,7 @@ const InsightsPage: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              className="glass-panel profile-settings"
+              className="card glass-panel"
             >
               <h3>Profile Settings</h3>
               <div className="settings-group">
@@ -143,7 +149,7 @@ const InsightsPage: React.FC = () => {
                   type="text" 
                   value={displayName} 
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="lumina-input" 
+                  className="input"
                 />
               </div>
               <div className="settings-group">
@@ -151,7 +157,7 @@ const InsightsPage: React.FC = () => {
                 <textarea 
                   id="bio"
                   placeholder="Tell the AI about your interests..." 
-                  className="lumina-input"
+                  className="input"
                   rows={4}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
@@ -159,7 +165,7 @@ const InsightsPage: React.FC = () => {
               </div>
               <div className="button-row">
                 <button 
-                  className="lumina-button" 
+                  className="btn btn-primary"
                   onClick={handleSave}
                   disabled={isSaving}
                 >
@@ -181,7 +187,7 @@ const InsightsPage: React.FC = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
-              className="glass-panel design-preferences"
+              className="card glass-panel"
             >
               <h3>Adapta Theme Preferences</h3>
               
@@ -190,7 +196,7 @@ const InsightsPage: React.FC = () => {
                   <label htmlFor="adaptation-toggle">Enable AI UI Adaptation</label>
                   <button 
                     id="adaptation-toggle"
-                    className={`lumina-toggle ${currentTheme.adaptationEnabled ? 'active' : ''}`}
+                    className={`btn btn-ghost ${currentTheme.adaptationEnabled ? 'active' : ''}`}
                     onClick={() => setTheme({ adaptationEnabled: !currentTheme.adaptationEnabled })}
                     aria-pressed={currentTheme.adaptationEnabled}
                   >
@@ -216,7 +222,7 @@ const InsightsPage: React.FC = () => {
                     const val = parseFloat(e.target.value);
                     setTheme({ intensity: val, baseIntensity: val });
                   }}
-                  className="lumina-range"
+                  className="intensity-range"
                 />
                 <p className="helper-text">Controls how strongly the AI can influence visual properties like glow and blur.</p>
               </div>
@@ -227,7 +233,7 @@ const InsightsPage: React.FC = () => {
                   id="theme-selector"
                   value={currentTheme.theme}
                   onChange={(e) => setTheme({ theme: e.target.value })}
-                  className="lumina-input"
+                  className="input"
                 >
                   <option value="default">Prism Aura (Default)</option>
                   <option value="cyber">Cybernetic Pulse</option>
@@ -245,10 +251,10 @@ const InsightsPage: React.FC = () => {
                     type="color" 
                     value={currentTheme.primaryColor || '#6366f1'} 
                     onChange={(e) => setTheme({ primaryColor: e.target.value })}
-                    className="lumina-color-input"
+                    className="color-input"
                   />
                   <button 
-                    className="lumina-button secondary mini"
+                    className="btn btn-ghost btn-sm"
                     onClick={() => setTheme({ primaryColor: undefined })}
                   >
                     Reset to Aura
@@ -268,7 +274,8 @@ const InsightsPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-      </section>
+      </div>
+      </div>
     </MainLayout>
   );
 };

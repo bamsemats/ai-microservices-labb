@@ -64,9 +64,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
   });
 
   return (
-    <aside className={`sidebar glass-panel ${sidebarOpen ? 'mobile-open' : ''} ${className || ''}`} role="navigation" aria-label="Main navigation">
+    <aside className={`sidebar ${sidebarOpen ? 'is-open' : ''} ${className || ''}`} role="navigation" aria-label="Main navigation">
       <button 
-        className="sidebar-header" 
+        className="sidebar-brand"
         onClick={() => handleNav('/')} 
         aria-label="Go to Home"
       >
@@ -74,22 +74,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
       </button>
 
       <div className="sidebar-section" role="group" aria-labelledby="main-nav-label">
-        <div className="sidebar-section-header">
-          <h3 id="main-nav-label">Frequencies</h3>
-          <button 
-            className="lumina-button secondary icon-only mini-btn" 
-            onClick={() => setShowCreateFreq(!showCreateFreq)}
-            title="Create new frequency"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+          <div className="frequencies-header">
+            <h3 id="main-nav-label" className="sidebar-label">Frequencies</h3>
+            <button
+              className="btn btn-icon btn-sm btn-plus"
+              onClick={() => setShowCreateFreq(!showCreateFreq)}
+              title="Create new frequency"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
 
         {showCreateFreq && (
           <form onSubmit={handleCreateFreq} className="sidebar-create-form">
             <input 
               autoFocus
-              className="lumina-input"
+              className="input"
               placeholder="Frequency name..."
               value={newFreqName}
               onChange={(e) => setNewFreqName(e.target.value)}
@@ -97,20 +97,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           </form>
         )}
 
-        <ul className="channel-list">
+        <ul className="nav-list">
           <li>
             <button
-              className={`channel-item ${activeReceiver === 'home' ? 'active' : ''}`}
+              className={`nav-item ${activeReceiver === 'home' ? 'is-active' : ''}`}
               onClick={() => handleReceiverSelect('home')}
             >
               <span className="at"><Hash size={16} /></span> general
-              {onlineUsers.length > 0 && <span className="status-indicator online"></span>}
+              {onlineUsers.length > 0 && <span className="status-dot online"></span>}
             </button>
           </li>
           {frequencies.map((freq) => (
             <li key={freq.id}>
               <button
-                className={`channel-item ${activeReceiver === freq.id ? 'active' : ''}`}
+                className={`nav-item ${activeReceiver === freq.id ? 'active' : ''}`}
                 onClick={() => handleReceiverSelect(freq.id)}
               >
                 <span className="at"><Hash size={16} /></span> {freq.name}
@@ -124,32 +124,32 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
         <h3>Intelligence</h3>
         <div className="action-grid">
           <button 
-            className={`channel-item ${activeReceiver === 'explore' ? 'active' : ''}`} 
+            className={`nav-item ${activeReceiver === 'explore' ? 'active' : ''}`}
             onClick={() => handleNav('/explore')}
           >
             <Globe size={16} /> Discovery
           </button>
           <button 
-            className={`channel-item ${activeReceiver === 'insights' ? 'active' : ''}`} 
+            className={`nav-item ${activeReceiver === 'insights' ? 'active' : ''}`}
             onClick={() => handleNav('/insights')}
           >
             <BarChart3 size={16} /> Insights
           </button>
           <button 
-            className={`channel-item ${activeReceiver === 'friends' ? 'active' : ''}`} 
+            className={`nav-item ${activeReceiver === 'friends' ? 'active' : ''}`}
             onClick={() => handleNav('/friends')}
           >
             <Users size={16} /> Social Hub
           </button>
           <button 
-            className={`channel-item ${activeReceiver === 'search' ? 'active' : ''}`} 
+            className={`nav-item ${activeReceiver === 'search' ? 'active' : ''}`}
             onClick={() => handleNav('/search')}
           >
             <Search size={16} /> Search History
           </button>
           {isAdmin && (
             <button 
-              className={`channel-item ${activeReceiver === 'admin' ? 'active' : ''}`} 
+              className={`nav-item ${activeReceiver === 'admin' ? 'active' : ''}`}
               onClick={() => handleNav('/admin')}
             >
               <ShieldAlert size={16} /> Admin Panel
@@ -159,18 +159,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
       </div>
 
       <div className="sidebar-section sidebar-footer">
-        <div className="sidebar-section-title-row">
-          <Users size={14} className="sidebar-entities-icon" />
-          <h3>Entities</h3>
+        <div>
+          <Users size={14} className="sidebar-label svg" />
+          <h3 className="sidebar-label">Entities</h3>
         </div>
         
         <button 
-          className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
+          className={`nav-item ${activeReceiver === userId ? 'active' : ''}`}
           onClick={() => handleReceiverSelect(userId || 'me')}
         >
           <Avatar seed={username || 'me'} size="sm" />
           Me (Notes)
-          <span className="status-indicator online"></span>
+          <span className="status-dot online"></span>
         </button>
 
         {friendList.length > 0 && (
@@ -178,13 +178,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             {friendList.map(u => (
               <button 
                 key={u.id} 
-                className={`channel-item ${activeReceiver === u.id ? 'active' : ''}`}
+                className={`nav-item ${activeReceiver === u.id ? 'active' : ''}`}
                 onClick={() => handleReceiverSelect(u.id)}
                 aria-label={`${u.username} — ${u.status}`}
               >
                 <Avatar seed={u.username} size="sm" isBot={u.isBot} />
                 {u.username}
-                <span className={`status-indicator ${u.status.toLowerCase()}`}></span>
+                <span className={`status-dot ${u.status.toLowerCase()}`}></span>
               </button>
             ))}
           </div>

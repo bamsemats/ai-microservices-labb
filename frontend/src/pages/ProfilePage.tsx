@@ -94,175 +94,226 @@ const ProfilePage: React.FC = () => {
       prefix="👤"
       contextName="User Profile"
     >
-      <section className="profile-content">
-        <div className="profile-card-wrapper">
-          {forcePasswordChange && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="error-toast"
-              style={{ position: 'relative', inset: 'auto', marginBottom: '1.5rem', width: '100%' }}
-            >
-              <span>Security Alert: You are using a temporary password. Please update it to continue using the platform.</span>
-            </motion.div>
-          )}
+        <div className="site-page page--profile">
+          <div className="page-scroll">
+            <div className="page-content">
+              <header className="page-header">
+                <h1 className="page-title">Digital Identity</h1>
+                <p className="page-subtitle">Customize your digital footprint and synchronization parameters.</p>
+              </header>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-panel profile-editor"
-          >
-            <div className="editor-header">
-              <Avatar seed={username || 'me'} size="xl" />
-              <div className="header-text">
-                <h2>{username}</h2>
-                <p>Customize your digital identity across the Adapta Network.</p>
-              </div>
-            </div>
-
-            <div className="editor-grid">
-              <div className="editor-section">
-                <h3>Basic Identity</h3>
-                <div className="settings-group">
-                  <label htmlFor="displayName">Display Name</label>
-                  <input
-                      id="displayName"
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Your public name..."
-                      className="lumina-input"
-                  />
-                </div>
-                <div className="settings-group">
-                  <label htmlFor="bio">Bio (AI Context)</label>
-                  <textarea
-                      id="bio"
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Tell the community and AI about yourself..."
-                      className="lumina-input"
-                      rows={5}
-                  />
-                  <p className="helper-text">This bio helps the AI understand your preferences and personality.</p>
-                </div>
-                <div className="settings-group">
-                   <label htmlFor="website">Website</label>
-                   <div className="input-with-icon">
-                     <span className="input-icon">🔗</span>
-                     <input
-                                          id="website"
-                     type="url"
-                     value={socialLinks.website || ''}
-                     onChange={(e) => handleSocialChange('website', e.target.value)}
-                     placeholder="https://example.com"
-                     className="lumina-input"
-                     />
-                   </div>
-                </div>
-                <div className="editor-footer" style={{border: 'none', padding: 0, marginTop: '1.5rem'}}>
-                  <button
-                      className="lumina-button"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                  >
-                    {isSaving ? 'Syncing...' : 'Save Profile'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="editor-section">
-                <h3>Security & Access</h3>
-                <form onSubmit={handleChangePassword} className="password-change-form">
-                  <div className="settings-group">
-                    <label htmlFor="oldPassword">Current Password</label>
-                    <input
-                        id="oldPassword"
-                        type="password"
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                        className="lumina-input"
-                        required
-                    />
-                  </div>
-                  <div className="settings-group">
-                    <label htmlFor="newPassword">New Password</label>
-                    <input 
-                      id="newPassword"
-                      type="password" 
-                      value={newPassword} 
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="lumina-input"
-                      required
-                      minLength={8}
-                    />
-                  </div>
-                  <div className="settings-group">
-                    <label htmlFor="confirmPassword">Confirm New Password</label>
-                    <input 
-                      id="confirmPassword"
-                      type="password" 
-                      value={confirmPassword} 
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="lumina-input"
-                      required
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    className={`lumina-button ${forcePasswordChange ? 'primary' : 'secondary'} full-width`}
-                    disabled={isChangingPassword}
-                  >
-                    {isChangingPassword ? 'Updating...' : 'Update Password'}
-                  </button>
-                </form>
-
-                <h3 style={{ marginTop: '2rem' }}>Social Frequencies</h3>
-                <div className="settings-group">
-                  <label htmlFor="twitter">Twitter / X</label>
-                  <div className="input-with-icon">
-                    <span className="input-icon">🐦</span>
-                    <input 
-                      id="twitter"
-                      type="text" 
-                      value={socialLinks.twitter || ''} 
-                      onChange={(e) => handleSocialChange('twitter', e.target.value)}
-                      placeholder="@username"
-                      className="lumina-input"
-                    />
-                  </div>
-                </div>
-                <div className="settings-group">
-                  <label htmlFor="github">GitHub</label>
-                  <div className="input-with-icon">
-                    <span className="input-icon">🐙</span>
-                    <input 
-                      id="github"
-                      type="text" 
-                      value={socialLinks.github || ''} 
-                      onChange={(e) => handleSocialChange('github', e.target.value)}
-                      placeholder="github-profile"
-                      className="lumina-input"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="editor-footer">
-              {feedback && (
-                <motion.span 
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`feedback-toast ${feedback.type}`}
+              <div className="profile-card-wrapper">
+              {forcePasswordChange && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="toast toast--error"
+                  style={{ inset: 'auto', marginBottom: '1.5rem', width: '100%' }}
                 >
-                  {feedback.message}
-                </motion.span>
+                  <span>Security Alert: You are using a temporary password. Please update it to continue using the platform.</span>
+                </motion.div>
               )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-panel card"
+              >
+                <div className="profile-hero">
+                  <Avatar seed={username || 'me'} size="xl" />
+                  <div className="header-text">
+                    <h2>{username}</h2>
+                    <p>Manage your core identity across the Adapta Network.</p>
+                  </div>
+                </div>
+
+                <div className="dashboard-main-grid">
+                  <div className="settings-section">
+                    <h3>Basic Identity</h3>
+                    <div className="form-field">
+                      <label
+                          htmlFor="displayName"
+                          className="form-label"
+                      >
+                        Display Name
+                      </label>
+                      <input
+                          id="displayName"
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="Your public name..."
+                          className="input"
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                      <label
+                          htmlFor="bio"
+                          className="form-label"
+                      >
+                        Bio (AI Context)
+                      </label>
+                      <textarea
+                          id="bio"
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          placeholder="Tell the community and AI about yourself..."
+                          className="input"
+                          rows={5}
+                      />
+                      <p className="helper-text">This bio helps the AI understand your preferences and personality.</p>
+                    </div>
+                    <div className="form-group">
+                      <h3 style={{ marginTop: '2.5rem' }}>Social Frequencies</h3>
+                      <div className="form-group">
+                        <label
+                            htmlFor="twitter"
+                            className="form-label"
+                        >
+                          Twitter / X
+                        </label>
+                        <div className="input-group">
+                          <span>🐦</span>
+                          <input
+                              id="twitter"
+                              type="text"
+                              value={socialLinks.twitter || ''}
+                              onChange={(e) => handleSocialChange('twitter', e.target.value)}
+                              placeholder="@username"
+                              className="input"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label
+                            htmlFor="github"
+                            className="form-label"
+                        >
+                          GitHub
+                        </label>
+                        <div className="input-group">
+                          <span>🐙</span>
+                          <input
+                              id="github"
+                              type="text"
+                              value={socialLinks.github || ''}
+                              onChange={(e) => handleSocialChange('github', e.target.value)}
+                              placeholder="github-profile"
+                              className="input"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                      <label
+                           htmlFor="website"
+                           className="form-label"
+                       >
+                         Website
+                       </label>
+                       <div className="input-group">
+                         <span>🔗</span>
+                         <input
+                          id="website"
+                          type="url"
+                          value={socialLinks.website || ''}
+                          onChange={(e) => handleSocialChange('website', e.target.value)}
+                          placeholder="https://example.com"
+                          className="input"
+                         />
+                       </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="settings-section">
+                    <h3>Security & Access</h3>
+                    <form onSubmit={handleChangePassword} className="password-change-form">
+                      <div className="form-group">
+                        <label
+                            htmlFor="oldPassword"
+                            className="form-label"
+                        >
+                          Current Password
+                        </label>
+                        <input
+                            id="oldPassword"
+                            type="password"
+                            value={oldPassword}
+                            onChange={(e) => setOldPassword(e.target.value)}
+                            className="input"
+                            required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label
+                            htmlFor="newPassword"
+                            className="form-label"
+                        >
+                          New Password
+                        </label>
+                        <input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="input"
+                          required
+                          minLength={8}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label
+                            htmlFor="confirmPassword"
+                            className="form-label"
+                        >
+                          Confirm New Password
+                        </label>
+                        <input
+                          id="confirmPassword"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className={`btn ${forcePasswordChange ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{ marginTop: '1.5rem', width: '100%' }}
+                        disabled={isChangingPassword}
+                      >
+                        {isChangingPassword ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </form>
+                    <div className="modal-footer" style={{border: 'none', padding: 0, marginTop: '2rem'}}>
+                      <button
+                          className="btn btn-primary"
+                          onClick={handleSave}
+                          disabled={isSaving}
+                      >
+                        {isSaving ? 'Syncing...' : 'Save Profile'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  {feedback && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`toast toast--success ${feedback.type}`}
+                    >
+                      {feedback.message}
+                    </motion.span>
+                  )}
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </section>
+      </div>
     </MainLayout>
   );
 };

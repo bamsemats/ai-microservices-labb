@@ -30,42 +30,45 @@ const RegisterPage: React.FC = () => {
           <BrandLogo size="lg" />
         </div>
         <h2>Register</h2>
-        {error && <p className="error">{error}</p>}
-        {success && <p className="success">Registration successful! Redirecting to login...</p>}
-        <div className="input-group">
-          <label htmlFor="username">Username</label>
+        {error && <p className="auth-error">{error}</p>}
+        {success && <p className="auth-success">Registration successful! Redirecting to login...</p>}
+        <div className="form-field">
+          <label htmlFor="username" className="form-label">Username</label>
           <input 
             id="username"
             type="text" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <div className="input-group">
-          <label htmlFor="email">Email</label>
+        <div className="form-field">
+          <label htmlFor="email" className="form-label">Email</label>
           <input 
             id="email"
             type="email" 
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <div className="input-group">
-          <label htmlFor="password">Password</label>
+        <div className="form-field">
+          <label htmlFor="password" className="form-label">Password</label>
           <input 
             id="password"
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <button className="lumina-button" type="submit">Register</button>
+        <button className="btn btn-primary" type="submit">Register</button>
         <div className="auth-footer">
           <p>Already have an account?</p>
-          <Link to="/login" className="lumina-button secondary auth-footer-cta">Login here</Link>
+          <Link to="/login" className="btn btn-ghost">Login here</Link>
         </div>
       </form>
     </div>

@@ -30,16 +30,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         stiffness: 260, 
         damping: 20 
       }}
-      className={`message-bubble ${isOwn ? 'own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
+      className={`message-bubble ${isOwn ? 'is-own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
     >
       <div className="sender-info">
         <Avatar seed={message.senderName || message.senderId} size="sm" isBot={message.authorType === 'BOT'} />
         <span className="sender-name">
           {message.senderName || message.senderId}
-          {message.authorType === 'BOT' && <span className="bot-tag">AI</span>}
+          {message.authorType === 'BOT' && <span className="badge badge-accent">AI</span>}
         </span>
       </div>
-      <div className="bubble-content">{message.content}</div>
+      <div className="message-text">{message.content}</div>
       {message.timestamp && (
         <div className="message-time">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

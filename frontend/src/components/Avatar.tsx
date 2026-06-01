@@ -29,7 +29,7 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 'md', className = '', isBo
   const avatarUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=transparent`;
 
   return (
-    <div className={`avatar-wrapper avatar-${size} ${className}`}>
+    <div className={`avatar avatar-${size} ${className}`}>
       <img 
         src={avatarUrl} 
         alt="User avatar"

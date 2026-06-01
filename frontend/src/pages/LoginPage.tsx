@@ -54,9 +54,9 @@ const LoginPage: React.FC = () => {
           <BrandLogo size="lg" />
         </div>
         <h2>Login</h2>
-        {error && <p className="error">{error}</p>}
-        <div className="input-group">
-          <label htmlFor="username">Username</label>
+        {error && <p className="auth-error">{error}</p>}
+        <div className="form-field">
+          <label htmlFor="username" className="form-label">Username</label>
           <input 
             id="username"
             type="text" 
@@ -64,10 +64,11 @@ const LoginPage: React.FC = () => {
             onChange={(e) => setUsername(e.target.value)} 
             required 
             autoComplete="username"
+            className="input"
           />
         </div>
-        <div className="input-group">
-          <label htmlFor="password">Password</label>
+        <div className="form-field">
+          <label htmlFor="password" className="form-label">Password</label>
           <input 
             id="password"
             type="password" 
@@ -75,15 +76,16 @@ const LoginPage: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)} 
             required 
             autoComplete="current-password"
+            className="input"
           />
         </div>
-        <button className="lumina-button" type="submit">Login</button>
+        <button className="btn btn-primary" type="submit">Login</button>
         
         <div className="auth-footer">
           <p>Don't have an account?</p>
           <Link 
             to="/register" 
-            className="lumina-button secondary auth-footer-cta"
+            className="btn btn-ghost"
           >
             Create New Account
           </Link>

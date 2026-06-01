@@ -119,29 +119,27 @@ const DiscoveryPage: React.FC = () => {
       prefix="🌐"
       contextName="Discovery Hub"
     >
-      <section className="discovery-content">
-        <div className="discovery-scroll-area">
+      <section className="site-page page--discovery">
+        <form className="discovery-search-bar" onSubmit={handleSearch}>
+          <input
+              type="text"
+              placeholder="Search by username..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="input"
+              aria-label="Search by username"
+          />
+          <button className="btn btn-primary" disabled={loading}>
+            {loading ? 'Searching...' : 'Scan'}
+          </button>
+        </form>
+        <div className="discovery-results">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="discovery-section"
           >
-            <h3><Search size={24} /> Find Entities</h3>
-            <form className="search-box glass-panel" onSubmit={handleSearch}>
-              <input 
-                type="text" 
-                placeholder="Search by username..." 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="lumina-input"
-                aria-label="Search by username"
-              />
-              <button className="lumina-button" disabled={loading}>
-                {loading ? 'Searching...' : 'Scan'}
-              </button>
-            </form>
-
-            <div className="search-results">
+            <h3 className="discovery-section-title"><Search size={24} /> Find Entities</h3>
+            <div className="discovery-cards">
               {results.length > 0 ? (
                 results.map(user => (
                   <motion.div 
@@ -149,7 +147,7 @@ const DiscoveryPage: React.FC = () => {
                     layout
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass-panel creator-card"
+                    className="card card--interactive discovery-card"
                   >
                     <Avatar seed={user.username} size="lg" />
                     <div className="card-info">
@@ -158,7 +156,7 @@ const DiscoveryPage: React.FC = () => {
                     </div>
                     {user.id !== userId && (
                       <button 
-                        className={`lumina-button ${isFriend(user.id) || isPending(user.id) ? 'secondary' : ''}`}
+                        className={`btn ${isFriend(user.id) || isPending(user.id) ? 'btn-ghost' : 'btn-primary'}`}
                         onClick={() => handleConnect(user.id)}
                         disabled={isFriend(user.id) || isPending(user.id) || connectingUserId === user.id}
                       >
@@ -182,9 +180,9 @@ const DiscoveryPage: React.FC = () => {
 
           <div className="discovery-section">
             <h3><TrendingUp size={24} /> Trending Frequencies</h3>
-            <div className="horizontal-scroll">
+            <div className="discovery-cards">
               {trending.map(topic => (
-                <div key={topic.name} className="glass-panel topic-card">
+                <div key={topic.name} className="card discovery-card">
                    <div className="topic-glow" style={{ '--topic-color': topic.color } as never}></div>
                    <span className="topic-hash">#</span>
                    <h4>{topic.name}</h4>

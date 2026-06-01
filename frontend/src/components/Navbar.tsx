@@ -58,10 +58,10 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
   const invitableFriends = friends.filter(f => currentFreq && !currentFreq.members.includes(f.id));
 
   return (
-    <header className="chat-navbar glass-panel" role="banner">
-      <div className="active-context" aria-live="polite">
+    <header className="app-navbar glass-panel" role="banner">
+      <div className="navbar-start" aria-live="polite">
         <button 
-          className="hamburger-menu icon-only lumina-button secondary" 
+          className="btn btn-icon btn-icon--round"
           onClick={() => toggleSidebar()}
           aria-label="Toggle navigation menu"
         >
@@ -73,7 +73,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
         {currentFreq && (
           <div className="context-actions-wrapper">
             <button 
-              className="lumina-button secondary icon-only mini-btn"
+              className="btn btn-icon"
               onClick={() => setShowContextActions(!showContextActions)}
               aria-label="Context actions"
               aria-haspopup="true"
@@ -83,7 +83,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
             </button>
             
             {showContextActions && (
-              <div className="context-dropdown glass-panel animate-in">
+              <div className="dropdown glass-panel">
                 {isOwner && (
                   <div className="dropdown-submenu-wrapper">
                     <button 
@@ -120,7 +120,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
                     )}
                   </div>
                 )}
-                <button className="dropdown-item danger" onClick={handleLeaveFrequency}>
+                <button className="dropdown-item is-danger" onClick={handleLeaveFrequency}>
                   <LogOut size={14} />
                   <span>Leave Frequency</span>
                 </button>
@@ -129,9 +129,9 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           </div>
         )}
       </div>
-      <div className="user-controls">
+      <div className="navbar-end">
         <button 
-          className="lumina-button secondary icon-only" 
+          className="btn btn-icon"
           onClick={() => toggleInjectionPanel()}
           aria-label="Toggle signal injections"
           title="Signal Injections"
@@ -141,7 +141,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
         </button>
 
         <button 
-          className="lumina-button secondary icon-only theme-toggle" 
+          className="btn btn-icon"
           onClick={toggleTheme}
           title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
@@ -151,7 +151,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
         </button>
         
         <button 
-          className="user-badge glass-card clickable" 
+          className="btn btn-ghost user-baddge"
           onClick={() => navigate('/profile')}
           aria-label="View your profile"
         >
@@ -159,7 +159,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           <span className="username">{displayName || username}</span>
         </button>
         
-        <button className="lumina-button secondary logout-btn" onClick={logout} aria-label="Logout of your account">Logout</button>
+        <button className="btn btn-ghost" onClick={logout} aria-label="Logout of your account">Logout</button>
       </div>
     </header>
   );

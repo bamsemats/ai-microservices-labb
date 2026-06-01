@@ -80,13 +80,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
   }; */
 
   return (
-    <div className="composer-container">
-      <form 
-        className={`composer-form ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''}`} 
+    <div className="composer">
+      <form
         onSubmit={handleSubmit}
         aria-label="Message composer"
       >
-        <div className="input-wrapper glass-panel">
+        <div className={`composer-input-row ${isFocused ? 'is-focused' : ''} ${disabled ? 'disabled' : ''}`}>
           <input
             type="text"
             placeholder={disabled ? "Broadcast disabled (Admin only)" : (placeholder || "Type a message...")}
@@ -100,7 +99,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ onSend, onTyping, pla
           />
           <button 
             type="submit" 
-            className="lumina-button"
+            className="btn btn-primary btn-icon"
             disabled={!value.trim() || disabled}
             aria-label="Send message"
           >

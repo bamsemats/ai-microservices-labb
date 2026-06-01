@@ -84,11 +84,13 @@ const FeedbackWidget: React.FC = () => {
                   onChange={(e) => setComment(e.target.value)}
                   required
                   maxLength={2000}
+                  rows={3}
+                  cols={50}
                 />
                 {error && <p className="feedback-error">{error}</p>}
                 <div className="modal-actions">
-                  <button type="button" className="lumina-button secondary" onClick={() => setIsOpen(false)}>Cancel</button>
-                  <button type="submit" className="lumina-button primary" disabled={isSubmitting}>
+                  <button type="button" className="btn btn-ghost" onClick={() => setIsOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
                     {isSubmitting ? 'Sending...' : 'Submit'}
                   </button>
                 </div>

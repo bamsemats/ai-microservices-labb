@@ -22,11 +22,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { sidebarOpen, toggleSidebar } = useUIStore();
 
   return (
-    <div className="chat-page-layout">
+    <div className="app-shell">
       <TopDrawer />
       <Sidebar 
         activeReceiver={activeReceiver} 
-        className={!sidebarOpen ? 'closed' : ''}
+        className={!sidebarOpen ? 'is-closed' : ''}
       />
       
       <AnimatePresence>
@@ -42,7 +42,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      <main className="chat-main-content">
+      <main className="app-main">
         <Navbar prefix={prefix} contextName={contextName} />
         {children}
       </main>

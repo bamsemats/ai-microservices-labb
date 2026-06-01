@@ -78,8 +78,8 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       >
         <defs>
           <linearGradient id={ids.gradient} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop stopColor="var(--color-accent-primary)" />
-            <stop offset="1" stopColor="var(--color-accent-secondary)" />
+            <stop stopColor="var(--accent)" />
+            <stop offset="1" stopColor="var(--accent-alt)" />
           </linearGradient>
           <filter id={ids.glow} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur" />
@@ -107,7 +107,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         />
         
         {/* Pulse Dot */}
-        <circle cx="16" cy="8" r="2" fill="var(--color-accent-tertiary)">
+        <circle cx="16" cy="8" r="2" fill="var(--accent-pop)">
           <animate 
             id={ids.pulseR}
             attributeName="r" 
