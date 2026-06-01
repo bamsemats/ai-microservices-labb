@@ -99,6 +99,7 @@ class MessageConsumer(
             val query = Query(Criteria.where("id").`is`(messageId))
             val update = Update().setOnInsert("id", messageId)
                 .setOnInsert("senderId", message.senderId)
+                .setOnInsert("senderName", message.senderName)
                 .setOnInsert("receiverId", message.receiverId)
                 .setOnInsert("channelId", message.channelId)
                 .setOnInsert("authorType", message.authorType)

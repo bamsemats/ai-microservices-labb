@@ -13,20 +13,30 @@ The system utilizes a shared Maven module, `common-security`, to encapsulate sec
 - **Standardization**: All monorepo components follow a strict package naming convention (`com.example.labb_microservices.*`) facilitated by this module.
 
 ### Trade-offs: The "Distributed Monolith" Risk
-By sharing binary logic across microservices, we introduce **binary coupling**. 
+By sharing binary logic across microservices, we introduce **binary coupling**.
 - **Redeployment Coupling**: A breaking change in `common-security` requires all dependent services to be rebuilt and redeployed.
 - **Language Lock-in**: All services must be compatible with the library's language (Kotlin/JVM).
 
 ## 2. Standardized Package Naming
 
 ### Decision
-All services and common modules have been standardized to the root package `com.example.labb_microservices`.
+All services and common modules have been standardized to the root package `com.example.labb_microservices`.    
 
 ### Rationale
 - **Architectural Alignment**: Provides a clean, professional structure that simplifies component scanning and IDE navigation.
 - **Dependency Clarity**: Makes it immediately obvious which classes are internal to the service and which are imported from the monorepo's shared modules.
 
-## 3. Asynchronous Semantic AI Pipeline
+## 3. Prism Aura Design Architecture
+
+### Decision
+The system transitioned to a 3-layer Vanilla CSS architecture (`@layer tokens, base, components`) known as **Prism Aura**.
+
+### Rationale
+- **Performance**: Eliminates the overhead of utility-first frameworks (like Tailwind) while utilizing native browser features like `@layer` for specificity management.
+- **Dynamic Adaptability**: Exposes semantic design tokens (`--sentiment-glow-intensity`, etc.) directly to the `:root` element, allowing for GPU-accelerated, AI-driven visual shifts without JS-heavy DOM manipulation.
+- **Theming Scalability**: Provides a clear separation between design tokens (colors, spacing) and component-level styles, facilitating the implementation of multiple base aesthetics (Cyber, Nature, Minimal, Warm).
+
+## 4. Asynchronous Semantic AI Pipeline
 
 ### Decision
 The system transitioned from synchronous regex-based entity detection to an asynchronous, LLM-powered semantic extraction pipeline.
@@ -36,17 +46,17 @@ The system transitioned from synchronous regex-based entity detection to an asyn
 - **Resilience**: RabbitMQ decouples the heavy AI analysis from the critical message delivery path, ensuring the UI remains responsive even during high-latency AI processing.
 - **Confidence Scoring**: High-confidence entities (threshold 0.6) ensure that third-party injections are relevant and non-intrusive.
 
-## 4. Edge Security & Rate Limiting
+## 5. Edge Security & Rate Limiting
 
 ### Decision
-Implemented a dual-layer security posture combining Gateway-level hardening and internal Zero-Trust validation.
+Implemented a dual-layer security posture combining Gateway-level hardening and internal Zero-Trust validation. 
 
 ### Rationale
 - **Gateway Defense**: Implements `SecureHeaders` (HSTS, CSP) and a Redis-backed `RequestRateLimiter` to protect against brute-force attacks at the point of entry.
 - **Internal Verification**: Every service re-verifies JWT signatures, ensuring that even internal network traffic is authenticated.
 - **Input Validation**: Strict `jakarta.validation` constraints prevent malformed data from reaching the core business logic.
 
-## 5. Standardized Error Handling & Global Exception Management
+## 6. Standardized Error Handling & Global Exception Management
 
 ### Decision
 The system implements a centralized `GlobalExceptionHandler` within the `common-security` module to provide a consistent JSON error structure across all microservices.
@@ -55,7 +65,7 @@ The system implements a centralized `GlobalExceptionHandler` within the `common-
 - **UX Consistency**: The frontend receives a predictable JSON payload (timestamp, status, error, message, path) regardless of which service fails.
 - **Security Propagation**: Explicitly handles `AccessDeniedException` to ensure correct 401/403 status codes are returned, preventing internal details from leaking via generic errors.
 
-## 6. Historical Sentiment Recovery (Advanced Search)
+## 7. Historical Sentiment Recovery (Advanced Search)
 
 ### Decision
 The system persists AI-detected sentiment metadata (Theme/Intensity) directly into the message documents in MongoDB.
@@ -64,7 +74,7 @@ The system persists AI-detected sentiment metadata (Theme/Intensity) directly in
 - **Emotional Retrieval**: Allows users to perform complex historical searches (e.g., "find all high-intensity vibrant messages") across all frequencies.
 - **Data Locality**: Storing sentiment with the message ensures that decryption and emotional analysis are synchronized during historical recovery.
 
-## 7. Robust DM Heuristics
+## 8. Robust DM Heuristics
 
 ### Decision
 Implemented a sorted combined ID pattern (`minID-maxID`) for Direct Message channel identification.
@@ -73,11 +83,11 @@ Implemented a sorted combined ID pattern (`minID-maxID`) for Direct Message chan
 - **Deterministic Synchronization**: Ensures both participants in a private conversation always resolve to the same logical frequency, regardless of who initiated the sync.
 - **Scalability**: Allows the `message-service` to treat DMs as just another partitioned channel, simplifying the WebSocket routing logic.
 
-## 8. Consolidated Configuration Strategy
+## 9. Consolidated Configuration Strategy
 
 ### Decision
 Redundant infrastructure and security settings are consolidated into a shared `observability-defaults.properties` file in `common-observability`.
 
 ### Rationale
-- **Maintenance**: Reducing duplication makes the system less prone to configuration drift and easier to audit.
+- **Maintenance**: Reducing duplication makes the system less prone to configuration drift and easier to audit. 
 - **Clarity**: Service-specific properties now contain only relevant overrides, improving readability.

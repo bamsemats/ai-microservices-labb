@@ -33,7 +33,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
       className={`message-bubble ${isOwn ? 'is-own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
     >
       <div className="sender-info">
-        <Avatar seed={message.senderName || message.senderId} size="sm" isBot={message.authorType === 'BOT'} />
+        <Avatar seed={message.senderName || message.senderId} size="sm" isBot={message.authorType === 'BOT'} className="message-avatar"/>
         <span className="sender-name">
           {message.senderName || message.senderId}
           {message.authorType === 'BOT' && <span className="badge badge-accent">AI</span>}

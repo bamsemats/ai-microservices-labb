@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           {frequencies.map((freq) => (
             <li key={freq.id}>
               <button
-                className={`nav-item ${activeReceiver === freq.id ? 'active' : ''}`}
+                className={`nav-item ${activeReceiver === freq.id ? 'is-active' : ''}`}
                 onClick={() => handleReceiverSelect(freq.id)}
               >
                 <span className="at"><Hash size={16} /></span> {freq.name}
@@ -124,32 +124,32 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
         <h3>Intelligence</h3>
         <div className="action-grid">
           <button 
-            className={`nav-item ${activeReceiver === 'explore' ? 'active' : ''}`}
+            className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
             onClick={() => handleNav('/explore')}
           >
             <Globe size={16} /> Discovery
           </button>
           <button 
-            className={`nav-item ${activeReceiver === 'insights' ? 'active' : ''}`}
+            className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
             onClick={() => handleNav('/insights')}
           >
             <BarChart3 size={16} /> Insights
           </button>
           <button 
-            className={`nav-item ${activeReceiver === 'friends' ? 'active' : ''}`}
+            className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
             onClick={() => handleNav('/friends')}
           >
             <Users size={16} /> Social Hub
           </button>
           <button 
-            className={`nav-item ${activeReceiver === 'search' ? 'active' : ''}`}
+            className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
             onClick={() => handleNav('/search')}
           >
             <Search size={16} /> Search History
           </button>
           {isAdmin && (
             <button 
-              className={`nav-item ${activeReceiver === 'admin' ? 'active' : ''}`}
+              className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
               onClick={() => handleNav('/admin')}
             >
               <ShieldAlert size={16} /> Admin Panel
@@ -165,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
         </div>
         
         <button 
-          className={`nav-item ${activeReceiver === userId ? 'active' : ''}`}
+          className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
           onClick={() => handleReceiverSelect(userId || 'me')}
         >
           <Avatar seed={username || 'me'} size="sm" />
@@ -178,7 +178,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             {friendList.map(u => (
               <button 
                 key={u.id} 
-                className={`nav-item ${activeReceiver === u.id ? 'active' : ''}`}
+                className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
                 onClick={() => handleReceiverSelect(u.id)}
                 aria-label={`${u.username} — ${u.status}`}
               >

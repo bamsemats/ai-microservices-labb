@@ -55,11 +55,11 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
             </div>
           )}
         </div>
-        <div className="flex-gap-sm">
-          <button className="lumina-button small full-width" onClick={() => setIsPlaying(!isPlaying)}>
+        <div className="button-group">
+          <button className="btn btn-primary" onClick={() => setIsPlaying(!isPlaying)}>
             {isPlaying ? "Close Player" : "Watch Here"}
           </button>
-          <a href={twitchUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
+          <a href={twitchUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
             Open Twitch
           </a>
         </div>
@@ -158,7 +158,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           <span>{publishedAt}</span>
         </div>
         <div className="flex-gap-sm">
-          <button className="lumina-button small full-width" onClick={() => setIsPlaying(!isPlaying)}>
+          <button className="btn btn-primary" onClick={() => setIsPlaying(!isPlaying)}>
             {isPlaying ? "Close Player" : "Watch Here"}
           </button>
           <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">

@@ -118,6 +118,7 @@ const DiscoveryPage: React.FC = () => {
     <MainLayout
       prefix="🌐"
       contextName="Discovery Hub"
+      activeReceiver="explore"
     >
       <section className="site-page page--discovery">
         <form className="discovery-search-bar" onSubmit={handleSearch}>

@@ -80,13 +80,13 @@ const RightPanel: React.FC = () => {
                   <div className="edit-name-form">
                     <input 
                       autoFocus
-                      className="lumina-input mini"
+                      className="btn btn-ghost"
                       value={editNameValue}
                       onChange={(e) => setInternalEditName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                     />
-                    <button className="icon-btn success" onClick={handleRename}><Check size={16} /></button>
-                    <button className="icon-btn danger" onClick={() => setIsEditingName(false)}><X size={16} /></button>
+                    <button className="btn btn-icon" onClick={handleRename}><Check size={16} /></button>
+                    <button className="btn btn-icon" onClick={() => setIsEditingName(false)}><X size={16} /></button>
                   </div>
                 ) : (
                   <>
@@ -105,7 +105,7 @@ const RightPanel: React.FC = () => {
                   <h4><Users size={16} /> Members ({currentFreq.members.length})</h4>
                   {isOwner && (
                     <button 
-                      className="lumina-button secondary mini-btn icon-only"
+                      className="btn btn-icon"
                       onClick={() => setShowInviteMenu(!showInviteMenu)}
                       title="Invite Friend"
                     >
@@ -156,7 +156,7 @@ const RightPanel: React.FC = () => {
                         </div>
                         {isOwner && memberId !== userId && (
                           <button 
-                            className="icon-btn danger"
+                            className="btn btn-icon"
                             onClick={() => kickMember(currentFreq.id, memberId)}
                             title="Kick Member"
                           >
