@@ -112,8 +112,20 @@ class MessageController(
                 val principal = auth.name
                 val isAdmin = auth.authorities.any { it.authority == "ROLE_ADMIN" }
                 
-                val start = startDate?.let { try { Instant.parse(it) } catch(e: Exception) { null } }
-                val end = endDate?.let { try { Instant.parse(it) } catch(e: Exception) { null } }
+                val start = startDate?.let { 
+                    try { 
+                        Instant.parse(it) 
+                    } catch(e: Exception) { 
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid startDate: $it")
+                    } 
+                }
+                val end = endDate?.let { 
+                    try { 
+                        Instant.parse(it) 
+                    } catch(e: Exception) { 
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid endDate: $it")
+                    } 
+                }
 
                 messageService.searchMessages(
                     q = q, 

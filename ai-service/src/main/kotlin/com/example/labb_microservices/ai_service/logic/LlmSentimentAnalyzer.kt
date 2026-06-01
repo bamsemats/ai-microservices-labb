@@ -113,7 +113,11 @@ class LlmSentimentAnalyzer(
 
                     val response = objectMapper.readValue(jsonMatch, SentimentResponse::class.java)
                     
-                    val theme = response.theme.lowercase()
+                    val rawTheme = response.theme.lowercase()
+                    val theme = when (rawTheme) {
+                        "emergency", "vibrant", "zen", "deep", "neutral" -> rawTheme
+                        else -> "neutral"
+                    }
                     
                     // Normalize and clamp properties
                     val intensity = (response.intensity).coerceIn(0.0, 1.0)
@@ -125,11 +129,12 @@ class LlmSentimentAnalyzer(
                     val color = response.color?.takeIf { it.matches(Regex("^#[0-9A-Fa-f]{6}$")) }
                     
                     // Map detected entities (only high confidence ones)
+                    val validEntityTypes = setOf("STREAMER", "GAME", "VIDEO")
                     val entities = response.detectedEntities
-                        ?.filter { it.confidence > 0.6 }
+                        ?.filter { it.confidence > 0.6 && it.type.uppercase() in validEntityTypes }
                         ?.map { 
                             com.example.labb_microservices.ai_service.model.EntityMessage(
-                                entityType = it.type,
+                                entityType = it.type.uppercase(),
                                 entityValue = it.value,
                                 originalMessageId = "internal", // Will be filled by consumer
                                 senderId = "internal",

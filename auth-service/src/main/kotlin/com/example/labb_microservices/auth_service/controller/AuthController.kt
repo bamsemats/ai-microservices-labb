@@ -46,8 +46,8 @@ class AuthController(
             .subscribeOn(Schedulers.boundedElastic())
             .flatMap { response ->
                 if (response.valid) {
-                    val roles = response.rolesList ?: listOf("ROLE_USER")
-                    val primaryRole = roles.firstOrNull { it == "ROLE_ADMIN" } ?: roles.firstOrNull() ?: "ROLE_USER"
+                    val roles = response.rolesList.takeIf { !it.isNullOrEmpty() } ?: listOf("ROLE_USER")
+                    val primaryRole = roles.firstOrNull { it == "ROLE_ADMIN" } ?: roles.first()
                     
                     val accessToken = jwtService.generateAccessToken(response.username, response.userId, roles)
                     val refreshToken = jwtService.generateRefreshToken(response.username, response.userId, roles)

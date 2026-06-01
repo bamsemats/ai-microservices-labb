@@ -49,30 +49,31 @@ class AiMessageConsumer(
                 if (event != null) {
                     val enrichedEvent = event.copy(messageId = message.id)
                     
-                    // 1. Check for adaptation publication
-                    if (sentimentStabilizer.shouldPublish(message.channelId, enrichedEvent)) {
-                        logger.info("Semantic sentiment detected! Theme: ${enrichedEvent.theme}, Intensity: ${enrichedEvent.intensity}")
-                        rabbitTemplate.convertAndSend(
-                            RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
-                            "",
-                            enrichedEvent
-                        )
-                    }
+                    Mono.fromRunnable<Unit> {
+                        // 1. Check for adaptation publication
+                        if (sentimentStabilizer.shouldPublish(message.channelId, enrichedEvent)) {
+                            logger.info("Semantic sentiment detected! Theme: ${enrichedEvent.theme}, Intensity: ${enrichedEvent.intensity}")
+                            rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.ADAPTATION_EXCHANGE_NAME,
+                                "",
+                                enrichedEvent
+                            )
+                        }
 
-                    // 2. Process and dispatch semantic entities
-                    enrichedEvent.entities?.forEach { entity ->
-                        val enrichedEntity = entity.copy(
-                            originalMessageId = message.id ?: UUID.randomUUID().toString(),
-                            senderId = message.senderId
-                        )
-                        logger.info("Semantic entity detected via AI: ${enrichedEntity.entityType} = ${enrichedEntity.entityValue} (conf: ${enrichedEntity.confidence})")
-                        rabbitTemplate.convertAndSend(
-                            RabbitMQConfig.ENTITY_EXCHANGE_NAME,
-                            "entity.detected",
-                            enrichedEntity
-                        )
-                    }
-                    Mono.just(Unit)
+                        // 2. Process and dispatch semantic entities
+                        enrichedEvent.entities?.forEach { entity ->
+                            val enrichedEntity = entity.copy(
+                                originalMessageId = message.id ?: UUID.randomUUID().toString(),
+                                senderId = message.senderId
+                            )
+                            logger.info("Semantic entity detected via AI: ${enrichedEntity.entityType} = ${enrichedEntity.entityValue} (conf: ${enrichedEntity.confidence})")
+                            rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.ENTITY_EXCHANGE_NAME,
+                                "entity.detected",
+                                enrichedEntity
+                            )
+                        }
+                    }.subscribeOn(Schedulers.boundedElastic()).then(Mono.just(Unit))
                 } else {
                     Mono.empty()
                 }

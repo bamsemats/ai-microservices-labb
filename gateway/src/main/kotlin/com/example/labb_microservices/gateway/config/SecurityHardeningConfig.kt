@@ -1,5 +1,6 @@
 package com.example.labb_microservices.gateway.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter
 import org.springframework.context.annotation.Bean
@@ -10,11 +11,25 @@ import reactor.core.publisher.Mono
 @Configuration
 class SecurityHardeningConfig {
 
+    @Value("\${app.security.trusted-proxies:}")
+    private lateinit var trustedProxies: String
+
     @Bean
     fun userKeyResolver(): KeyResolver {
         return KeyResolver { exchange: ServerWebExchange ->
-            // Rate limit by IP address
-            Mono.just(exchange.request.remoteAddress?.address?.hostAddress ?: "anonymous")
+            exchange.getPrincipal<java.security.Principal>()
+                .map { it.name }
+                .switchIfEmpty(Mono.defer {
+                    val remoteAddress = exchange.request.remoteAddress?.address?.hostAddress ?: "anonymous"
+                    val trustedList = trustedProxies.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                    
+                    val key = if (trustedList.contains(remoteAddress) || trustedProxies == "*") {
+                        exchange.request.headers.getFirst("X-Forwarded-For")?.split(",")?.firstOrNull()?.trim() ?: remoteAddress
+                    } else {
+                        remoteAddress
+                    }
+                    Mono.just(key)
+                })
         }
     }
 

@@ -39,8 +39,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
         newPassword: newPassword.trim() || undefined
       });
       onClose();
-    } catch {
-      console.error('Save failed');
+    } catch (err) {
+      console.error('Save failed', err);
     } finally {
       setSaving(false);
     }
@@ -60,7 +60,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
       >
         <div className="modal-header">
           <h3>Edit Entity: {user.username}</h3>
-          <button onClick={onClose} className="icon-only secondary lumina-button"><X size={18} /></button>
+          <button type="button" onClick={onClose} className="icon-only secondary lumina-button"><X size={18} /></button>
         </div>
         
         <form onSubmit={handleSubmit} className="modal-form">

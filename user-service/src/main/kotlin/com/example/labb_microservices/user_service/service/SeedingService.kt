@@ -18,6 +18,12 @@ class SeedingService(
     private val logger = LoggerFactory.getLogger(SeedingService::class.java)
 
     override fun run(vararg args: String?) {
+        val seedingEnabled = env.getProperty("app.seeding.enabled", "true").toBoolean()
+        if (!seedingEnabled) {
+            logger.info("System seeding is disabled (app.seeding.enabled=false). Skipping initialization.")
+            return
+        }
+
         val bots = listOf(
             "NexusPrime" to "Architect",
             "AdaptaAI" to "Assistant",

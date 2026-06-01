@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 
 @Service
@@ -74,7 +75,7 @@ class EntityConsumer(
                             "",
                             event
                         )
-                    }
+                    }.subscribeOn(Schedulers.boundedElastic())
                 }
                 .then()
         } else if (entityMessage.entityType == "VIDEO") {
@@ -109,7 +110,7 @@ class EntityConsumer(
                             "",
                             event
                         )
-                    }
+                    }.subscribeOn(Schedulers.boundedElastic())
                 }
                 .then()
         } else if (entityMessage.entityType == "NEWS") {
@@ -137,7 +138,7 @@ class EntityConsumer(
                     )
                     
                     logger.info("Publishing Content Injection Event for news: ${entityMessage.entityValue}")
-                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }.subscribeOn(Schedulers.boundedElastic())
                 }
                 .then()
         } else if (entityMessage.entityType == "SOCIAL") {
@@ -165,7 +166,7 @@ class EntityConsumer(
                     )
                     
                     logger.info("Publishing Content Injection Event for social: ${entityMessage.entityValue}")
-                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }.subscribeOn(Schedulers.boundedElastic())
                 }
                 .then()
         } else if (entityMessage.entityType == "FORUM") {
@@ -194,7 +195,7 @@ class EntityConsumer(
                     )
                     
                     logger.info("Publishing Content Injection Event for forum: ${entityMessage.entityValue}")
-                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }
+                    Mono.fromCallable { rabbitTemplate.convertAndSend(RabbitMQConfig.CONTENT_INJECTION_EXCHANGE_NAME, "", event) }.subscribeOn(Schedulers.boundedElastic())
                 }
                 .then()
         } else {

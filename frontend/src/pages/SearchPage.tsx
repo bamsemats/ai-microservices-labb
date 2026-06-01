@@ -36,8 +36,16 @@ const SearchPage: React.FC = () => {
       const params: Record<string, string | number | boolean | undefined> = { q };
       if (channelId) params.channelId = channelId;
       if (senderId) params.senderId = senderId;
-      if (startDate) params.startDate = new Date(startDate).toISOString();
-      if (endDate) params.endDate = new Date(endDate).toISOString();
+      
+      if (startDate) {
+        const sd = new Date(startDate);
+        if (!isNaN(sd.getTime())) params.startDate = sd.toISOString();
+      }
+      if (endDate) {
+        const ed = new Date(endDate);
+        if (!isNaN(ed.getTime())) params.endDate = ed.toISOString();
+      }
+      
       if (sentimentTheme) params.sentimentTheme = sentimentTheme;
       if (minIntensity > 0) params.minIntensity = minIntensity / 100;
 
@@ -92,7 +100,7 @@ const SearchPage: React.FC = () => {
                     <select value={channelId} onChange={(e) => setChannelId(e.target.value)} className="lumina-input">
                       <option value="">All Frequencies</option>
                       <option value="general">general</option>
-                      {frequencies.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      {frequencies.filter(f => f.id !== 'general').map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                   </div>
 

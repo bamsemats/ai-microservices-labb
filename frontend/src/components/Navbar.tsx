@@ -38,10 +38,8 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
 
   useEffect(() => {
     // Close dropdowns on route change
-    Promise.resolve().then(() => {
-      setShowContextActions(false);
-      setShowInviteSubmenu(false);
-    });
+    setShowContextActions(false);
+    setShowInviteSubmenu(false);
   }, [location.pathname, location.search]);
 
   const toggleTheme = () => {
@@ -78,6 +76,8 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
               className="lumina-button secondary icon-only mini-btn"
               onClick={() => setShowContextActions(!showContextActions)}
               aria-label="Context actions"
+              aria-haspopup="true"
+              aria-expanded={showContextActions}
             >
               <MoreVertical size={16} />
             </button>
@@ -89,6 +89,8 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
                     <button 
                       className="dropdown-item" 
                       onClick={() => setShowInviteSubmenu(!showInviteSubmenu)}
+                      aria-haspopup="true"
+                      aria-expanded={showInviteSubmenu}
                     >
                       <UserPlus size={14} />
                       <span>Invite Entity</span>
