@@ -73,6 +73,8 @@ spec:
           value: http://message-service:8080
         - name: SERVICES_FEEDBACK
           value: http://feedback-service:8080
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
         - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
           value: http://jaeger:4318/v1/traces
         volumeMounts:

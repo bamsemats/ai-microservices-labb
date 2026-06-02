@@ -6,6 +6,64 @@ A high-performance, resilient, and secure distributed chat system built with Spr
 
 ## Architecture Overview
 
+```mermaid
+graph TD
+    %% Frontend and Entry
+    User((User)) -->|HTTPS/WSS| Gateway[API Gateway]
+    
+    subgraph "Edge Layer"
+        Gateway
+        Redis_Rate[Redis: Rate Limiting]
+        Gateway -.->|Check| Redis_Rate
+    end
+
+    %% Internal Services
+    Gateway -->|JWT Auth| AuthS[Auth Service]
+    Gateway -->|Profile/Admin| UserS[User Service]
+    Gateway -->|WS/History| MsgS[Message Service]
+    Gateway -->|Stats| AggS[Content Aggregator]
+
+    %% Communication Patterns
+    subgraph "Internal Communication"
+        AuthS <-->|gRPC + mTLS| UserS
+        UserS <-->|gRPC + mTLS| MsgS
+    end
+
+    subgraph "Asynchronous Pipeline (RabbitMQ)"
+        MsgS -.->|Publish Event| Rabbit[RabbitMQ]
+        Rabbit -.->|Trigger| AIS[AI Service]
+        AIS -.->|Detect Entities| Rabbit
+        Rabbit -.->|Inject Content| AggS
+        AggS -.->|Rich Widget| Rabbit
+        Rabbit -.->|Real-time Update| MsgS
+    end
+
+    %% Intelligence and Data
+    AIS -->|LLM Pipeline| Sentiment[Sentiment & Entity Analysis]
+    
+    subgraph "Persistence"
+        UserS --- MongoU[(MongoDB: Users)]
+        MsgS --- MongoM[(MongoDB: Messages)]
+        AuthS --- RedisA[(Redis: Tokens)]
+        AggS --- RedisC[(Redis: Content Cache)]
+    end
+
+    %% Observability
+    subgraph "Observability"
+        Services[All Services] -.->|Metrics/Traces| OTLP[OTLP/Jaeger/Prometheus]
+    end
+
+    %% Styling
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Gateway fill:#6366f1,color:#fff,stroke:#333
+    style Rabbit fill:#ff6600,color:#fff,stroke:#333
+    style Sentiment fill:#10b981,color:#fff,stroke:#333
+    style MongoU fill:#47a248,color:#fff
+    style MongoM fill:#47a248,color:#fff
+    style RedisA fill:#dc382d,color:#fff
+    style RedisC fill:#dc382d,color:#fff
+```
+
 This project is designed to run on **Kubernetes (Minikube)**. To ensure your local code changes are reflected in the cluster, follow these procedures.
 
 ### Initial Setup

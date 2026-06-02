@@ -30,7 +30,9 @@ class EntityConsumer(
         logger.info("Processing detected entity: ${entityMessage.entityType} = ${entityMessage.entityValue} (conf: ${entityMessage.confidence}) in channel ${entityMessage.channelId}")
         
         // Topic Reasoning & Deduplication
-        val dedupKey = "dedup:injection:${entityMessage.channelId}:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
+        val normalizedValue = entityMessage.entityValue.lowercase().replace(" ", "_")
+        val dedupKey =
+            "dedup:injection:${entityMessage.channelId}:${entityMessage.entityType.lowercase()}:$normalizedValue"
         
         return redisTemplate.opsForValue().setIfAbsent(dedupKey, "true", Duration.ofMinutes(5))
             .flatMap { isNew ->
@@ -38,8 +40,8 @@ class EntityConsumer(
                     logger.info("Deduplicating injection for ${entityMessage.entityValue} in channel ${entityMessage.channelId}")
                     return@flatMap Mono.empty<Void>()
                 }
-                
-                if (entityMessage.entityType == "GAME" || entityMessage.entityType == "STREAMER") {
+
+                val processing = if (entityMessage.entityType == "GAME" || entityMessage.entityType == "STREAMER") {
                     val typeKey = if (entityMessage.entityType == "STREAMER") "streamer" else "game"
                     val cacheKey = "content:$typeKey:${entityMessage.entityValue.lowercase().replace(" ", "_")}"
                     
@@ -214,6 +216,10 @@ class EntityConsumer(
                         }
                 } else {
                     Mono.empty<Void>()
+                }
+                processing.onErrorResume { error ->
+                    redisTemplate.delete(dedupKey)
+                        .then(Mono.error(error))
                 }
             }
             .then()
