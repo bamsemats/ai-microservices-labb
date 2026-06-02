@@ -209,7 +209,10 @@ class EntityConsumer(
     }
 
     private fun safeConvertMap(data: Any?): Map<String, String> {
-        if (data !is Map<*, *>) return emptyMap()
+        if (data !is Map<*, *>) {
+            logger.warn("EntityConsumer safeConvertMap: Received unexpected data type: ${data?.let { it::class.simpleName } ?: "null"}. Value: $data")
+            return emptyMap()
+        }
         return data.entries.associate { 
             it.key.toString() to it.value.toString() 
         }

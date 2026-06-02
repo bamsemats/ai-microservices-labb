@@ -125,47 +125,52 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
       <nav className="sidebar-section" aria-label="Intelligence">
         <h3>Intelligence</h3>
         <div className="action-grid" role="list">
-          <button 
-            className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/explore')}
-            role="listitem"
-            aria-current={activeReceiver === 'explore' ? 'page' : undefined}
-          >
-            <Globe size={16} aria-hidden="true" /> Discovery
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/insights')}
-            role="listitem"
-            aria-current={activeReceiver === 'insights' ? 'page' : undefined}
-          >
-            <BarChart3 size={16} aria-hidden="true" /> Insights
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/friends')}
-            role="listitem"
-            aria-current={activeReceiver === 'friends' ? 'page' : undefined}
-          >
-            <Users size={16} aria-hidden="true" /> Social Hub
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/search')}
-            role="listitem"
-            aria-current={activeReceiver === 'search' ? 'page' : undefined}
-          >
-            <Search size={16} aria-hidden="true" /> Search History
-          </button>
-          {isAdmin && (
+          <div role="listitem">
             <button 
-              className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
-              onClick={() => handleNav('/admin')}
-              role="listitem"
-              aria-current={activeReceiver === 'admin' ? 'page' : undefined}
+              className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/explore')}
+              aria-current={activeReceiver === 'explore' ? 'page' : undefined}
             >
-              <ShieldAlert size={16} aria-hidden="true" /> Admin Panel
+              <Globe size={16} aria-hidden="true" /> Discovery
             </button>
+          </div>
+          <div role="listitem">
+            <button 
+              className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/insights')}
+              aria-current={activeReceiver === 'insights' ? 'page' : undefined}
+            >
+              <BarChart3 size={16} aria-hidden="true" /> Insights
+            </button>
+          </div>
+          <div role="listitem">
+            <button 
+              className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/friends')}
+              aria-current={activeReceiver === 'friends' ? 'page' : undefined}
+            >
+              <Users size={16} aria-hidden="true" /> Social Hub
+            </button>
+          </div>
+          <div role="listitem">
+            <button 
+              className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/search')}
+              aria-current={activeReceiver === 'search' ? 'page' : undefined}
+            >
+              <Search size={16} aria-hidden="true" /> Search History
+            </button>
+          </div>
+          {isAdmin && (
+            <div role="listitem">
+              <button 
+                className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
+                onClick={() => handleNav('/admin')}
+                aria-current={activeReceiver === 'admin' ? 'page' : undefined}
+              >
+                <ShieldAlert size={16} aria-hidden="true" /> Admin Panel
+              </button>
+            </div>
           )}
         </div>
       </nav>
@@ -176,34 +181,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           <h3 id="entities-label" className="sidebar-label">Entities</h3>
         </div>
         
-        <button 
-          className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
-          onClick={() => handleReceiverSelect(userId || 'me')}
-          aria-current={activeReceiver === userId ? 'page' : undefined}
-        >
-          <Avatar seed={username || 'me'} size="sm" />
-          Me (Notes)
-          <span className="status-dot online" aria-label="Online"></span>
-        </button>
-
-        {friendList.length > 0 && (
-          <div className="sidebar-friend-list" role="list">
-            {friendList.map(u => (
-              <button 
-                key={u.id} 
-                className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
-                onClick={() => handleReceiverSelect(u.id)}
-                aria-label={`${u.username}, ${u.status.toLowerCase()}${u.isBot ? ', AI entity' : ''}`}
-                aria-current={activeReceiver === u.id ? 'page' : undefined}
-                role="listitem"
-              >
-                <Avatar seed={u.username} size="sm" isBot={u.isBot} />
-                {u.username}
-                <span className={`status-dot ${u.status.toLowerCase()}`} aria-hidden="true"></span>
-              </button>
-            ))}
+        <div role="list">
+          <div role="listitem">
+            <button 
+              className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
+              onClick={() => handleReceiverSelect(userId || 'me')}
+              aria-current={activeReceiver === userId ? 'page' : undefined}
+            >
+              <Avatar seed={username || 'me'} size="sm" />
+              Me (Notes)
+              <span className="status-dot online" aria-label="Online"></span>
+            </button>
           </div>
-        )}
+
+          {friendList.length > 0 && (
+            friendList.map(u => (
+              <div key={u.id} role="listitem">
+                <button 
+                  className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
+                  onClick={() => handleReceiverSelect(u.id)}
+                  aria-label={`${u.username}, ${u.status.toLowerCase()}${u.isBot ? ', AI entity' : ''}`}
+                  aria-current={activeReceiver === u.id ? 'page' : undefined}
+                >
+                  <Avatar seed={u.username} size="sm" isBot={u.isBot} />
+                  {u.username}
+                  <span className={`status-dot ${u.status.toLowerCase()}`} aria-hidden="true"></span>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
 
         {friendList.length === 0 && onlineUsers.length > 0 && (
            <div className="sidebar-empty-hint">

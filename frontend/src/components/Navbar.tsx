@@ -14,7 +14,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
   const { userId, username, displayName, logout } = useAuthStore();
-  const { currentTheme, setTheme, injectionPanelOpen, toggleSidebar, toggleInjectionPanel } = useUIStore();
+  const { currentTheme, setTheme, injectionPanelOpen, sidebarOpen, toggleSidebar, toggleInjectionPanel } = useUIStore();
   const { frequencies, leaveFrequency, inviteMember } = useFrequencyStore();
   const { friends } = useSocialStore();
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
 
   return (
     <header className="app-navbar glass-panel" role="banner">
-      <nav className="navbar-start" aria-label="Quick actions" aria-live="polite">
+      <nav className="navbar-start" aria-label="Quick actions">
         <button 
           className="btn btn-icon btn-icon--round"
           onClick={() => toggleSidebar()}

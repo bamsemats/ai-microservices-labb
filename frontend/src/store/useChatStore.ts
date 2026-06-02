@@ -146,7 +146,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     };
   }),
   addInjectedContent: (content) => set((state) => {
-    const channelId = content.channelId || '__global__';
+    const rawId = content.channelId || '__global__';
+    const channelId = (rawId === 'home' || rawId === 'all') ? 'general' : rawId;
     const currentList = state.injectedContentByChannel[channelId] || [];
     return {
       injectedContentByChannel: {
