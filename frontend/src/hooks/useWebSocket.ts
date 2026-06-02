@@ -14,6 +14,7 @@ export const useWebSocket = () => {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
+  const pendingChannelRef = useRef<string | null>(null);
   
   const activeChannelId = useChatStore((state) => state.activeChannelId);
   const addMessage = useChatStore((state) => state.addMessage);
@@ -36,6 +37,13 @@ export const useWebSocket = () => {
     socket.onopen = () => {
       console.log('WebSocket Connected to channel:', channelId);
       reconnectAttemptsRef.current = 0;
+      
+      // If we have a pending channel change that happened while connecting, flush it now
+      if (pendingChannelRef.current && pendingChannelRef.current !== channelId) {
+        console.log('Flushing pending channel join:', pendingChannelRef.current);
+        socket.send(JSON.stringify({ type: 'JOIN', channelId: pendingChannelRef.current }));
+        pendingChannelRef.current = null;
+      }
     };
 
     socket.onmessage = (event) => {
@@ -183,10 +191,17 @@ export const useWebSocket = () => {
   }, [connect]);
 
   useEffect(() => {
-    if (socketRef.current?.readyState === WebSocket.OPEN && activeChannelId) {
+    if (activeChannelId) {
       const channelId = (activeChannelId === 'home' || activeChannelId === 'all') ? 'general' : activeChannelId;
-      console.log('Switching to channel:', channelId);
-      socketRef.current.send(JSON.stringify({ type: 'JOIN', channelId }));
+      
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        console.log('Switching to channel:', channelId);
+        socketRef.current.send(JSON.stringify({ type: 'JOIN', channelId }));
+        pendingChannelRef.current = null;
+      } else {
+        console.log('Queueing channel join (socket not open):', channelId);
+        pendingChannelRef.current = channelId;
+      }
     }
   }, [activeChannelId]);
 

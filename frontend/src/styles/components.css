@@ -163,8 +163,10 @@
   .action-grid {
     display: flex;
     flex-direction: column;
-    padding-top: var(--space-2);
+    padding: var(--space-2) 0 0 0;
+    margin: 0;
     gap: var(--space-1);
+    list-style: none;
   }
 
   .sidebar-label {

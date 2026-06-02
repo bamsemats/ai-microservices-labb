@@ -283,6 +283,7 @@ class MessageWebSocketHandler(
         return query.split("&")
             .find { it.startsWith("channel=") }
             ?.substringAfter("channel=")
+            ?.let { java.net.URLDecoder.decode(it, java.nio.charset.StandardCharsets.UTF_8) }
     }
 
     private class PolicyViolationException(message: String) : RuntimeException(message)
