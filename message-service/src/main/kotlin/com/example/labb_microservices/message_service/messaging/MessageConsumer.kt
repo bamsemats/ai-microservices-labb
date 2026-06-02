@@ -13,7 +13,6 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 
 @Service
 class MessageConsumer(
@@ -234,7 +233,7 @@ class MessageConsumer(
 
     @RabbitListener(queues = ["#{contentInjectionQueue.name}"])
     fun consumeContentInjectionEvent(event: ContentInjectionEvent) {
-        logger.info("Received Content Injection Event: ${event.contentType}")
+        logger.info("Received Content Injection Event: ${event.contentType} for channel: ${event.channelId}")
         val jsonEvent = try {
             objectMapper.writeValueAsString(event)
         } catch (e: Exception) {
@@ -243,7 +242,11 @@ class MessageConsumer(
         }
 
         try {
-            deliveryService.broadcastMessage(jsonEvent)
+            if (!event.channelId.isNullOrBlank()) {
+                deliveryService.broadcastToChannel(event.channelId, jsonEvent)
+            } else {
+                deliveryService.broadcastMessage(jsonEvent)
+            }
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting content injection event", e)
         }

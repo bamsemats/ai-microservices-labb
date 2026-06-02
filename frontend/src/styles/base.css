@@ -28,7 +28,7 @@
   }
 
   body {
-    font-family: var(--font-sans);
+    font-family: var(--font-sans), sans-serif;
     font-size: var(--text-base);
     line-height: 1.6;
     color: var(--text-1);
@@ -37,7 +37,7 @@
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    text-rendering: optimizelegibility;
     font-synthesis: none;
   }
 

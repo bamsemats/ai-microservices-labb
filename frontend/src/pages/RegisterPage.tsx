@@ -30,8 +30,8 @@ const RegisterPage: React.FC = () => {
           <BrandLogo size="lg" />
         </div>
         <h2>Register</h2>
-        {error && <p className="auth-error">{error}</p>}
-        {success && <p className="auth-success">Registration successful! Redirecting to login...</p>}
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        {success && <p className="auth-success" aria-live="polite">Registration successful! Redirecting to login...</p>}
         <div className="form-field">
           <label htmlFor="username" className="form-label">Username</label>
           <input 

@@ -1775,18 +1775,6 @@
     pointer-events: none;
   }
 
-  .search-filters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--space-4);
-    padding-block-start: var(--space-4);
-    overflow: hidden;
-  }
-
-  .lumina-range {
-    accent-color: var(--accent);
-  }
-
   .search-result-item {
     display: flex;
     flex-direction: column;

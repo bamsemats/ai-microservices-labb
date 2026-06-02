@@ -64,7 +64,8 @@ class AiMessageConsumer(
                         enrichedEvent.entities?.forEach { entity ->
                             val enrichedEntity = entity.copy(
                                 originalMessageId = message.id ?: UUID.randomUUID().toString(),
-                                senderId = message.senderId
+                                senderId = message.senderId,
+                                channelId = message.channelId
                             )
                             logger.info("Semantic entity detected via AI: ${enrichedEntity.entityType} = ${enrichedEntity.entityValue} (conf: ${enrichedEntity.confidence})")
                             rabbitTemplate.convertAndSend(

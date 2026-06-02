@@ -24,7 +24,6 @@ const ChatPage: React.FC = () => {
     messages, 
     fetchMessages, 
     sendMessage: pushToStore, 
-    activeChannelId, 
     setActiveChannelId,
     aiStatus
   } = useChatStore();
@@ -32,17 +31,18 @@ const ChatPage: React.FC = () => {
 
   const { sendMessage: sendWs, sendTyping } = useWebSocket();
 
-  useEffect(() => {
-    let effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
-    
-    // If it's a DM (not global and not a frequency), use sorted combined ID
+  const effectiveChannelId = useMemo(() => {
+    let id = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
     if (receiverId !== 'home' && receiverId !== 'all' && !receiverId.startsWith('freq-') && userId) {
-      effectiveChannelId = getDMChannelId(userId, receiverId);
+      id = getDMChannelId(userId, receiverId);
     }
+    return id;
+  }, [receiverId, userId]);
 
+  useEffect(() => {
     setActiveChannelId(effectiveChannelId);
     if (token) fetchMessages(receiverId, userId || undefined);
-  }, [receiverId, token, userId, fetchMessages, setActiveChannelId]);
+  }, [effectiveChannelId, receiverId, token, userId, fetchMessages, setActiveChannelId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -51,8 +51,8 @@ const ChatPage: React.FC = () => {
   }, [messages, aiStatus]);
 
   const filteredMessages = useMemo(() => {
-    return messages.filter(m => m.channelId === activeChannelId);
-  }, [messages, activeChannelId]);
+    return messages.filter(m => m.channelId === effectiveChannelId);
+  }, [messages, effectiveChannelId]);
 
   const handleSendMessage = (content: string) => {
     if (!content.trim()) return;
@@ -63,7 +63,7 @@ const ChatPage: React.FC = () => {
       senderId: userId || 'anonymous',
       senderName: useAuthStore.getState().displayName || useAuthStore.getState().username || 'Me',
       receiverId: receiverId === 'home' ? 'all' : receiverId,
-      channelId: activeChannelId,
+      channelId: effectiveChannelId,
       content,
       timestamp: new Date().toISOString(),
       authorType: 'USER',
@@ -79,7 +79,7 @@ const ChatPage: React.FC = () => {
   };
 
   const handleTyping = (isTyping: boolean) => {
-    sendTyping(activeChannelId, isTyping);
+    sendTyping(effectiveChannelId, isTyping);
   };
 
   const currentFreq = frequencies.find(f => f.id === receiverId);
@@ -145,21 +145,22 @@ const ChatPage: React.FC = () => {
         />
       </div>
 
-      <AnimatePresence>
-        <div className="toast-stack">
+      <div className="toast-stack">
+        <AnimatePresence>
           {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="toast toast--error"
-          >
-            <span className="error-message">{error}</span>
-            <button className="btn btn-icon" onClick={() => setError(null)}>×</button>
-          </motion.div>
-        )}
-        </div>
-      </AnimatePresence>
+            <motion.div 
+              key={error}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="toast toast--error"
+            >
+              <span className="error-message">{error}</span>
+              <button className="btn btn-icon" onClick={() => setError(null)}>×</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </MainLayout>
   );
 };
