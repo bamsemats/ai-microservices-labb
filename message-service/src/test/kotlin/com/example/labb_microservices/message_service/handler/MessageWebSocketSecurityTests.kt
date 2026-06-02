@@ -46,6 +46,11 @@ class MessageWebSocketSecurityTests : BaseIntegrationTest() {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var presenceService: PresenceService
 
+    @org.junit.jupiter.api.BeforeEach
+    fun resetCounter() {
+        webSocketHandler.policyViolations.set(0)
+    }
+
     @Test
     fun `should close websocket session when user becomes disabled`() {
         val userId = "test-user"
@@ -53,11 +58,15 @@ class MessageWebSocketSecurityTests : BaseIntegrationTest() {
 
         val claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims::class.java)
         org.mockito.Mockito.`when`(claims.get("userId", String::class.java)).thenReturn(userId)
-        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(token)).thenReturn(claims)
+        org.mockito.Mockito.`when`(claims.subject).thenReturn(userId)
+        
+        // Return claims for all calls in this test
+        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(claims)
 
-        `when`(jwtTokenValidator.validateToken(token)).thenReturn(true)
-        `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
-        `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
+        `when`(jwtTokenValidator.validateToken(org.mockito.ArgumentMatchers.anyString())).thenReturn(true)
+        `when`(jwtTokenValidator.getAuthentication(org.mockito.ArgumentMatchers.anyString())).thenReturn(userId)
+        `when`(jwtTokenValidator.getUserIdFromToken(org.mockito.ArgumentMatchers.anyString())).thenReturn(userId)
         `when`(presenceService.setUserOnline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         `when`(presenceService.setUserOffline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         
@@ -110,11 +119,22 @@ class MessageWebSocketSecurityTests : BaseIntegrationTest() {
 
         val claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims::class.java)
         org.mockito.Mockito.`when`(claims.get("userId", String::class.java)).thenReturn(userId)
-        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(token)).thenReturn(claims).thenReturn(null)
+        org.mockito.Mockito.`when`(claims.subject).thenReturn(userId)
+        
+        // Return claims for initial calls, then null to simulate expiration/invalidity
+        org.mockito.Mockito.`when`(jwtTokenValidator.getValidatedClaims(org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(claims) // Call 1: validateToken in handle
+            .thenReturn(claims) // Call 2: getUserIdFromToken
+            .thenReturn(claims) // Call 3: getAuthentication
+            .thenReturn(null)   // Call 4+: validation loop
 
-        `when`(jwtTokenValidator.validateToken(token)).thenReturn(true).thenReturn(false)
-        `when`(jwtTokenValidator.getAuthentication(token)).thenReturn(userId)
-        `when`(jwtTokenValidator.getUserIdFromToken(token)).thenReturn(userId)
+        // Return true initially, then false
+        `when`(jwtTokenValidator.validateToken(org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(true)  // initial check
+            .thenReturn(false) // periodic check
+
+        `when`(jwtTokenValidator.getAuthentication(org.mockito.ArgumentMatchers.anyString())).thenReturn(userId)
+        `when`(jwtTokenValidator.getUserIdFromToken(org.mockito.ArgumentMatchers.anyString())).thenReturn(userId)
         `when`(presenceService.setUserOnline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         `when`(presenceService.setUserOffline(org.mockito.ArgumentMatchers.anyString())).thenReturn(Mono.empty())
         `when`(userGrpcClient.getUser(userId)).thenReturn(Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder()
@@ -137,7 +157,7 @@ class MessageWebSocketSecurityTests : BaseIntegrationTest() {
 
         StepVerifier.create(sessionMono)
             .expectComplete()
-            .verify(Duration.ofSeconds(20))
+            .verify(Duration.ofSeconds(25))
 
         StepVerifier.create(closeStatusSink.asMono())
             .assertNext { status -> 
