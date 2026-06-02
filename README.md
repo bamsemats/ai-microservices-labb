@@ -154,7 +154,10 @@ For a deep dive into the system's roles, data flows, and security rationale, see
 AdaptaChat utilizes a modern, 3-layer Vanilla CSS architecture (`@layer tokens, base, components`) that provides deep, semantic control over theme variables without the overhead of utility frameworks. It supports GPU-accelerated transitions and multiple base aesthetics (Cyber, Nature, Minimal, Warm).
 
 ### Semantic Entity Extraction
-The system has moved away from regex-based link detection. Instead, it utilizes the LLM pipeline to identify entities (like Twitch streamers) from natural language phrases (e.g., "watching wagamama"). This allows for a more "intelligent" and less fragile injection system.
+The system has moved away from regex-based link detection. Instead, it utilizes the LLM pipeline to identify entities (like Twitch streamers) from natural language phrases (e.g., "watching wagamama"). A dedicated **Librarian Service** in the aggregator ensures these entities are mapped to their correct platforms (e.g., forcing Warhammer content to YouTube and Pro-gamers to Twitch), eliminating "hallucinated" media widgets.
+
+### Full-Stack Accessibility
+AdaptaChat is built with inclusion in mind. The frontend has been fully remediated to meet **WCAG 2.1 standards**, featuring ARIA landmarks, live regions for real-time announcements, high-contrast themes, and full keyboard navigation support (including skip-links).
 
 ### Zero-Trust Auth Hygiene
 Sensitive tokens are kept strictly in-memory. User metadata (`displayName`) is persisted in `localStorage` for UX continuity, but re-authentication or server-driven refresh is required upon reload to maintain a high security posture.

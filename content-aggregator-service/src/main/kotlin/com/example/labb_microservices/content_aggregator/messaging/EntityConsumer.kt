@@ -110,6 +110,8 @@ class EntityConsumer(
                     val youtubeData = mapOf(
                         "title" to "Best of ${entity.entityValue} Highlights",
                         "channel" to entity.entityValue,
+                        "videoId" to listOf("dQw4w9WgXcQ", "30I06O3VnZ0", "i9LpT9xLw5Y", "9bZkp7q19f0").random(), // Mock IDs
+                        "url" to "https://www.youtube.com/results?search_query=${entity.entityValue.replace(" ", "+")}",
                         "views" to "${(100..999).random()}k",
                         "publishedAt" to "${(1..7).random()} days ago",
                         "duration" to "${(5..20).random()}:${(10..59).random()}",

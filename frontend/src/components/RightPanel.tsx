@@ -13,7 +13,7 @@ import { Users, UserPlus, UserMinus, Edit2, Check, X } from 'lucide-react';
 
 const RightPanel: React.FC = () => {
   const { injectionPanelOpen } = useUIStore();
-  const { injectedContentByChannel } = useChatStore();
+  const { injectedContentByChannel, activeChannelId } = useChatStore();
   const { frequencies, renameFrequency, kickMember, inviteMember } = useFrequencyStore();
   const { friends } = useSocialStore();
   const { presences } = usePresenceStore();
@@ -21,11 +21,13 @@ const RightPanel: React.FC = () => {
   
   const [searchParams] = useSearchParams();
   const receiverId = searchParams.get('receiver') || 'home';
-  const effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
   const currentFreq = frequencies.find(f => f.id === receiverId);
 
+  // Use the normalized channel ID from the store (handles DM sorted IDs correctly)
+  const normalizedChannelId = (activeChannelId === 'home' || activeChannelId === 'all') ? 'general' : activeChannelId;
+
   const injectedContent = [
-    ...(injectedContentByChannel[effectiveChannelId] || []),
+    ...(injectedContentByChannel[normalizedChannelId] || []),
     ...(injectedContentByChannel['__global__'] || [])
   ];
 
