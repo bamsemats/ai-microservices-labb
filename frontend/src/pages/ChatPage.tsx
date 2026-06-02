@@ -92,7 +92,7 @@ const ChatPage: React.FC = () => {
       contextName={contextName}
     >
       <div className="site-page page--chat">
-        <div className="message-list" ref={scrollRef}>
+        <div className="message-list" ref={scrollRef} role="log" aria-live="polite" aria-relevant="additions" aria-label="Message history">
           <AnimatePresence initial={false} mode="popLayout">
             {receiverId === 'home' && filteredMessages.length === 0 ? (
               <motion.div 

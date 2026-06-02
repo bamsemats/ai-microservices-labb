@@ -59,11 +59,12 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
 
   return (
     <header className="app-navbar glass-panel" role="banner">
-      <div className="navbar-start" aria-live="polite">
+      <nav className="navbar-start" aria-label="Quick actions" aria-live="polite">
         <button 
           className="btn btn-icon btn-icon--round"
           onClick={() => toggleSidebar()}
-          aria-label="Toggle navigation menu"
+          aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={sidebarOpen}
         >
           <Menu size={20} />
         </button>
@@ -83,21 +84,22 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
             </button>
             
             {showContextActions && (
-              <div className="dropdown glass-panel">
+              <div className="dropdown glass-panel" role="menu">
                 {isOwner && (
-                  <div className="dropdown-submenu-wrapper">
+                  <div className="dropdown-submenu-wrapper" role="none">
                     <button 
                       className="dropdown-item" 
                       onClick={() => setShowInviteSubmenu(!showInviteSubmenu)}
                       aria-haspopup="true"
                       aria-expanded={showInviteSubmenu}
+                      role="menuitem"
                     >
-                      <UserPlus size={14} />
+                      <UserPlus size={14} aria-hidden="true" />
                       <span>Invite Entity</span>
                     </button>
                     
                     {showInviteSubmenu && (
-                      <div className="invite-submenu glass-panel">
+                      <div className="invite-submenu glass-panel" role="menu" aria-label="Friends to invite">
                         {invitableFriends.length > 0 ? (
                           invitableFriends.map(friend => (
                             <button 
@@ -108,28 +110,29 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
                                 setShowInviteSubmenu(false);
                                 setShowContextActions(false);
                               }}
+                              role="menuitem"
                             >
                               <Avatar seed={friend.username} size="sm" isBot={friend.isBot} />
                               <span>{friend.username}</span>
                             </button>
                           ))
                         ) : (
-                          <div className="dropdown-item disabled">No entities available</div>
+                          <div className="dropdown-item disabled" role="menuitem" aria-disabled="true">No entities available</div>
                         )}
                       </div>
                     )}
                   </div>
                 )}
-                <button className="dropdown-item is-danger" onClick={handleLeaveFrequency}>
-                  <LogOut size={14} />
+                <button className="dropdown-item is-danger" onClick={handleLeaveFrequency} role="menuitem">
+                  <LogOut size={14} aria-hidden="true" />
                   <span>Leave Frequency</span>
                 </button>
               </div>
             )}
           </div>
         )}
-      </div>
-      <div className="navbar-end">
+      </nav>
+      <nav className="navbar-end" aria-label="System controls">
         <button 
           className="btn btn-icon"
           onClick={() => toggleInjectionPanel()}
@@ -156,11 +159,11 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
           aria-label="View your profile"
         >
           <Avatar seed={username || 'me'} size="sm" />
-          <span className="username">{displayName || username}</span>
+          <span className="username" aria-hidden="true">{displayName || username}</span>
         </button>
         
         <button className="btn btn-ghost" onClick={logout} aria-label="Logout of your account">Logout</button>
-      </div>
+      </nav>
     </header>
   );
 };

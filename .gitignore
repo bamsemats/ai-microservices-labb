@@ -42,3 +42,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+frontend/test-results
+frontend/test-results/**
+test-results/
+test-results/**

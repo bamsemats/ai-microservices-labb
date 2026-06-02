@@ -98,7 +98,9 @@ class MessageService(
                 val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
                     org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
                     org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
                 )
                 query.addCriteria(visibilityCriteria)
             }

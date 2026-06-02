@@ -168,18 +168,21 @@ const InsightsPage: React.FC = () => {
                   className="btn btn-primary"
                   onClick={handleSave}
                   disabled={isSaving}
+                  aria-busy={isSaving}
                 >
                   {isSaving ? 'Processing...' : 'Save Changes'}
                 </button>
-                {feedback && (
-                  <motion.span 
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`feedback-msg ${feedbackType}`}
-                  >
-                    {feedback}
-                  </motion.span>
-                )}
+                <div role="status" aria-live="polite">
+                  {feedback && (
+                    <motion.span 
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`feedback-msg ${feedbackType}`}
+                    >
+                      {feedback}
+                    </motion.span>
+                  )}
+                </div>
               </div>
             </motion.div>
 

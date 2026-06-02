@@ -68,23 +68,34 @@ class EntityConsumer(
             .switchIfEmpty(
                 Mono.defer {
                     logger.info("Cache miss for Twitch entity ${entity.entityValue}. Simulating API call...")
-                    val twitchData = mapOf(
-                        "gameName" to listOf("Just Chatting", "VALORANT", "League of Legends", "Minecraft", "Counter-Strike 2").random(),
-                        "streamer" to entity.entityValue,
-                        "viewers" to "${(5..40).random()}.${(0..9).random()}k",
-                        "status" to "Live",
-                        "thumbnail" to "https://placeholder.com/twitch-thumb.jpg",
-                        "confidence" to entity.confidence.toString()
-                    )
+                    val twitchData = if (entity.entityType == "GAME") {
+                        mapOf(
+                            "gameName" to entity.entityValue,
+                            "streamer" to listOf("Shroud", "Ninja", "Pokimane", "Lirik", "KaiCenat", "xQc").random(),
+                            "viewers" to "${(10..80).random()}.${(0..9).random()}k",
+                            "status" to "Live",
+                            "thumbnail" to "https://placeholder.com/twitch-thumb.jpg",
+                            "confidence" to entity.confidence.toString()
+                        )
+                    } else {
+                        mapOf(
+                            "gameName" to listOf("Just Chatting", "VALORANT", "League of Legends", "Minecraft", "Counter-Strike 2").random(),
+                            "streamer" to entity.entityValue,
+                            "viewers" to "${(5..40).random()}.${(0..9).random()}k",
+                            "status" to "Live",
+                            "thumbnail" to "https://placeholder.com/twitch-thumb.jpg",
+                            "confidence" to entity.confidence.toString()
+                        )
+                    }
                     redisTemplate.opsForValue().set(cacheKey, twitchData, Duration.ofMinutes(15)).thenReturn(twitchData)
                 }
             )
             .flatMap { data ->
-                @Suppress("UNCHECKED_CAST")
+                val validatedData = safeConvertMap(data)
                 val event = ContentInjectionEvent(
                     contentType = "TWITCH_STREAM",
                     channelId = entity.channelId,
-                    data = data as Map<String, String>
+                    data = validatedData
                 )
                 dispatchEvent(event)
             }
@@ -108,11 +119,11 @@ class EntityConsumer(
                 }
             )
             .flatMap { data ->
-                @Suppress("UNCHECKED_CAST")
+                val validatedData = safeConvertMap(data)
                 val event = ContentInjectionEvent(
                     contentType = "YOUTUBE_VIDEO",
                     channelId = entity.channelId,
-                    data = data as Map<String, String>
+                    data = validatedData
                 )
                 dispatchEvent(event)
             }
@@ -134,11 +145,11 @@ class EntityConsumer(
                 }
             )
             .flatMap { data ->
-                @Suppress("UNCHECKED_CAST")
+                val validatedData = safeConvertMap(data)
                 val event = ContentInjectionEvent(
                     contentType = "NEWS_ARTICLE",
                     channelId = entity.channelId,
-                    data = data as Map<String, String>
+                    data = validatedData
                 )
                 dispatchEvent(event)
             }
@@ -160,11 +171,11 @@ class EntityConsumer(
                 }
             )
             .flatMap { data ->
-                @Suppress("UNCHECKED_CAST")
+                val validatedData = safeConvertMap(data)
                 val event = ContentInjectionEvent(
                     contentType = "SOCIAL_POST",
                     channelId = entity.channelId,
-                    data = data as Map<String, String>
+                    data = validatedData
                 )
                 dispatchEvent(event)
             }
@@ -187,14 +198,21 @@ class EntityConsumer(
                 }
             )
             .flatMap { data ->
-                @Suppress("UNCHECKED_CAST")
+                val validatedData = safeConvertMap(data)
                 val event = ContentInjectionEvent(
                     contentType = "FORUM_POST",
                     channelId = entity.channelId,
-                    data = data as Map<String, String>
+                    data = validatedData
                 )
                 dispatchEvent(event)
             }
+    }
+
+    private fun safeConvertMap(data: Any?): Map<String, String> {
+        if (data !is Map<*, *>) return emptyMap()
+        return data.entries.associate { 
+            it.key.toString() to it.value.toString() 
+        }
     }
 
     private fun dispatchEvent(event: ContentInjectionEvent): Mono<Void> {

@@ -23,6 +23,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="sr-only sr-only-focusable skip-link">
+        Skip to main content
+      </a>
       <TopDrawer />
       <Sidebar 
         activeReceiver={activeReceiver} 
@@ -42,7 +45,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      <main className="app-main">
+      <main className="app-main" id="main-content" tabIndex={-1}>
         <Navbar prefix={prefix} contextName={contextName} />
         {children}
       </main>

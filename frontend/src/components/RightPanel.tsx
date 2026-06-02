@@ -13,15 +13,21 @@ import { Users, UserPlus, UserMinus, Edit2, Check, X } from 'lucide-react';
 
 const RightPanel: React.FC = () => {
   const { injectionPanelOpen } = useUIStore();
-  const { injectedContent } = useChatStore();
+  const { injectedContentByChannel } = useChatStore();
   const { frequencies, renameFrequency, kickMember, inviteMember } = useFrequencyStore();
   const { friends } = useSocialStore();
   const { presences } = usePresenceStore();
   const { userId } = useAuthStore();
   
   const [searchParams] = useSearchParams();
-  const receiverId = searchParams.get('receiver');
+  const receiverId = searchParams.get('receiver') || 'home';
+  const effectiveChannelId = receiverId === 'home' || receiverId === 'all' ? 'general' : receiverId;
   const currentFreq = frequencies.find(f => f.id === receiverId);
+
+  const injectedContent = [
+    ...(injectedContentByChannel[effectiveChannelId] || []),
+    ...(injectedContentByChannel['__global__'] || [])
+  ];
 
   const [isDesktop, setIsDesktop] = React.useState(typeof window !== 'undefined' ? window.innerWidth > 768 : true);
   
@@ -72,27 +78,30 @@ const RightPanel: React.FC = () => {
           exit={{ width: 0, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className="injection-panel glass-panel"
+          role="complementary"
+          aria-label={currentFreq ? `Management: ${currentFreq.name}` : "Signal Injections"}
         >
           {currentFreq ? (
             <div className="panel-content frequency-management">
               <div className="frequency-header">
                 {isEditingName ? (
-                  <div className="edit-name-form">
+                  <div className="edit-name-form" role="group" aria-label="Rename frequency">
                     <input 
                       autoFocus
                       className="btn btn-ghost"
                       value={editNameValue}
                       onChange={(e) => setInternalEditName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                      aria-label="New frequency name"
                     />
-                    <button className="btn btn-icon" onClick={handleRename}><Check size={16} /></button>
-                    <button className="btn btn-icon" onClick={() => setIsEditingName(false)}><X size={16} /></button>
+                    <button className="btn btn-icon" onClick={handleRename} aria-label="Save name"><Check size={16} /></button>
+                    <button className="btn btn-icon" onClick={() => setIsEditingName(false)} aria-label="Cancel"><X size={16} /></button>
                   </div>
                 ) : (
                   <>
                     <h3>{currentFreq.name}</h3>
                     {isOwner && (
-                      <button className="icon-btn" onClick={() => setIsEditingName(true)}>
+                      <button className="icon-btn" onClick={() => setIsEditingName(true)} aria-label="Rename frequency">
                         <Edit2 size={16} />
                       </button>
                     )}
@@ -102,12 +111,14 @@ const RightPanel: React.FC = () => {
 
               <div className="frequency-members-section">
                 <div className="section-title-row">
-                  <h4><Users size={16} /> Members ({currentFreq.members.length})</h4>
+                  <h4><Users size={16} aria-hidden="true" /> Members ({currentFreq.members.length})</h4>
                   {isOwner && (
                     <button 
                       className="btn btn-icon"
                       onClick={() => setShowInviteMenu(!showInviteMenu)}
                       title="Invite Friend"
+                      aria-label="Invite Friend"
+                      aria-expanded={showInviteMenu}
                     >
                       <UserPlus size={16} />
                     </button>
@@ -115,12 +126,12 @@ const RightPanel: React.FC = () => {
                 </div>
 
                 {showInviteMenu && isOwner && (
-                  <div className="invite-menu glass-panel">
+                  <div className="invite-menu glass-panel" role="group" aria-label="Invite entities">
                     <h5>Invite Entities</h5>
                     {invitableFriends.length > 0 ? (
-                      <ul className="invite-list">
+                      <ul className="invite-list" role="list">
                         {invitableFriends.map(friend => (
-                          <li key={friend.id}>
+                          <li key={friend.id} role="listitem">
                             <span>{friend.username}</span>
                             <button 
                               className="lumina-button primary mini-btn"
@@ -140,14 +151,14 @@ const RightPanel: React.FC = () => {
                   </div>
                 )}
 
-                <ul className="member-list">
+                <ul className="member-list" role="list">
                   {currentFreq.members.map(memberId => {
                     const presence = presences[memberId];
                     const displayName = presence?.username || memberId;
                     const friend = friends.find(f => f.id === memberId);
                     
                     return (
-                      <li key={memberId} className="member-item">
+                      <li key={memberId} className="member-item" role="listitem">
                         <div className="member-info">
                           <Avatar seed={memberId} size="sm" isBot={friend?.isBot} />
                           <span className="member-name">
@@ -159,6 +170,7 @@ const RightPanel: React.FC = () => {
                             className="btn btn-icon"
                             onClick={() => kickMember(currentFreq.id, memberId)}
                             title="Kick Member"
+                            aria-label={`Kick ${displayName}`}
                           >
                             <UserMinus size={16} />
                           </button>
@@ -181,7 +193,7 @@ const RightPanel: React.FC = () => {
                   ))
                 ) : (
                   <div className="empty-panel">
-                    <span className="empty-panel-icon">📡</span>
+                    <span className="empty-panel-icon" aria-hidden="true">📡</span>
                     <p className="empty-panel-text">No active signal detected in current conversation.</p>
                   </div>
                 )}
