@@ -14,7 +14,7 @@ class MessageConsumer(
 
     private val logger = LoggerFactory.getLogger(MessageConsumer::class.java)
 
-    @RabbitListener(queues = ["#{deliveryQueue.name}"])
+    @RabbitListener(queues = [RabbitMQConfig.DELIVERY_QUEUE_NAME])
     fun processDeliveredMessage(message: Message): Mono<Void> {
         val messageId = message.id
         val channelId = message.channelId

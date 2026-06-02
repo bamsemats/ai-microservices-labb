@@ -54,10 +54,11 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'CONTENT_INJECTION') {
           if (typeof data.contentType === 'string' && data.data !== null && typeof data.data === 'object') {
-            console.log('Received Content Injection:', data.contentType);
+            console.log('Received Content Injection:', data.contentType, 'for channel:', data.channelId);
             useChatStore.getState().addInjectedContent({
               type: 'CONTENT_INJECTION',
               contentType: data.contentType,
+              channelId: data.channelId,
               data: data.data,
               timestamp: data.timestamp
             });

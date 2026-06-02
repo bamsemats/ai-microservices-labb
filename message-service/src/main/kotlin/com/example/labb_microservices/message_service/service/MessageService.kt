@@ -168,7 +168,10 @@ class MessageService(
                                         org.springframework.data.mongodb.core.query.Criteria().orOperator(
                                             org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
                                             org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
+                                            // Ensure public channel messages are visible if they don't have a specific receiver (fallback)
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
                                         )
                                     )
                             ),

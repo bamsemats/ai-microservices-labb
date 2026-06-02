@@ -17,6 +17,7 @@ export interface Message {
 export interface InjectedContent {
   type: 'CONTENT_INJECTION';
   contentType: string;
+  channelId?: string;
   data: Record<string, string>;
   timestamp: number;
 }

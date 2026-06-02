@@ -15,6 +15,7 @@ class RabbitMQConfig {
         const val ENTITY_QUEUE_NAME = "chat.entity.queue"
         const val CONTENT_INJECTION_EXCHANGE_NAME = "chat.content.injection.exchange"
         const val DELIVERY_EXCHANGE_NAME = "chat.delivery.exchange"
+        const val DELIVERY_QUEUE_NAME = "chat.delivery.aggregator.queue"
         const val AI_EXCHANGE_NAME = "chat.ai.exchange"
         const val AI_RESPONSE_QUEUE_NAME = "chat.ai.response.shared.queue"
 
@@ -64,7 +65,7 @@ class RabbitMQConfig {
 
     @Bean
     fun deliveryQueue(): Queue {
-        return AnonymousQueue()
+        return Queue(DELIVERY_QUEUE_NAME, true)
     }
 
     @Bean
