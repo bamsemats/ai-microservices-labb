@@ -1,0 +1,182 @@
+/* ============================================================
+   TOKENS.CSS
+   Single source of truth for all design decisions.
+   All values consumed via CSS custom properties.
+   ============================================================ */
+
+@layer tokens {
+
+  /* --- Default Theme: Aura Dark --- */
+  :root {
+    /* Background layers */
+    --bg-base:    #020617;  /* Page canvas */
+    --bg-surface: #0f172a;  /* Cards, panels */
+    --bg-raised:  #1e293b;  /* Inputs, elevated elements */
+
+    /* Brand palette */
+    --accent:     #6366f1;  /* Primary — Indigo */
+    --accent-alt: #10b981;  /* Secondary — Emerald */
+    --accent-pop: #f43f5e;  /* Tertiary — Rose (alerts, badges) */
+    --preview-intensity: 0;
+    --preview-color: var(--accent);
+
+    /* Semantic */
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error:   #ef4444;
+
+    /* Text */
+    --text-1: #f8fafc;   /* Primary content */
+    --text-2: #94a3b8;   /* Secondary / labels */
+    --text-3: #475569;   /* Muted / placeholders */
+    --text-on-accent: #ffffff;
+
+    /* Spacing scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 2.5rem;
+    --space-8: 3.5rem;
+
+    /* Border radius */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1.125rem;
+    --radius-xl: 1.5rem;
+    --radius-pill: 100vw;
+
+    /* Layout */
+    --sidebar-w: 260px;
+    --navbar-h:  3.75rem;
+
+    /* Typography */
+    --font-sans:    'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+    --text-xs:   0.6875rem;
+    --text-sm:   0.8125rem;
+    --text-base: 1rem;
+    --text-lg:   1.125rem;
+    --text-xl:   1.375rem;
+    --text-2xl:  1.75rem;
+    --text-3xl:  2.25rem;
+
+    /* Glass / Backdrop */
+    --glass-rgb:     255 255 255;
+    --glass-opacity: 0.04;
+    --glass-blur:    16px;
+    --glass-bg:      rgb(var(--glass-rgb) / var(--glass-opacity));
+    --glass-border:  rgb(var(--glass-rgb) / 0.08);
+
+    /* Hover states */
+    --bg-hover:   rgb(var(--glass-rgb) / 0.05);
+    --bg-hover-2: rgb(var(--glass-rgb) / 0.09);
+    --border-subtle: rgb(var(--glass-rgb) / 0.1);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.3);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,0.4);
+
+    /* Glow — derived from accent */
+    --glow-accent: 0 0 24px rgb(from var(--accent) r g b / 0.35);
+    --glow-alt:    0 0 24px rgb(from var(--accent-alt) r g b / 0.35);
+
+    /* Animation */
+    --ease-out:   cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring:cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-fast:  150ms;
+    --dur-base:  250ms;
+    --dur-slow:  400ms;
+    --dur-theme: 600ms;
+  }
+
+  /* --- Light mode overrides --- */
+  [data-theme="light"] {
+    --bg-base:    #f1f5f9;
+    --bg-surface: #ffffff;
+    --bg-raised:  #e2e8f0;
+
+    --accent:     #4f46e5;
+    --accent-alt: #059669;
+    --accent-pop: #e11d48;
+
+    --text-1: #0f172a;
+    --text-2: #475569;
+    --text-3: #94a3b8;
+
+    --glass-rgb:     0 0 0;
+    --glass-opacity: 0.04;
+  }
+
+  /* --- Theme: Cyber --- */
+  [data-theme-base="cyber"] {
+    --bg-base:    #050505;
+    --bg-surface: #0d0d0d;
+    --accent:     #ff00ff;
+    --accent-alt: #00ffff;
+    --accent-pop: #ffff00;
+    --text-1:     #ffffff;
+    --text-on-accent: #000000;
+  }
+  [data-theme="light"][data-theme-base="cyber"] {
+    --bg-base:    #fafafa;
+    --bg-surface: #ffffff;
+    --accent:     #cc00cc;
+    --accent-alt: #008888;
+    --text-1:     #000000;
+  }
+
+  /* --- Theme: Nature --- */
+  [data-theme-base="nature"] {
+    --bg-base:    #052e16;
+    --bg-surface: #064e3b;
+    --accent:     #10b981;
+    --accent-alt: #84cc16;
+    --text-1:     #ecfdf5;
+  }
+  [data-theme="light"][data-theme-base="nature"] {
+    --bg-base:    #f0fdf4;
+    --bg-surface: #ffffff;
+    --accent:     #059669;
+    --accent-alt: #65a30d;
+    --text-1:     #052e16;
+  }
+
+  /* --- Theme: Minimal --- */
+  [data-theme-base="minimal"] {
+    --bg-base:    #000000;
+    --bg-surface: #111111;
+    --accent:     #ffffff;
+    --accent-alt: #888888;
+    --text-1:     #ffffff;
+    --text-on-accent: #000000;
+  }
+  [data-theme="light"][data-theme-base="minimal"] {
+    --bg-base:    #ffffff;
+    --bg-surface: #f8fafc;
+    --accent:     #000000;
+    --accent-alt: #64748b;
+    --text-1:     #000000;
+    --text-on-accent: #ffffff;
+  }
+
+  /* --- Theme: Warm --- */
+  [data-theme-base="warm"] {
+    --bg-base:    #3b0a0a;
+    --bg-surface: #6b1f0f;
+    --accent:     #f97316;
+    --accent-alt: #f43f5e;
+    --text-1:     #fff7ed;
+  }
+  [data-theme="light"][data-theme-base="warm"] {
+    --bg-base:    #fff7ed;
+    --bg-surface: #ffffff;
+    --accent:     #ea580c;
+    --accent-alt: #e11d48;
+    --text-1:     #3b0a0a;
+  }
+}

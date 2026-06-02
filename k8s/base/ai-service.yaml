@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: ai-service
+        image: ai-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+        ports:
+        - containerPort: 8084
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8084
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8084
+          periodSeconds: 10
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8084
+          periodSeconds: 10
+          timeoutSeconds: 10
+        env:
+        - name: SPRING_RABBITMQ_HOST
+          value: rabbitmq
+        - name: SPRING_DATA_MONGODB_URI
+          value: mongodb://mongodb:27017/aidb
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: jwt-secret
+        - name: ENCRYPTION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: encryption-secret
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: http://jaeger:4318/v1/traces
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adapta-secrets
+              key: openrouter-api-key
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+spec:
+  selector:
+    app: ai-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084

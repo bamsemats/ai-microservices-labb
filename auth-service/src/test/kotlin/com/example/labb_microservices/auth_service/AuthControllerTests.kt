@@ -1,6 +1,6 @@
 package com.example.labb_microservices.auth_service
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.auth_service.client.UserGrpcClient
 import com.example.labb_microservices.auth_service.controller.LoginRequest
 import com.example.labb_microservices.proto.CredentialsResponse
@@ -53,6 +53,7 @@ class AuthControllerTests : BaseIntegrationTest() {
             .setValid(true)
             .setUserId(userId)
             .setUsername("testuser")
+            .addRoles("ROLE_USER")
             .build()
 
         `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))
@@ -69,6 +70,7 @@ class AuthControllerTests : BaseIntegrationTest() {
             .jsonPath("$.refreshToken").exists()
             .jsonPath("$.userId").isEqualTo(userId)
             .jsonPath("$.username").isEqualTo("testuser")
+            .jsonPath("$.role").isEqualTo("ROLE_USER")
     }
 
     @Test
@@ -79,6 +81,7 @@ class AuthControllerTests : BaseIntegrationTest() {
             .setValid(true)
             .setUserId(userId)
             .setUsername("testuser")
+            .addRoles("ROLE_USER")
             .build()
 
         `when`(userGrpcClient.validateCredentials("testuser", "testpassword"))

@@ -1,6 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory
 import com.example.labb_microservices.ai_service.model.Message
@@ -14,6 +14,7 @@ import java.util.*
 import java.time.Duration
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
+@org.springframework.test.annotation.DirtiesContext
 class MemoryWorkerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired

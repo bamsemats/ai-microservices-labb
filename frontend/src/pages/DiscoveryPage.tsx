@@ -1,323 +1,203 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import Sidebar from '../components/Sidebar';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { useNavigate } from 'react-router-dom';
+import { useSocialStore } from '../store/useSocialStore';
+import api from '../api/axios';
+import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
+import { Search, UserPlus, TrendingUp } from 'lucide-react';
 
-interface TrendingChannel {
-  channelId: string;
-  score: number;
+interface UserResult {
+  id: string;
+  username: string;
+  displayName?: string;
+  bio?: string;
 }
 
-const FEATURED_CREATORS = [
-  { id: 1, name: 'NexusPrime', role: 'Architect', avatar: 'N' },
-  { id: 2, name: 'AdaptaAI', role: 'Assistant', avatar: 'A' },
-  { id: 3, name: 'EchoFlow', role: 'Curator', avatar: 'E' },
-  { id: 4, name: 'VibeCheck', role: 'Moderator', avatar: 'V' },
-];
+interface TrendingTopic {
+  name: string;
+  activity: string;
+  color: string;
+}
 
 const DiscoveryPage: React.FC = () => {
-  const { username, token, logout } = useAuthStore();
-  const navigate = useNavigate();
-  const [trendingChannels, setTrendingChannels] = useState<TrendingChannel[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('query') || '';
+  
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<UserResult[]>([]);
+  const [trending, setTrending] = useState<TrendingTopic[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
+  const { friends, pendingFriends, sendRequest, fetchPendingFriends } = useSocialStore();
+  const { userId } = useAuthStore();
+
+  const handleSearch = React.useCallback(async (e?: React.FormEvent, searchQuery: string = query) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) {
+      setResults([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.get(`/users/search?query=${encodeURIComponent(searchQuery.trim())}`);
+      // Backend returns a Page object
+      setResults(response.data.content || []);
+      // Update URL without triggering reload
+      setSearchParams({ query: searchQuery.trim() }, { replace: true });
+    } catch (error) {
+      console.error('Search failed', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, setSearchParams]);
+
+  const handleConnect = async (targetId: string) => {
+    setConnectingUserId(targetId);
+    try {
+      await sendRequest(targetId);
+    } catch (error) {
+      console.error('Connection failed', error);
+    } finally {
+      setConnectingUserId(null);
+    }
+  };
 
   useEffect(() => {
+    fetchPendingFriends();
+    
     const fetchTrending = async () => {
       try {
-        const response = await fetch('/api/analytics/trending-channels?limit=5', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await api.get('/analytics/trending-channels?limit=5');
+        const mapped = response.data.map((item: { channelId: string; score: number }) => {
+          let activity = 'Low';
+          if (item.score > 20) activity = 'High';
+          else if (item.score > 5) activity = 'Med';
+          
+          // Generate a deterministic color based on the name
+          const hash = item.channelId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const hue = hash % 360;
+          const color = `hsl(${hue}, 70%, 60%)`;
+
+          return {
+            name: item.channelId,
+            activity,
+            color
+          };
         });
-        if (response.ok) {
-          const data = await response.json();
-          setTrendingChannels(data);
-        }
+        Promise.resolve().then(() => {
+          setTrending(mapped);
+        });
       } catch (error) {
         console.error('Failed to fetch trending channels', error);
+        Promise.resolve().then(() => {
+          setTrending([]);
+        });
       }
     };
-    if (token) {
-      fetchTrending();
-      const interval = setInterval(fetchTrending, 10000);
-      return () => clearInterval(interval);
+
+    fetchTrending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Trigger initial search if query exists in URL
+  useEffect(() => {
+    if (initialQuery) {
+      handleSearch(undefined, initialQuery);
     }
-  }, [token]);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleSelectReceiver = (id: string) => {
-    navigate(`/?receiver=${encodeURIComponent(id)}`);
-  };
-
-  const getColor = (index: number) => {
-    const colors = ['var(--accent-primary)', 'var(--accent-secondary)', 'var(--accent-tertiary)', '#10b981', '#f59e0b'];
-    return colors[index % colors.length];
-  };
+  const isFriend = (id: string) => friends.some(f => f.id === id);
+  const isPending = (id: string) => pendingFriends.some(f => f.id === id);
 
   return (
-    <div className="chat-page-layout">
-      <Sidebar activeReceiver="explore" onSelectReceiver={handleSelectReceiver} />
-
-      <main className="chat-main-content">
-        <header className="chat-navbar glass-panel">
-          <div className="active-context">
-            <span className="context-prefix">✨</span>
-            <span className="context-name">Discovery Hub</span>
-          </div>
-          <div className="user-controls">
-            <div className="user-badge glass-card">
-              <span className="username">{username}</span>
-              <div className="user-avatar">{username?.charAt(0).toUpperCase()}</div>
-            </div>
-            <button className="lumina-button secondary logout-btn" onClick={logout}>Logout</button>
-          </div>
-        </header>
-
-        <section className="discovery-content">
-          <div className="discovery-scroll-area">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="discovery-section"
-            >
-              <h3>Trending Now <span className="badge">#AdaptaLabs</span></h3>
-              <div className="horizontal-scroll">
-                {trendingChannels.length === 0 ? (
-                  <p className="text-muted">No trending channels yet. Start chatting!</p>
-                ) : (
-                  trendingChannels.map((topic, index) => (
-                    <motion.div 
-                      key={topic.channelId}
-                      whileHover={{ scale: 1.05 }}
-                      className="glass-card topic-card"
-                      style={{ '--topic-color': getColor(index) } as React.CSSProperties}
-                    >
-                      <div className="topic-glow"></div>
-                      <div className="topic-header">
-                        <span className="topic-hash">#</span>
-                        <h4>{topic.channelId}</h4>
-                      </div>
-                      <div className="topic-meta">
-                        <span className="activity-indicator"></span>
-                        {topic.score} msgs
-                      </div>
-                      <button 
-                        className="lumina-button small"
-                        onClick={() => handleSelectReceiver(topic.channelId)}
-                      >
-                        Join Frequency
-                      </button>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="discovery-section"
-            >
-              <h3>Featured Creators</h3>
-              <div className="horizontal-scroll">
-                {FEATURED_CREATORS.map((creator) => (
+    <MainLayout
+      prefix="🌐"
+      contextName="Discovery Hub"
+      activeReceiver="explore"
+    >
+      <section className="site-page page--discovery">
+        <form className="discovery-search-bar" onSubmit={handleSearch}>
+          <input
+              type="text"
+              placeholder="Search by username..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="input"
+              aria-label="Search by username"
+          />
+          <button className="btn btn-primary" disabled={loading}>
+            {loading ? 'Searching...' : 'Scan'}
+          </button>
+        </form>
+        <div className="discovery-results">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h3 className="discovery-section-title"><Search size={24} /> Find Entities</h3>
+            <div className="discovery-cards">
+              {results.length > 0 ? (
+                results.map(user => (
                   <motion.div 
-                    key={creator.id}
-                    whileHover={{ scale: 1.05 }}
-                    className="glass-card creator-card"
+                    key={user.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="card card--interactive discovery-card"
                   >
-                    <div className="creator-avatar">{creator.avatar}</div>
-                    <h4>{creator.name}</h4>
-                    <p>{creator.role}</p>
-                    <button className="lumina-button secondary small">Connect</button>
+                    <Avatar seed={user.username} size="lg" />
+                    <div className="card-info">
+                      <h4>{user.displayName || user.username}</h4>
+                      <p className="creator-mini-bio">{user.bio || 'No biometrics provided.'}</p>
+                    </div>
+                    {user.id !== userId && (
+                      <button 
+                        className={`btn ${isFriend(user.id) || isPending(user.id) ? 'btn-ghost' : 'btn-primary'}`}
+                        onClick={() => handleConnect(user.id)}
+                        disabled={isFriend(user.id) || isPending(user.id) || connectingUserId === user.id}
+                      >
+                        {isFriend(user.id) 
+                          ? 'Connected' 
+                          : connectingUserId === user.id
+                            ? 'Connecting...'
+                            : isPending(user.id) 
+                              ? 'Pending' 
+                              : <><UserPlus size={16} className="btn-icon" /> Connect</>
+                        }
+                      </button>
+                    )}
                   </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                ))
+              ) : query && !loading && (
+                <p className="no-results-msg">No entities found matching that frequency.</p>
+              )}
+            </div>
+          </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="discovery-section"
-            >
-              <h3>Active Frequencies</h3>
-              <div className="grid-layout">
-                <div className="glass-card activity-summary">
-                  <h4>Global Pulse</h4>
-                  <div className="pulse-viz">
-                    <div className="pulse-bar"></div>
-                    <div className="pulse-bar"></div>
-                    <div className="pulse-bar"></div>
-                    <div className="pulse-bar"></div>
-                  </div>
-                  <p>1,240 users currently synchronized.</p>
+          <div className="discovery-section">
+            <h3><TrendingUp size={24} /> Trending Frequencies</h3>
+            <div className="discovery-cards">
+              {trending.map(topic => (
+                <div key={topic.name} className="card discovery-card">
+                   <div className="topic-glow" style={{ '--topic-color': topic.color } as never}></div>
+                   <span className="topic-hash">#</span>
+                   <h4>{topic.name}</h4>
+                   <div className="card-footer">
+                     <span className="activity-indicator"></span>
+                     <span className="activity-text">{topic.activity} Activity</span>
+                   </div>
                 </div>
-              </div>
-            </motion.div>
+              ))}
+            </div>
           </div>
-        </section>
-      </main>
-
-      <style>{`
-        .discovery-content {
-          flex: 1;
-          overflow: hidden;
-          padding: 1rem 2rem 2rem;
-        }
-
-        .discovery-scroll-area {
-          height: 100%;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 3rem;
-          padding-bottom: 2rem;
-        }
-
-        .discovery-section h3 {
-          font-size: 1.5rem;
-          font-weight: 800;
-          margin-bottom: 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .badge {
-          font-size: 0.8rem;
-          background: var(--accent-gradient);
-          padding: 0.2rem 0.6rem;
-          border-radius: 2rem;
-          color: white;
-        }
-
-        .horizontal-scroll {
-          display: flex;
-          gap: 1.5rem;
-          padding-bottom: 1rem;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-
-        .horizontal-scroll::-webkit-scrollbar {
-          display: none;
-        }
-
-        .topic-card {
-          min-width: 240px;
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .topic-glow {
-          position: absolute;
-          top: -20%;
-          right: -20%;
-          width: 60%;
-          height: 60%;
-          background: var(--topic-color);
-          filter: blur(40px);
-          opacity: 0.2;
-          z-index: 0;
-        }
-
-        .topic-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          z-index: 1;
-        }
-
-        .topic-hash {
-          color: var(--topic-color);
-          font-weight: 900;
-          font-size: 1.25rem;
-        }
-
-        .topic-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          z-index: 1;
-        }
-
-        .activity-indicator {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #10b981;
-          box-shadow: 0 0 8px #10b981;
-        }
-
-        .creator-card {
-          min-width: 180px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .creator-avatar {
-          width: 4rem;
-          height: 4rem;
-          background: var(--accent-gradient);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: white;
-          box-shadow: var(--accent-glow);
-        }
-
-        .creator-card h4 {
-          margin-bottom: 0;
-        }
-
-        .creator-card p {
-          font-size: 0.8125rem;
-          color: var(--text-muted);
-          margin-bottom: 0.5rem;
-        }
-
-        .activity-summary {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        .pulse-viz {
-          display: flex;
-          align-items: flex-end;
-          gap: 4px;
-          height: 40px;
-          margin: 1rem 0;
-        }
-
-        .pulse-bar {
-          flex: 1;
-          background: var(--accent-primary);
-          border-radius: 2px;
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { height: 20%; opacity: 0.5; }
-          50% { height: 80%; opacity: 1; }
-        }
-
-        .pulse-bar:nth-child(2) { animation-delay: 0.2s; }
-        .pulse-bar:nth-child(3) { animation-delay: 0.4s; }
-        .pulse-bar:nth-child(4) { animation-delay: 0.6s; }
-      `}</style>
-    </div>
+        </div>
+      </section>
+    </MainLayout>
   );
 };
 

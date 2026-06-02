@@ -3,24 +3,110 @@ package com.example.labb_microservices.user_service.service
 import com.example.labb_microservices.common.security.EncryptionUtils
 import com.example.labb_microservices.user_service.model.User
 import com.example.labb_microservices.user_service.repository.UserRepository
+import com.example.labb_microservices.user_service.model.PresenceStatus
+import com.example.labb_microservices.user_service.repository.PresenceTracker
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-
+import reactor.core.publisher.Flux
 import org.slf4j.LoggerFactory
+import java.util.*
+
+import com.example.labb_microservices.user_service.model.Friendship
+import com.example.labb_microservices.user_service.model.FriendshipStatus
+import com.example.labb_microservices.user_service.repository.FriendshipRepository
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
+    private val friendshipRepository: FriendshipRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val encryptionUtils: EncryptionUtils
+    private val encryptionUtils: EncryptionUtils,
+    private val presenceTracker: PresenceTracker
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
+
+    fun searchUsers(query: String, page: Int, size: Int): Mono<org.springframework.data.domain.Page<User>> {
+        val pageable = org.springframework.data.domain.PageRequest.of(page, size)
+        return userRepository.findByUsernameContainingIgnoreCase(query, pageable)
+            .collectList()
+            .zipWith(userRepository.countByUsernameContainingIgnoreCase(query))
+            .map { org.springframework.data.domain.PageImpl(it.t1, pageable, it.t2) }
+    }
+
+    fun sendFriendRequest(userId: String, friendId: String): Mono<Friendship> {
+        if (userId == friendId) return Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Cannot friend yourself"))
+        
+        return userRepository.findById(friendId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { friend ->
+                val status = if (friend.isBot) FriendshipStatus.ACCEPTED else FriendshipStatus.PENDING
+                val friendship = Friendship(userId = userId, friendId = friendId, status = status)
+                friendshipRepository.save(friendship)
+                    .flatMap { saved ->
+                        if (friend.isBot) {
+                            val reciprocal = Friendship(userId = friendId, friendId = userId, status = FriendshipStatus.ACCEPTED)
+                            friendshipRepository.save(reciprocal).thenReturn(saved)
+                        } else {
+                            Mono.just(saved)
+                        }
+                    }
+            }
+    }
+
+    fun acceptFriendRequest(userId: String, friendId: String): Mono<Friendship> {
+        return friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Friend request not found")))
+            .flatMap { 
+                friendshipRepository.save(it.copy(status = FriendshipStatus.ACCEPTED))
+            }
+    }
+
+    fun getFriends(userId: String): Flux<User> {
+        return Flux.concat(
+            friendshipRepository.findByUserId(userId)
+                .filter { it.status == FriendshipStatus.ACCEPTED }
+                .map { it.friendId },
+            friendshipRepository.findByFriendId(userId)
+                .filter { it.status == FriendshipStatus.ACCEPTED }
+                .map { it.userId }
+        ).distinct()
+            .flatMap { userRepository.findById(it) }
+    }
+
+    fun getPendingRequests(userId: String): Flux<User> {
+        return friendshipRepository.findByUserId(userId)
+            .filter { it.status == FriendshipStatus.PENDING }
+            .map { it.friendId }
+            .flatMap { userRepository.findById(it) }
+    }
+
+    fun deleteFriend(userId: String, friendId: String): Mono<Void> {
+        return friendshipRepository.findByUserIdAndFriendId(userId, friendId)
+            .switchIfEmpty(friendshipRepository.findByUserIdAndFriendId(friendId, userId))
+            .flatMap { friendshipRepository.delete(it) }
+    }
+
+    fun changePassword(userId: String, oldPassword: String, newPassword: String): Mono<Void> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { user ->
+                if (!passwordEncoder.matches(oldPassword, user.password)) {
+                    Mono.error<Void>(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid old password"))
+                } else {
+                    val encodedPassword = passwordEncoder.encode(newPassword)
+                    val updatedMetadata = user.metadata.toMutableMap()
+                    updatedMetadata.remove("forcePasswordChange")
+                    userRepository.save(user.copy(password = encodedPassword, metadata = updatedMetadata))
+                        .then()
+                }
+            }
+    }
 
     fun register(user: User): Mono<User> {
         val username = user.username ?: throw RuntimeException("Username is required")
         return userRepository.findByUsername(username)
-            .flatMap { existingUser -> 
+            .flatMap { 
                 Mono.error<User>(RuntimeException("User already exists")) 
             }
             .switchIfEmpty(
@@ -60,10 +146,13 @@ class UserService(
             .map { decryptUser(it) }
     }
 
-    fun updateProfile(userId: String, displayName: String?, bio: String?): Mono<User> {
+    fun updateProfile(userId: String, displayName: String?, bio: String?, socialLinks: Map<String, String>? = null): Mono<User> {
         return userRepository.findById(userId)
             .flatMap { user ->
-                userRepository.save(user.copy(displayName = displayName, bio = bio))
+                val newDisplayName = displayName ?: user.displayName
+                val newBio = bio ?: user.bio
+                val newSocialLinks = socialLinks ?: user.socialLinks
+                userRepository.save(user.copy(displayName = newDisplayName, bio = newBio, socialLinks = newSocialLinks))
             }
             .map { decryptUser(it) }
     }
@@ -97,20 +186,46 @@ class UserService(
             .map { decryptUser(it) }
     }
 
-    fun findByEmail(email: String): Mono<User> {
-        val emailHash = encryptionUtils.hash(email)
-        return userRepository.findByEmailHash(emailHash)
-            .switchIfEmpty(
-                Mono.defer {
-                    val legacyEncryptedEmail = encryptionUtils.encryptLegacy(email)
-                    userRepository.findByEmail(legacyEncryptedEmail)
-                        .flatMap { user ->
-                            val updatedUser = user.copy(emailHash = emailHash)
-                            userRepository.save(updatedUser)
-                                .doOnNext { logger.info("Backfilled emailHash for user: ${it.id}") }
-                        }
+    fun deleteUser(userId: String): Mono<Void> {
+        return friendshipRepository.deleteAllByUserId(userId)
+            .then(friendshipRepository.deleteAllByFriendId(userId))
+            .then(userRepository.deleteById(userId))
+    }
+
+    fun updateRoles(userId: String, roles: List<String>): Mono<User> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { user ->
+                userRepository.save(user.copy(roles = roles))
+            }
+            .map { decryptUser(it) }
+    }
+
+    fun adminOverride(
+        userId: String, 
+        displayName: String?, 
+        bio: String?, 
+        enabled: Boolean?, 
+        metadata: Map<String, String>?,
+        newPassword: String?
+    ): Mono<User> {
+        return userRepository.findById(userId)
+            .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
+            .flatMap { user ->
+                var updated = user.copy(
+                    displayName = displayName ?: user.displayName,
+                    bio = bio ?: user.bio,
+                    enabled = enabled ?: user.enabled,
+                    metadata = metadata ?: user.metadata
+                )
+                
+                if (newPassword != null) {
+                    updated = updated.copy(password = passwordEncoder.encode(newPassword))
                 }
-            )
+                
+                logger.info("Admin override applied for user: {}", userId)
+                userRepository.save(updated)
+            }
             .map { decryptUser(it) }
     }
 
@@ -130,5 +245,40 @@ class UserService(
                 user.copy(email = null)
             }
         }
+    }
+
+    fun seedBots(bots: List<Pair<String, String>>): Mono<Void> {
+        return Flux.fromIterable(bots)
+            .flatMap { (name, role) ->
+                userRepository.findByUsername(name)
+                    .flatMap { existing ->
+                        if (!existing.isBot) {
+                            Mono.error<User>(IllegalStateException("Collision: Username '$name' is already taken by a human user."))
+                        } else {
+                            // Update existing user to ensure it's marked as bot
+                            val updated = existing.copy(isBot = true, bio = "Official AdaptaChat $role Bot")
+                            userRepository.save(updated)
+                        }
+                    }
+                    .switchIfEmpty(
+                        Mono.defer {
+                            userRepository.save(
+                                User(
+                                    id = name,
+                                    username = name,
+                                    displayName = name,
+                                    password = passwordEncoder.encode(UUID.randomUUID().toString()),
+                                    bio = "Official AdaptaChat $role Bot",
+                                    isBot = true
+                                )
+                            )
+                        }
+                    )
+                    .flatMap { 
+                        presenceTracker.setStatus(it.id!!, PresenceStatus.ONLINE, true)
+                            .thenReturn(it)
+                    }
+            }
+            .then()
     }
 }

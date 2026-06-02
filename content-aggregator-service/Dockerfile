@@ -14,6 +14,7 @@ COPY user-service/pom.xml user-service/
 COPY message-service/pom.xml message-service/
 COPY ai-service/pom.xml ai-service/
 COPY content-aggregator-service/pom.xml content-aggregator-service/
+COPY feedback-service/pom.xml feedback-service/
 
 # Install parent and shared modules
 RUN --mount=type=cache,target=/root/.m2 mvn install -N -B -Dmaven.repo.local=/root/.m2
@@ -25,7 +26,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn install -pl proto,common-security,co
 
 # Build the service
 COPY content-aggregator-service/src content-aggregator-service/src
-RUN --mount=type=cache,target=/root/.m2 mvn package -pl content-aggregator-service -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl content-aggregator-service -Dmaven.test.skip=true -B -Dmaven.repo.local=/root/.m2
 
 # Run stage
 FROM eclipse-temurin:21-jre

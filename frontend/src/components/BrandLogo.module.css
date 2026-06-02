@@ -1,0 +1,18 @@
+.container {
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.container:hover {
+  transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    transition: none;
+    transform: none !important;
+  }
+}

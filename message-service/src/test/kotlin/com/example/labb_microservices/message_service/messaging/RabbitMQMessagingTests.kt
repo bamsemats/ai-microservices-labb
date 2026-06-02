@@ -1,12 +1,11 @@
 package com.example.labb_microservices.message_service.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.Message
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.util.concurrent.CountDownLatch
@@ -17,12 +16,14 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.context.annotation.Bean
 import org.springframework.amqp.core.*
-import java.time.LocalDateTime
+import java.time.Instant
 
 @SpringBootTest(properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=0",
+    "app.seeding.enabled=false",
+    "grpc.client.user-service.negotiation-type=plaintext"
 ])
 @Import(RabbitMQMessagingTests.LatchConfig::class, RabbitMQMessagingTests.ListenerConfig::class)
 class RabbitMQMessagingTests : BaseIntegrationTest() {
@@ -50,7 +51,7 @@ class RabbitMQMessagingTests : BaseIntegrationTest() {
             senderId = "user1",
             receiverId = "user2",
             content = "Hello Fanout",
-            timestamp = LocalDateTime.now()
+            timestamp = Instant.now()
         )
 
         messageProducer.deliverMessage(message)
@@ -94,12 +95,12 @@ class RabbitMQMessagingTests : BaseIntegrationTest() {
             BindingBuilder.bind(testQueue2).to(exchange)
 
         @RabbitListener(queues = ["test.queue.1"])
-        fun firstConsumer(message: Message) {
+        fun firstConsumer(@Suppress("unused") message: Message) {
             latch1.countDown()
         }
 
         @RabbitListener(queues = ["test.queue.2"])
-        fun secondConsumer(message: Message) {
+        fun secondConsumer(@Suppress("unused") message: Message) {
             latch2.countDown()
         }
     }

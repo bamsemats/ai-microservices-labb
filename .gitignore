@@ -18,6 +18,8 @@ ralph/
 .sts4-cache
 .geminiignore
 .env
+node_modules
+commands.md
 
 # Kubernetes secrets
 k8s/infrastructure/secrets.yaml

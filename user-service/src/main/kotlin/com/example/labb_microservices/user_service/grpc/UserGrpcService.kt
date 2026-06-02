@@ -1,7 +1,6 @@
 package com.example.labb_microservices.user_service.grpc
 
 import com.example.labb_microservices.proto.*
-import com.example.labb_microservices.user_service.repository.UserRepository
 import io.grpc.stub.StreamObserver
 import net.devh.boot.grpc.server.service.GrpcService
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -21,10 +20,13 @@ class UserGrpcService(
         userService.findByUsername(request.username)
             .map { user ->
                 if (passwordEncoder.matches(request.password, user.password)) {
+                    val forceChange = user.metadata["forcePasswordChange"] == "true"
                     CredentialsResponse.newBuilder()
                         .setValid(true)
                         .setUserId(user.id ?: "")
                         .setUsername(user.username)
+                        .addAllRoles(user.roles)
+                        .setForcePasswordChange(forceChange)
                         .build()
                 } else {
                     CredentialsResponse.newBuilder().setValid(false).build()
@@ -50,16 +52,17 @@ class UserGrpcService(
                     .setUsername(user.username)
                     .setEmail(user.email ?: "")
                     .setEnabled(user.enabled)
+                    .setDisplayName(user.displayName ?: "")
+                    .setIsBot(user.isBot)
+                    .addAllRoles(user.roles)
                     .build()
             }
+            .switchIfEmpty(reactor.core.publisher.Mono.error(io.grpc.Status.NOT_FOUND.withDescription("User not found").asRuntimeException()))
             .subscribe({ response ->
                 responseObserver.onNext(response)
                 responseObserver.onCompleted()
             }, { error ->
                 responseObserver.onError(error)
-            }, {
-                // On complete if empty
-                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("User not found").asException())
             })
     }
 }

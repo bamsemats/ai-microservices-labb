@@ -1,6 +1,6 @@
 package com.example.labb_microservices.message_service.handler
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.common.security.JwtTokenValidator
 import com.example.labb_microservices.message_service.client.UserGrpcClient
 import com.example.labb_microservices.message_service.controller.BroadcastRequest
@@ -24,7 +24,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = [
     "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
     "encryption.secret=another-very-long-and-secure-secret-key-32-chars",
-    "grpc.server.port=0"
+    "grpc.server.port=0",
+    "app.seeding.enabled=false",
+    "grpc.client.user-service.negotiation-type=plaintext"
 ])
 class ChannelPartitioningTests : BaseIntegrationTest() {
 

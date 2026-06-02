@@ -3,6 +3,7 @@ package com.example.labb_microservices.ai_service.logic
 import com.example.labb_microservices.ai_service.model.*
 import com.example.labb_microservices.ai_service.repository.MemoryFragmentRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Primary
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono
 
 @Primary
 @Service
+@Observed(name = "ai.response.generation")
 class OpenRouterResponseGenerator(
     private val memoryFragmentRepository: MemoryFragmentRepository,
     private val piiRedactor: PiiRedactor,
@@ -70,42 +72,66 @@ class OpenRouterResponseGenerator(
                         OpenRouterMessage(role = "system", content = systemPrompt),
                         OpenRouterMessage(role = "user", content = userContent)
                     ),
-                    stream = true
+                    stream = false
                 )
 
-                logger.debug("Sending streaming request to OpenRouter with model: {}", model)
+                logger.info("Sending non-streaming request to OpenRouter using model: {} at URL: {}", model, url)
+
+                if (apiKey.isBlank() || apiKey == "\${OPENROUTER_API_KEY}" || apiKey.contains("dummy")) {
+                    logger.warn("OpenRouter API key is missing or dummy. Using simulation fallback.")
+                    return@flatMapMany generateSimulatedResponse(message)
+                }
 
                 webClient.post()
                     .uri(url)
                     .header("Authorization", "Bearer $apiKey")
-                    .header("HTTP-Referer", "https://github.com/adapta-chat")
+                    .header("HTTP-Referer", "http://localhost:3000")
                     .header("X-Title", "AdaptaChat")
-                    .accept(MediaType.TEXT_EVENT_STREAM)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToFlux(object : ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                    .bodyToMono(OpenRouterResponse::class.java)
                     .timeout(java.time.Duration.ofSeconds(30))
-                    .mapNotNull { it.data() }
-                    .filter { it != "[DONE]" }
-                    .map { json ->
-                        try {
-                            val response = objectMapper.readValue(json, OpenRouterResponse::class.java)
-                            response.choices.firstOrNull()?.delta?.content ?: ""
-                        } catch (e: Exception) {
-                            logger.warn("Failed to parse AI chunk: {}", json, e)
-                            ""
-                        }
+                    .map { response ->
+                        response.choices.firstOrNull()?.message?.content ?: ""
                     }
                     .filter { it.isNotEmpty() }
+                    .flatMapMany { Flux.just(it) }
                     .onErrorResume { e ->
-                        if (e is java.util.concurrent.TimeoutException) {
+                        if (e is org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized) {
+                            logger.error("Unauthorized call to OpenRouter. Switching to simulation mode.")
+                            generateSimulatedResponse(message)
+                        } else if (e is org.springframework.web.reactive.function.client.WebClientResponseException) {
+                            logger.error("Error calling OpenRouter: {} {} - URL: {}", e.statusCode, e.responseBodyAsString, url)
+                            Flux.just("Interference detected in the frequency (API Error). Please try again later.")
+                        } else if (e is java.util.concurrent.TimeoutException) {
                             logger.error("Timeout calling OpenRouter: {}", e.message)
+                            Flux.just("I'm having trouble connecting to my brain right now. (Timeout)")
                         } else {
                             logger.error("Error calling OpenRouter: {}", e.message)
+                            Flux.just("Interference detected in the frequency. Please try again later.")
                         }
-                        Flux.just("I'm having trouble connecting to my brain right now.")
                     }
             }
     }
+
+    private fun generateSimulatedResponse(message: Message): Flux<String> {
+        val content = message.content.lowercase()
+        val redactedContent = piiRedactor.redact(message.content)
+        val response = when {
+            content.contains("hello") || content.contains("hi") || content.contains("greetings") ->
+                "Hello! I am the AdaptaChat AI. I'm currently running in high-performance simulation mode. How can I help you navigate these frequencies today?"
+            content.contains("weather") ->
+                "The climate in the digital realm is steady, with a 100% chance of data packets. For physical weather, please consult a atmospheric sensor."
+            content.contains("help") ->
+                "I can assist with navigating the Discovery Hub, understanding your Insights, or just chatting. I'm operating in 'offline optimization' mode right now, but I'm fully functional for conversation!"
+            content.contains("who are you") || content.contains("what are you") ->
+                "I am a distributed intelligence designed to assist users within the AdaptaChat ecosystem. My purpose is to ensure smooth communication across all frequencies."
+            else ->
+                "I've received your transmission: '$redactedContent'. I'm currently operating in optimized local mode, but I am standing by for your next synchronization."
+        }
+
+        return Flux.just(response)
+    }
+
 }

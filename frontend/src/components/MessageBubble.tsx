@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import Avatar from './Avatar';
 
 interface Message {
   id?: string;
@@ -9,6 +10,8 @@ interface Message {
   timestamp?: string;
   authorType?: string;
   receiverId?: string;
+  readBy?: string[];
+  status?: 'pending' | 'sent' | 'failed';
 }
 
 interface MessageBubbleProps {
@@ -27,18 +30,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
         stiffness: 260, 
         damping: 20 
       }}
-      className={`message-bubble ${isOwn ? 'own' : ''}`}
+      className={`message-bubble ${isOwn ? 'is-own' : ''} ${message.authorType === 'BOT' ? 'bot' : ''} ${message.status || ''}`}
     >
       <div className="sender-info">
-        {message.senderName || message.senderId}
-        {message.authorType === 'BOT' && <span className="bot-tag">AI</span>}
+        <Avatar seed={message.senderName || message.senderId} size="sm" isBot={message.authorType === 'BOT'} className="message-avatar"/>
+        <span className="sender-name">
+          {message.senderName || message.senderId}
+          {message.authorType === 'BOT' && <span className="badge badge-accent">AI</span>}
+        </span>
       </div>
-      <div className="bubble-content">{message.content}</div>
+      <div className="message-text">{message.content}</div>
       {message.timestamp && (
         <div className="message-time">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {isOwn && message.readBy && message.readBy.length > 0 && (
+            <span className="read-status">✓ Seen</span>
+          )}
+          {message.status === 'pending' && <span className="status-label">...</span>}
+          {message.status === 'failed' && <span className="status-label error">!</span>}
         </div>
       )}
+
     </motion.div>
   );
 };

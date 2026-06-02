@@ -1,6 +1,6 @@
 package com.example.labb_microservices.ai_service.logic
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.messaging.RabbitMQConfig
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.MemoryCategory
@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 
 @SpringBootTest(properties = ["openrouter.api.key=test-key"])
 @Import(RabbitMQConfig::class)
+@org.springframework.test.annotation.DirtiesContext
 class PersonalizationIntegrationTest : BaseIntegrationTest() {
 
     private val logger = LoggerFactory.getLogger(PersonalizationIntegrationTest::class.java)

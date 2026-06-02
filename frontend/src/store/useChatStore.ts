@@ -1,13 +1,17 @@
 import { create } from 'zustand';
+import api from '../api/axios';
 
 export interface Message {
   id: string;
   senderId: string;
   senderName: string;
-  receiverId?: string; // Added receiverId
+  receiverId?: string;
+  channelId?: string;
   content: string;
   authorType?: 'USER' | 'BOT';
   timestamp: string;
+  readBy?: string[];
+  status?: 'pending' | 'sent' | 'failed';
 }
 
 export interface InjectedContent {
@@ -17,40 +21,119 @@ export interface InjectedContent {
   timestamp: number;
 }
 
-export interface AiStatusEvent {
-  type: 'AI_STATUS';
-  status: 'THINKING' | 'COMPLETED' | 'ERROR';
-  channelId: string;
-  userId?: string;
-}
-
 interface ChatState {
   messages: Message[];
   injectedContent: InjectedContent[];
   aiStatus: 'IDLE' | 'THINKING' | 'ERROR';
+  typingUsers: Record<string, string[]>; // channelId -> usernames
+  activeChannelId: string;
+  setActiveChannelId: (id: string) => void;
+  fetchMessages: (channelId: string, currentUserId?: string) => Promise<void>;
+  sendMessage: (message: Message) => void;
   addMessage: (message: Message) => void;
   addInjectedContent: (content: InjectedContent) => void;
   setAiStatus: (status: 'IDLE' | 'THINKING' | 'ERROR') => void;
   setMessages: (messages: Message[]) => void;
   clearMessages: () => void;
+  setTyping: (username: string, channelId: string, isTyping: boolean) => void;
+  markMessageRead: (messageId: string, userId: string) => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   injectedContent: [],
   aiStatus: 'IDLE',
+  typingUsers: {},
+  activeChannelId: 'home',
+  setActiveChannelId: (id) => set({ activeChannelId: id }),
+  fetchMessages: async (channelId, currentUserId?) => {
+    try {
+      const isGlobal = channelId === 'home' || channelId === 'all';
+      const params: Record<string, string | undefined> = {};
+      
+      if (isGlobal) {
+        params.channelId = 'general';
+      } else if (currentUserId && channelId !== 'general' && !channelId.startsWith('freq-')) {
+        // Heuristic for DM: if it's not a known frequency, treat as DM to this user
+        params.receiverId = channelId;
+      } else {
+        params.channelId = channelId;
+      }
+
+      const response = await api.get<Message[]>('/messages', { params });
+      set({ messages: response.data, injectedContent: [] });
+    } catch (error) {
+      console.error('Failed to fetch messages', error);
+    }
+  },
+  sendMessage: (message) => {
+    get().addMessage(message);
+  },
   addMessage: (message) => set((state) => {
-    const existingIndex = state.messages.findIndex((m) => m.id === message.id);
+    // Standardize incoming global channel IDs to match frontend state
+    const normalizedArrival: Message = {
+      ...message,
+      channelId: (message.channelId === 'home' || message.channelId === 'all') ? 'general' : message.channelId
+    };
+
+    // 1. Exact ID match (covers server echoes of unique message IDs)
+    let existingIndex = state.messages.findIndex((m) => m.id === normalizedArrival.id);
+
+    // 2. Optimistic match (covers server echoes of our own messages that got a real ID)
+    if (existingIndex === -1 && normalizedArrival.authorType !== 'BOT') {
+      existingIndex = state.messages.findIndex((m) => 
+        m.status === 'pending' && 
+        m.content === normalizedArrival.content && 
+        m.senderId === normalizedArrival.senderId &&
+        Math.abs(new Date(m.timestamp).getTime() - new Date(normalizedArrival.timestamp).getTime()) < 5000
+      );
+    }
+
+    const shouldResetAiStatus = normalizedArrival.authorType === 'BOT';
+
     if (existingIndex !== -1) {
       const updatedMessages = [...state.messages];
+      const existingMsg = updatedMessages[existingIndex];
+      
+      // Merge fields but preserve 'failed' status unless the incoming payload explicitly indicates success
+      const newStatus = (normalizedArrival.status === 'sent' || !normalizedArrival.status) 
+        ? (existingMsg.status === 'failed' ? 'failed' : 'sent')
+        : normalizedArrival.status;
+
       updatedMessages[existingIndex] = {
-        ...updatedMessages[existingIndex],
-        content: updatedMessages[existingIndex].content + message.content,
+        ...existingMsg,
+        ...normalizedArrival,
+        status: newStatus
       };
-      // Reset AI status once we start receiving chunks
-      return { messages: updatedMessages, aiStatus: 'IDLE' };
+      
+      return { 
+        messages: updatedMessages, 
+        aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
+      };
     }
-    return { messages: [...state.messages, message], aiStatus: 'IDLE' };
+
+    // Binary search to find correct insertion index for ordered messages
+    const newMessages = [...state.messages];
+    const arrivalTime = new Date(normalizedArrival.timestamp).getTime();
+    
+    let low = 0;
+    let high = newMessages.length;
+    
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (new Date(newMessages[mid].timestamp).getTime() < arrivalTime) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    
+    newMessages.splice(low, 0, normalizedArrival);
+
+    return { 
+      messages: newMessages, 
+      aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
+    };
   }),
   addInjectedContent: (content) => set((state) => ({
     injectedContent: [...state.injectedContent, content]
@@ -58,4 +141,24 @@ export const useChatStore = create<ChatState>((set) => ({
   setAiStatus: (status) => set({ aiStatus: status }),
   setMessages: (messages) => set({ messages, injectedContent: [] }),
   clearMessages: () => set({ messages: [], injectedContent: [] }),
+  setTyping: (username, channelId, isTyping) => set((state) => {
+    const channelTyping = state.typingUsers[channelId] || [];
+    const newChannelTyping = isTyping 
+      ? Array.from(new Set([...channelTyping, username]))
+      : channelTyping.filter(u => u !== username);
+    
+    return {
+      typingUsers: {
+        ...state.typingUsers,
+        [channelId]: newChannelTyping
+      }
+    };
+  }),
+  markMessageRead: (messageId, userId) => set((state) => ({
+    messages: state.messages.map(m => 
+      m.id === messageId 
+        ? { ...m, readBy: Array.from(new Set([...(m.readBy || []), userId])) }
+        : m
+    )
+  }))
 }));

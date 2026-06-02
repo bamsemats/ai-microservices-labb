@@ -1,135 +1,168 @@
 # AdaptaChat: Distributed Microservices Chat System (Labb 2)
 
-A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes. This project demonstrates advanced microservices patterns, including hybrid synchronous/asynchronous communication, zero-trust security, and real-time data streaming.
+A high-performance, resilient, and secure distributed chat system built with Spring Boot, Kotlin, and Kubernetes.
 
-## 🏗 Architecture Overview
+> **🚀 Getting Started**: For complete instructions on how to set up, build, and test this project locally in a Minikube cluster, please refer to the **[Setup & Demonstration Guide](SETUP.md)**.
 
-The system follows a **Database-per-Service** pattern and utilizes a **Monorepo** structure for streamlined development and orchestration.
+## Architecture Overview
 
-- **API Gateway**: Entry point for all clients. Handles routing and coarse-grained JWT validation.
-- **Auth Service**: Manages user sessions and issues JWTs upon successful login.
-- **User Service**: Handles user registration and profile management. Provides gRPC endpoints for metadata lookups.
-- **Message Service**: Manages chat messages, real-time WebSocket connections, and asynchronous persistence via RabbitMQ.
-- **AI Service**: Performs real-time sentiment analysis and provides intelligent chat interactions.
-- **Content Aggregator**: Extracts entities from conversations and injects rich media widgets (e.g., Twitch).
-- **Common Security**: A shared module providing reusable zero-trust JWT signature verification across all services.
-- **Common Observability**: A dedicated module for centralized monitoring (Actuator), tracing (Micrometer), and production health indicators.
-- **Common Test**: Singleton infrastructure for stable, noise-free integration tests across the monorepo.
-- **Proto**: Shared Protobuf definitions for type-safe gRPC communication.
+```mermaid
+graph TD
+    %% Frontend and Entry
+    User((User)) -->|HTTPS/WSS| Gateway[API Gateway]
+    
+    subgraph "Edge Layer"
+        Gateway
+        Redis_Rate[Redis: Rate Limiting]
+        Gateway -.->|Check| Redis_Rate
+    end
+
+    %% Internal Services
+    Gateway -->|JWT Auth| AuthS[Auth Service]
+    Gateway -->|Profile/Admin| UserS[User Service]
+    Gateway -->|WS/History| MsgS[Message Service]
+    Gateway -->|Stats| AggS[Content Aggregator]
+
+    %% Communication Patterns
+    subgraph "Internal Communication"
+        AuthS <-->|gRPC + mTLS| UserS
+        UserS <-->|gRPC + mTLS| MsgS
+    end
+
+    subgraph "Asynchronous Pipeline (RabbitMQ)"
+        MsgS -.->|Publish Event| Rabbit[RabbitMQ]
+        Rabbit -.->|Trigger| AIS[AI Service]
+        AIS -.->|Detect Entities| Rabbit
+        Rabbit -.->|Inject Content| AggS
+        AggS -.->|Rich Widget| Rabbit
+        Rabbit -.->|Real-time Update| MsgS
+    end
+
+    %% Intelligence and Data
+    AIS -->|LLM Pipeline| Sentiment[Sentiment & Entity Analysis]
+    
+    subgraph "Persistence"
+        UserS --- MongoU[(MongoDB: Users)]
+        MsgS --- MongoM[(MongoDB: Messages)]
+        AuthS --- RedisA[(Redis: Tokens)]
+        AggS --- RedisC[(Redis: Content Cache)]
+    end
+
+    %% Observability
+    subgraph "Observability"
+        Services[All Services] -.->|Metrics/Traces| OTLP[OTLP/Jaeger/Prometheus]
+    end
+
+    %% Styling
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Gateway fill:#6366f1,color:#fff,stroke:#333
+    style Rabbit fill:#ff6600,color:#fff,stroke:#333
+    style Sentiment fill:#10b981,color:#fff,stroke:#333
+    style MongoU fill:#47a248,color:#fff
+    style MongoM fill:#47a248,color:#fff
+    style RedisA fill:#dc382d,color:#fff
+    style RedisC fill:#dc382d,color:#fff
+```
+
+This project is designed to run on **Kubernetes (Minikube)**. To ensure your local code changes are reflected in the cluster, follow these procedures.
+
+### Initial Setup
+1. **Start Minikube**: `minikube start --cpus 4 --memory 8192`
+2. **Apply Infrastructure**: `kubectl apply -f k8s/infrastructure/`
+3. **Apply Secrets**: `kubectl apply -f k8s/infrastructure/secrets.yaml` (See secrets.example.yaml)
+4. **Apply Services**: `kubectl apply -k k8s/overlays/local`
+
+### The Development Loop (Restarting with Changes)
+When you modify code in any service, follow these steps to update the running system:
+
+1. **Build the Images**:
+   ```powershell
+   # Use the unified docker-compose to build all services with :latest tags
+   docker-compose build
+   ```
+
+2. **The Golden Path (Optimized Workflow)**:
+   Instead of loading images manually, run `minikube docker-env | Invoke-Expression` in your terminal. This points your Docker client to the Minikube daemon, making builds available instantly to Kubernetes.
+   ```powershell
+   minikube image load <service-name>:latest
+   ```
+
+3. **Restart Deployments**:
+   Force Kubernetes to pull the newly loaded images:
+   ```powershell
+   kubectl rollout restart deployment <service-name>
+   ```
+
+### Networking
+To access the frontend and API:
+```powershell
+# Port forward the frontend
+kubectl port-forward service/frontend 3000:80
+```
+Then visit `http://localhost:3000`.
+
+---
+
+## Service Map
+
+For a deep dive into the system's roles, data flows, and security rationale, see the [Detailed Architectural Overview](docs/overview.md).
+
+- **API Gateway**: The hardened entry point. Implements security headers and Redis-backed rate limiting.        
+- **Auth Service**: Manages user sessions, JWT issuance, and secure refresh token rotation.
+- **User Service**: The "Identity Vault". Handles profiles, RBAC, and administrative overrides.
+- **Message Service**: Manages real-time WebSockets and asynchronous persistence. Centralized logic for historical recovery.
+- **AI Service**: Performs semantic sentiment analysis and entity extraction (Streamers, Games, Topics).        
+- **Content Aggregator**: Injects rich media widgets based on semantic signals from the AI pipeline.
+- **Feedback Service**: Gathers user UX/AI quality reports for continuous system refinement.
+- **Common Modules**: Standardized `security`, `observability`, and `test` libraries shared across the monorepo.
 
 ---
 
 ## 🚀 Progress & Roadmap
 
-- [x] **#01 Scaffold Monorepo**: Base structure, Maven multi-module setup.
-- [x] **#02 User Service Registration**: Implemented registration flow with Reactive MongoDB.
-- [x] **#03 Auth Service & JWT Issuance**: Implemented login and JWT signing.
-- [x] **#04 API Gateway & JWT Routing**: Configured routing rules and initial security checks.
-- [x] **#05 Zero-Trust Signature Verification**: Extracted security logic to common module.
-- [x] **#06 Sync User Data Retrieval (gRPC)**: Implemented gRPC for inter-service metadata lookups.
-- [x] **#07 Async Message Pipeline (RabbitMQ)**: Integrated RabbitMQ for reliable processing.
-- [x] **#08 Real-time Delivery (WebSockets)**: Enabled live message streaming.
-- [x] **#09 Kubernetes Deployment**: Created comprehensive K8s manifests.
-- [x] **#10 Resilience Review**: Verified architecture scalability.
-- [x] **#11 Infrastructure & CI**: Established Docker Compose and GitHub Actions.
-- [x] **#12 Frontend: Auth Foundation**: Scaffolded React SPA with Zustand.
-- [x] **#13 Frontend: Real-time Engine**: WebSocket integration and event handling.
-- [x] **#16 WebSocket Scalability**: Fixed multi-replica delivery bug.
-- [x] **#17 Zero-Trust WebSocket Security**: Periodic JWT and account status (lockout) re-validation.
-- [x] **#18 Reactive gRPC Resilience**: Migrated to non-blocking stubs.
-- [x] **#19 Architecture Documentation**: Finalized design trade-off docs.
-- [x] **#20 Redis Refresh Tokens**: Secure token rotation and persistence.
-- [x] **#21 PII Encryption**: Transparent field-level encryption.
-- [x] **#22 Infrastructure: Redis**: Deployment for session/token management.
-- [x] **#23 Refresh Token Lifecycle**: Implemented rotate/revoke flows.
-- [x] **#24 PII Blind Indexing**: Searchable encrypted data implementation.
-- [x] **#25 Async AI Loop**: Message processing pipeline for AI features.
-- [x] **#26 mTLS Enforcement**: inter-service identity with certificates.
-- [x] **#27 UI Adaptation**: Real-time aesthetic shifts based on AI sentiment.
-- [x] **#28 Content Aggregator**: Contextual widget injection (Twitch, etc.).
-- [x] **#29 UI Foundation**: "Lumina Fluid" style system with glassmorphism.
-- [x] **#30 Chat Hub**: Sidebar and channel navigation architecture.
-- [x] **#31 Messaging Interface**: Physics-based animations and AI prompt assists.
-- [x] **#32 Discovery Hub**: Exploratory interface for creators and topics.
-- [x] **#33 AI Insights Dashboard**: Performance visualization and profile customization.
-- [x] **#37 Persistent Channel Partitioning**: Strict channel-based message isolation.
-- [x] **#38 Real-time Presence Backend**: Redis-backed status tracking for all users.
-- [x] **#39 Presence UI Integration**: Live status indicators in the global sidebar.
-- [x] **#40 Real-time Trending Topics**: Activity tracking for discoverable channels.
-- [x] **#41 Personal Interaction Stats**: User analytics dashboard implementation.
-- [x] **#42 Real AI Loop Closure**: Intelligent response generation with simulated LLM latency.
-- [x] **#43 Adapta-Memory: Fact Extraction**: Persistent preference storage in MongoDB.
-- [x] **#44 Personalization Engine**: Hybrid context (Wiki + Session) responses.
-- [x] **#45 Quality & Security Stabilization**: Exception log masking, atomic AI updates, and session-based WebSockets.
-- [x] **#46 Infrastructure & Test Hardening**: Kubernetes securityContext, non-root execution, and Awaitility integration.
-- [x] **#47 Persona Sync: AI-driven Profile Updates**: Automated bio updates from facts.
-- [x] **#48 Infrastructure Noise Reduction**: Singleton containers and fast-fail test settings.
-- [x] **#49 Production Hardening**: SCAN for Presence, Masking for Exceptions, and Atomic AI Updates.
-- [x] **#50 Security & Resilience Sweep**: PII redaction, RabbitMQ DLQs, and reactive offloading.
-- [x] **#51 System Stabilization & Hardening**: WebSocket backoff, auth timeouts, and shared AI queues.
-- [ ] **#52 Deepen Session Module**: Consolidate WebSocket state into `ChatSession`.
-- [x] **#53 AI-Driven Design Tokens**: Deepen Analytical Seam by moving design logic to `ai-service`.
-- [x] **#58 Full-Stack Security & Reliability Sweep**: Non-root Docker execution, mTLS hardening, and multi-token search.
+- [x] **#01-11 Foundation**: Monorepo scaffolding, async pipeline (RabbitMQ), and K8s deployment.
+- [x] **#12-13 Frontend Core**: React 19 SPA with Zustand state management and real-time engine.
+- [x] **#16-26 Security Hardening**: Zero-Trust JWT, mTLS gRPC, PII Encryption, and Blind Indexing.
+- [x] **#27-35 UI Adaptation**: "Lumina Fluid" style system with real-time AI-driven aesthetic shifts.
+- [x] **#36-53 Stabilization**: Persistent partitioning, presence tracking, and bot ecosystem centralization.   
+- [x] **#54-65 Feature Polish**: Global search indexing, mobile optimization, and read receipts.
+- [x] **#66 Semantic UI**: Transitioned to LLM-based sentiment and 10s visual stabilization.
+- [x] **#73-79 Governance**: Admin Command Center, role modulation, and identity persistence fixes.
+- [x] **#080 Refinement**: Monorepo package standardization and dead code removal.
+- [x] **#081 Personalization & Insights**: "Prism Aura" design system and personalization hub.
+- [x] **#082 Admin Governance**: Administrative profile overrides and password reset protocols.
+- [x] **#083 Semantic Signals**: Natural language entity extraction (Twitch/YouTube) with dynamic detection.    
+- [x] **#084 Edge Security**: SecureHeaders and Redis-backed RequestRateLimiter at the Gateway.
+- [x] **#085 Search Recovery**: Advanced historical search UI with sentiment and date filters.
+- [x] **#086 DM Heuristics**: Robust sorted ID pattern for private frequency synchronization.
 
 ---
 
 ## 🛠 Technology Stack
 
-- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin
-- **Frontend**: React 19, TypeScript, Vite, Zustand, Motion (v12), Vanilla CSS
-- **Messaging**: RabbitMQ, gRPC, WebSockets
-- **Persistence**: MongoDB, Redis
-- **Orchestration**: Docker Compose, Kubernetes
-- **Security**: Zero-Trust JWT, AES-256 PII Encryption, mTLS
+- **Backend**: Spring Boot 3.4.3, Spring WebFlux (Reactive), Kotlin, Micrometer (Tracing/Metrics)
+- **Frontend**: React 19, TypeScript, Vite, Zustand, Framer Motion, Vanilla CSS (**Prism Aura**)
+- **Messaging**: RabbitMQ (Real-time Events), gRPC (mTLS), WebSockets
+- **Persistence**: MongoDB (Reactive), Redis (Presence/Tokens/RateLimiting)
+- **Observability**: OTLP/Jaeger, Prometheus, Actuator
 
 ---
 
-## 🏗 Design Decisions & Trade-offs
+## 🎯 Key Design Decisions
 
-### Full-Stack Security & Reliability Sweep
-A comprehensive sweep was performed to harden the system's production readiness:
-- **Non-root Docker images**: All microservices now run as unprivileged users (UID 10001) to mitigate container breakout risks.
-- **Kubernetes Hardening**: Enforced `seccompProfile: RuntimeDefault` across all pods to limit syscall access.
-- **Multi-Token Blind Indexing**: Evolved the search architecture from full-string hashing to tokenized hashing. This allows for rich, multi-word search queries over AES-encrypted content without sacrificing privacy or performance.
-- **Admin-Only Broadcasts**: Enforced strict authorization for system-wide announcements (`receiverId="all"`), preventing unauthorized users from bypassing channel isolation.
-- **Test Isolation & Hermeticity**: Resolved flakiness in the CI/CD pipeline by ensuring deterministic test data (unique IDs), programmatic infrastructure reuse, and explicit queue purging between test runs.
+### Prism Aura Design System
+AdaptaChat utilizes a modern, 3-layer Vanilla CSS architecture (`@layer tokens, base, components`) that provides deep, semantic control over theme variables without the overhead of utility frameworks. It supports GPU-accelerated transitions and multiple base aesthetics (Cyber, Nature, Minimal, Warm).
 
-### Deepened Analytical Seam (AI-Driven UI)
-The system has moved from a "Shallow" to a "Deep" Analytical Seam for UI adaptation. Instead of the AI service sending raw sentiment themes for the frontend to interpret, the `ai-service` now calculates and publishes specific **Design Tokens** (primaryColor, blurAmount, glassOpacity, glowIntensity). This allows the UI to evolve its visual language dynamically without requiring frontend redeployments.
+### Semantic Entity Extraction
+The system has moved away from regex-based link detection. Instead, it utilizes the LLM pipeline to identify entities (like Twitch streamers) from natural language phrases (e.g., "watching wagamama"). This allows for a more "intelligent" and less fragile injection system.
 
-### High-Availability WebSockets (Session-based)
-The WebSocket architecture has been evolved from user-keyed sinks to **session-keyed sinks**. This allows a single user to maintain multiple active connections (tabs/devices) without message collisions or premature disconnection of sibling sessions.
+### Zero-Trust Auth Hygiene
+Sensitive tokens are kept strictly in-memory. User metadata (`displayName`) is persisted in `localStorage` for UX continuity, but re-authentication or server-driven refresh is required upon reload to maintain a high security posture.
+
+### Standardized Common Modules
+Shared logic is encapsulated in `com.example.labb_microservices.common.*` packages. This ensures that every service in the monorepo adheres to the same security, observability, and testing standards without duplication.     
 
 ---
-
-## ⚠️ Known Limitations
-- **Binary Coupling**: Services depend on `common-security`, `common-observability`, and `proto`.
-- **Coordinated Rollouts**: Shared library updates require full-stack redeployment.
-
----
-
-## 🏁 How to Run
-
-### Prerequisites
-The system requires several environment variables for security and inter-service communication. For local development, create a `.env` file in the root directory:
-
-```env
-JWT_SECRET=your-256-bit-secret
-ENCRYPTION_SECRET=your-32-char-encryption-key
-OPENROUTER_API_KEY=your-api-key
-
-# gRPC Keystore Passwords (local development only; override in non-local environments)
-GRPC_SERVER_SECURITY_KEY_STORE_PASSWORD=password
-GRPC_SERVER_SECURITY_KEY_PASSWORD=password
-GRPC_SERVER_SECURITY_TRUST_STORE_PASSWORD=password
-```
-
-### Infrastructure & Frontend (Docker Compose) - **RECOMMENDED**
-```bash
-docker-compose up --build
-```
-- **Frontend UI**: [http://localhost:3000](http://localhost:3000)
-- **API Gateway**: [http://localhost:8080](http://localhost:8080)
 
 ## Author
 - [Bamsemats](https://github.com/bamsemats)

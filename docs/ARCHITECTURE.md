@@ -1,40 +1,93 @@
 # Architecture Review & Design Decisions
 
-This document outlines the key architectural decisions made during the development of the Distributed Microservices Chat System, their rationales, and the associated trade-offs.
+This document outlines the key architectural decisions made during the development of the AdaptaChat system, their rationales, and the associated trade-offs.
 
 ## 1. Shared Security Library (`common-security`)
 
 ### Decision
-The system utilizes a shared Maven module, `common-security`, to encapsulate security-related logic, including JWT signature verification, token validation, and encryption utilities.
+The system utilizes a shared Maven module, `common-security`, to encapsulate security-related logic, including JWT signature verification, token validation, and global exception handling.
 
 ### Rationale
-- **Simplicity & Speed**: Implementing security via a shared library is significantly faster and less complex than setting up and managing a Service Mesh (e.g., Istio) or a Sidecar pattern (e.g., Envoy) for a project of this scope.
-- **Consistency**: Centralizing the security logic ensures that every microservice applies the exact same validation rules and cryptographic checks, reducing the risk of "security drift."
-- **Low Overhead**: Avoids the network latency and resource consumption associated with proxying every request through a sidecar.
+- **Simplicity & Speed**: Implementing security via a shared library is significantly faster than managing a Service Mesh for a project of this scope.
+- **Consistency**: Centralizing the security logic ensures that every microservice applies the exact same validation rules, reducing the risk of "security drift."
+- **Standardization**: All monorepo components follow a strict package naming convention (`com.example.labb_microservices.*`) facilitated by this module.
 
 ### Trade-offs: The "Distributed Monolith" Risk
-By sharing binary logic across microservices, we introduce **binary coupling**. This pattern is often referred to as a "distributed monolith" because:
-- **Redeployment Coupling**: A breaking change or a critical bug fix in `common-security` requires all dependent services (`auth-service`, `user-service`, `message-service`) to be rebuilt and redeployed.
-- **Language Lock-in**: All services must be compatible with the library's language (Kotlin/JVM) and its dependencies.
+By sharing binary logic across microservices, we introduce **binary coupling**.
+- **Redeployment Coupling**: A breaking change in `common-security` requires all dependent services to be rebuilt and redeployed.
+- **Language Lock-in**: All services must be compatible with the library's language (Kotlin/JVM).
 
-## 2. Shared Library Update Protocol
+## 2. Standardized Package Naming
 
-To manage the coupling introduced by `common-security` and the `proto` module, the following update protocol is defined:
+### Decision
+All services and common modules have been standardized to the root package `com.example.labb_microservices`.    
 
-1.  **Local Development**:
-    - Modify the shared library.
-    - Run `mvn install -pl common-security,proto -DskipTests` to update the local Maven repository.
-    - Restart dependent services to pick up changes.
-2.  **CI/CD & Deployment**:
-    - The CI pipeline (`.github/workflows/ci.yml`) is configured to build and install shared modules before building the microservices.
-    - **Breaking Changes**: If a change in the shared library breaks downstream services, the PR must include the necessary fixes in all affected modules simultaneously.
-    - **Rolling Updates**: In a production environment, versioned releases of the library should be used (e.g., `1.2.0`) instead of `SNAPSHOT` to allow for phased rollouts, though `SNAPSHOT` is currently used for simplicity in this lab.
+### Rationale
+- **Architectural Alignment**: Provides a clean, professional structure that simplifies component scanning and IDE navigation.
+- **Dependency Clarity**: Makes it immediately obvious which classes are internal to the service and which are imported from the monorepo's shared modules.
 
-## 3. Known Limitations
+## 3. Prism Aura Design Architecture
 
-- **Binary Coupling**: As noted above, the shared library pattern limits the independence of service deployments.
-- **Scaling WebSockets**: Scaling the `message-service` requires external synchronization (implemented via RabbitMQ Fanout) to ensure messages are delivered to the correct instance holding the client's WebSocket session.
-- **Database-per-Service Complexity**: While providing isolation, this pattern requires gRPC or eventual consistency for cross-service data needs, increasing the complexity of "join" operations.
+### Decision
+The system transitioned to a 3-layer Vanilla CSS architecture (`@layer tokens, base, components`) known as **Prism Aura**.
 
-## 4. Alternative Considered: Sidecar Pattern
-We considered using a sidecar proxy (like Envoy) to handle JWT validation. While this would have decoupled the security logic from the application code and allowed for polyglot services, it was deemed an unnecessary complexity for this project's current requirements and timeline. The zero-trust requirement is satisfied by the internal verification within the JVM process.
+### Rationale
+- **Performance**: Eliminates the overhead of utility-first frameworks (like Tailwind) while utilizing native browser features like `@layer` for specificity management.
+- **Dynamic Adaptability**: Exposes semantic design tokens (`--sentiment-glow-intensity`, etc.) directly to the `:root` element, allowing for GPU-accelerated, AI-driven visual shifts without JS-heavy DOM manipulation.
+- **Theming Scalability**: Provides a clear separation between design tokens (colors, spacing) and component-level styles, facilitating the implementation of multiple base aesthetics (Cyber, Nature, Minimal, Warm).
+
+## 4. Asynchronous Semantic AI Pipeline
+
+### Decision
+The system transitioned from synchronous regex-based entity detection to an asynchronous, LLM-powered semantic extraction pipeline.
+
+### Rationale
+- **Intelligence**: Utilizing LLMs allows the system to identify entities (Streamers, Games, Topics) from natural language context rather than just raw URLs.
+- **Resilience**: RabbitMQ decouples the heavy AI analysis from the critical message delivery path, ensuring the UI remains responsive even during high-latency AI processing.
+- **Confidence Scoring**: High-confidence entities (threshold 0.6) ensure that third-party injections are relevant and non-intrusive.
+
+## 5. Edge Security & Rate Limiting
+
+### Decision
+Implemented a dual-layer security posture combining Gateway-level hardening and internal Zero-Trust validation. 
+
+### Rationale
+- **Gateway Defense**: Implements `SecureHeaders` (HSTS, CSP) and a Redis-backed `RequestRateLimiter` to protect against brute-force attacks at the point of entry.
+- **Internal Verification**: Every service re-verifies JWT signatures, ensuring that even internal network traffic is authenticated.
+- **Input Validation**: Strict `jakarta.validation` constraints prevent malformed data from reaching the core business logic.
+
+## 6. Standardized Error Handling & Global Exception Management
+
+### Decision
+The system implements a centralized `GlobalExceptionHandler` within the `common-security` module to provide a consistent JSON error structure across all microservices.
+
+### Rationale
+- **UX Consistency**: The frontend receives a predictable JSON payload (timestamp, status, error, message, path) regardless of which service fails.
+- **Security Propagation**: Explicitly handles `AccessDeniedException` to ensure correct 401/403 status codes are returned, preventing internal details from leaking via generic errors.
+
+## 7. Historical Sentiment Recovery (Advanced Search)
+
+### Decision
+The system persists AI-detected sentiment metadata (Theme/Intensity) directly into the message documents in MongoDB.
+
+### Rationale
+- **Emotional Retrieval**: Allows users to perform complex historical searches (e.g., "find all high-intensity vibrant messages") across all frequencies.
+- **Data Locality**: Storing sentiment with the message ensures that decryption and emotional analysis are synchronized during historical recovery.
+
+## 8. Robust DM Heuristics
+
+### Decision
+Implemented a sorted combined ID pattern (`minID-maxID`) for Direct Message channel identification.
+
+### Rationale
+- **Deterministic Synchronization**: Ensures both participants in a private conversation always resolve to the same logical frequency, regardless of who initiated the sync.
+- **Scalability**: Allows the `message-service` to treat DMs as just another partitioned channel, simplifying the WebSocket routing logic.
+
+## 9. Consolidated Configuration Strategy
+
+### Decision
+Redundant infrastructure and security settings are consolidated into a shared `observability-defaults.properties` file in `common-observability`.
+
+### Rationale
+- **Maintenance**: Reducing duplication makes the system less prone to configuration drift and easier to audit. 
+- **Clarity**: Service-specific properties now contain only relevant overrides, improving readability.

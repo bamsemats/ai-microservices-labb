@@ -1,23 +1,20 @@
 package com.example.labb_microservices.ai_service.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.ai_service.model.AdaptationEvent
 import com.example.labb_microservices.ai_service.model.AuthorType
 import com.example.labb_microservices.ai_service.model.Message
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.verify
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -51,11 +48,14 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
     @MockitoBean
     private lateinit var factExtractor: com.example.labb_microservices.ai_service.logic.FactExtractor
 
-    @Autowired
-    private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
+    @MockitoBean
+    private lateinit var sentimentAnalyzer: com.example.labb_microservices.ai_service.logic.LlmSentimentAnalyzer
+
+    @MockitoBean
+    private lateinit var sentimentStabilizer: com.example.labb_microservices.ai_service.logic.SentimentStabilizer
 
     @Autowired
-    private lateinit var aiResponseQueue: org.springframework.amqp.core.Queue
+    private lateinit var testAdaptationQueue: org.springframework.amqp.core.Queue
 
     @Autowired
     private lateinit var rabbitAdmin: org.springframework.amqp.rabbit.core.RabbitAdmin
@@ -82,6 +82,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
         
         // Default stubs
         `when`(factExtractor.extractFacts(any())).thenReturn(Flux.empty())
+        `when`(sentimentAnalyzer.analyzeSentiment(any())).thenReturn(Mono.empty())
+        `when`(sentimentStabilizer.shouldPublish(any(), any())).thenReturn(true)
     }
 
     @Test
@@ -94,11 +96,14 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             authorType = AuthorType.USER
         )
 
+        val expectedEvent = AdaptationEvent(theme = "emergency", intensity = 0.9, glowIntensity = 0.9, color = "#f43f5e", blurAmount = 24.0, glassOpacity = 0.15)
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(expectedEvent))
+
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
         // Polling to handle multiple event types in fanout
         var event: AdaptationEvent? = null
-        for (i in 1..20) {
+        for (_i in 1..20) {
             val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 500)
             if (received is AdaptationEvent) {
                 event = received
@@ -125,10 +130,13 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             authorType = AuthorType.USER
         )
 
+        val expectedEvent = AdaptationEvent(theme = "zen", intensity = 0.2, glowIntensity = 0.2, color = "#06b6d4", blurAmount = 8.0, glassOpacity = 0.02)
+        `when`(sentimentAnalyzer.analyzeSentiment(message.content)).thenReturn(Mono.just(expectedEvent))
+
         rabbitTemplate.convertAndSend(RabbitMQConfig.SENTIMENT_QUEUE_NAME, message)
 
         var event: AdaptationEvent? = null
-        for (i in 1..20) {
+        for (_i in 1..20) {
             val received = rabbitTemplate.receiveAndConvert(testAdaptationQueue.name, 500)
             if (received is AdaptationEvent) {
                 event = received
@@ -151,6 +159,7 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
             id = UUID.randomUUID().toString(),
             senderId = "user-test",
             receiverId = "ai-bot",
+            channelId = "general", // Standard broadcast channel
             content = "What is the meaning of microservices?",
             authorType = AuthorType.USER,
             metadata = mapOf("X-Adapta-Test-Mode" to "true")
@@ -163,7 +172,8 @@ class AiMessageConsumerIntegrationTest : BaseIntegrationTest() {
 
         assertNotNull(response, "AI response should not be null")
         assertEquals("ai-bot", response?.senderId)
-        assertEquals("user-test", response?.receiverId)
+        // New routing: AI responses in broadcast channels go to "all"
+        assertEquals("all", response?.receiverId)
         assertEquals(AuthorType.BOT, response?.authorType)
         assertEquals("Deterministic mock response. Context found: [Test Context]", response?.content)
     }

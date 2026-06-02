@@ -1,5 +1,6 @@
 package com.example.labb_microservices.auth_service.config
 
+import com.example.labb_microservices.common.security.AuthorizeExchangeHelper.authorizeActuator
 import com.example.labb_microservices.common.security.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
@@ -20,6 +21,7 @@ class AuthServiceSecurityConfig(private val jwtAuthenticationFilter: JwtAuthenti
             .csrf { it.disable() }
             .logout { it.disable() }
             .authorizeExchange { it
+                .authorizeActuator()
                 .pathMatchers("/login", "/register", "/refresh", "/logout").permitAll()
                 .anyExchange().authenticated()
             }

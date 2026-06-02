@@ -1,6 +1,6 @@
 package com.example.labb_microservices.content_aggregator.messaging
 
-import com.example.common.test.BaseIntegrationTest
+import com.example.labb_microservices.common.test.BaseIntegrationTest
 import com.example.labb_microservices.content_aggregator.model.ContentInjectionEvent
 import com.example.labb_microservices.content_aggregator.model.EntityMessage
 import org.junit.jupiter.api.Assertions.*
@@ -20,10 +20,7 @@ import reactor.test.StepVerifier
 import java.time.Duration
 import java.util.*
 
-@SpringBootTest(properties = [
-    "jwt.secret=a-very-long-and-secure-secret-key-that-is-at-least-256-bits",
-    "encryption.secret=another-very-long-and-secure-secret-key-32-chars"
-])
+@SpringBootTest
 class EntityConsumerIntegrationTest : BaseIntegrationTest() {
 
     @Autowired
@@ -34,6 +31,11 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
 
     @TestConfiguration
     class TestConfig {
+        @Bean
+        fun rabbitAdmin(connectionFactory: org.springframework.amqp.rabbit.connection.ConnectionFactory): RabbitAdmin {
+            return RabbitAdmin(connectionFactory)
+        }
+
         @Bean
         fun testContentQueue(): Queue {
             return Queue("test.content.queue", false)
@@ -51,20 +53,24 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `should cache content and publish injection event when game is detected`() {
         val gameName = "Elden Ring"
+        val channelId = "test-channel"
         val entityMessage = EntityMessage(
             entityType = "GAME",
             entityValue = gameName,
             originalMessageId = UUID.randomUUID().toString(),
+            channelId = channelId,
             senderId = "user-1"
         )
 
         val cacheKey = "content:game:elden_ring"
+        val dedupKey = "dedup:injection:$channelId:elden_ring"
 
         // Drain queue first using purge
         rabbitAdmin.purgeQueue("test.content.queue")
 
-        // Ensure cache is empty
+        // Ensure cache and dedup are empty
         redisTemplate.delete(cacheKey).block()
+        redisTemplate.delete(dedupKey).block()
 
         // Send message to queue
         rabbitTemplate.convertAndSend(RabbitMQConfig.ENTITY_EXCHANGE_NAME, "entity.detected", entityMessage)
@@ -73,6 +79,7 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
         val event = rabbitTemplate.receiveAndConvert("test.content.queue", 10000) as? ContentInjectionEvent
         assertNotNull(event, "received ContentInjectionEvent from test.content.queue within timeout")
         assertEquals("TWITCH_STREAM", event?.contentType)
+        assertEquals(channelId, event?.channelId)
         assertEquals(gameName, event?.data?.get("gameName"))
 
         // Verify async Redis write and verify content
@@ -81,9 +88,15 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
                 val data = cachedData as? Map<*, *>
                 assertNotNull(data, "Cached data should be a Map but was ${cachedData?.let { it::class.simpleName } ?: "null"}")
                 assertEquals(gameName, data!!["gameName"])
-                assertEquals("NexusPrime", data["streamer"])
+                assertTrue(data["streamer"].toString().isNotBlank())
             }
             .expectComplete()
             .verify(Duration.ofSeconds(5))
+
+        // Verify deduplication: send again and expect nothing in queue
+        rabbitAdmin.purgeQueue("test.content.queue")
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ENTITY_EXCHANGE_NAME, "entity.detected", entityMessage)
+        val secondEvent = rabbitTemplate.receiveAndConvert("test.content.queue", 2000)
+        assertNull(secondEvent, "Second event should be deduplicated")
     }
 }

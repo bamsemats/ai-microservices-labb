@@ -6,25 +6,27 @@ interface UserPresence {
   userId: string;
   username: string;
   status: PresenceStatus;
+  isBot?: boolean;
   lastUpdated: number;
 }
 
 interface PresenceState {
   presences: Record<string, UserPresence>;
-  setPresence: (userId: string, username: string, status: PresenceStatus) => void;
+  setPresence: (userId: string, username: string, status: PresenceStatus, isBot?: boolean) => void;
   getPresence: (userId: string) => PresenceStatus;
   fetchPresences: (token: string) => Promise<void>;
 }
 
 export const usePresenceStore = create<PresenceState>((set, get) => ({
   presences: {},
-  setPresence: (userId, username, status) => set((state) => ({
+  setPresence: (userId, username, status, isBot) => set((state) => ({
     presences: {
       ...state.presences,
       [userId]: {
         userId,
         username,
         status,
+        isBot,
         lastUpdated: Date.now(),
       },
     },
@@ -40,11 +42,12 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         const presences: Record<string, UserPresence> = {};
-        data.forEach((item: { userId: string; username: string; status: PresenceStatus }) => {
+        data.forEach((item: { userId: string; username: string; status: PresenceStatus; isBot?: boolean }) => {
           presences[item.userId] = {
             userId: item.userId,
             username: item.username,
             status: item.status,
+            isBot: item.isBot,
             lastUpdated: Date.now(),
           };
         });

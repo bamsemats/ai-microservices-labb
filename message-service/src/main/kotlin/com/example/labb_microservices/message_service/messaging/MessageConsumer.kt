@@ -1,7 +1,6 @@
 package com.example.labb_microservices.message_service.messaging
 
 import com.example.labb_microservices.common.security.EncryptionUtils
-import com.example.labb_microservices.message_service.handler.MessageWebSocketHandler
 import com.example.labb_microservices.message_service.model.ContentInjectionEvent
 import com.example.labb_microservices.message_service.model.Message
 import com.example.labb_microservices.message_service.model.PresenceUpdateEvent
@@ -14,13 +13,12 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 
 @Service
 class MessageConsumer(
     private val messageRepository: MessageRepository,
     private val mongoTemplate: ReactiveMongoTemplate,
-    private val webSocketHandler: MessageWebSocketHandler,
+    private val deliveryService: com.example.labb_microservices.message_service.service.MessageDeliveryService,
     private val objectMapper: ObjectMapper,
     private val messageProducer: MessageProducer,
     private val encryptionUtils: EncryptionUtils
@@ -63,14 +61,14 @@ class MessageConsumer(
 
         try {
             if (message.receiverId == "all") {
-                webSocketHandler.broadcastToChannel(message.channelId, jsonMessage)
+                deliveryService.broadcastToChannel(message.channelId, jsonMessage)
             } else {
                 val recipients = setOfNotNull(
                     message.receiverId.takeIf { it.isNotBlank() },
                     message.senderId.takeIf { it.isNotBlank() }
                 )
                 recipients.forEach { userId ->
-                    webSocketHandler.sendMessageToUser(userId, message.channelId, jsonMessage)
+                    deliveryService.sendMessageToUser(userId, jsonMessage)
                 }
             }
         } catch (e: Exception) {
@@ -80,33 +78,58 @@ class MessageConsumer(
     }
 
     @RabbitListener(queues = [RabbitMQConfig.AI_RESPONSE_QUEUE_NAME])
-    fun consumeAiResponse(message: Message) {
-        val messageId = message.id ?: return
-        logger.debug("Received AI chunk for: $messageId")
-        
-        val encryptedContent = encryptionUtils.encrypt(message.content)
-        val hashes = tokenizeAndHash(message.content)
-
-        // Atomic update in MongoDB using Update.push to preserve duplicates and order
-        val query = Query(Criteria.where("id").`is`(messageId))
-        val update = Update().setOnInsert("id", messageId)
-            .setOnInsert("senderId", message.senderId)
-            .setOnInsert("receiverId", message.receiverId)
-            .setOnInsert("channelId", message.channelId)
-            .setOnInsert("authorType", message.authorType)
-            .setOnInsert("timestamp", message.timestamp)
-            .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
-            .push("contentChunks", encryptedContent)
-        
-        if (hashes.isNotEmpty()) {
-            update.addToSet("searchIndices").each(*hashes.toTypedArray())
+    fun consumeAiResponse(data: Map<String, Any>) {
+        val message = try {
+            objectMapper.convertValue(data, Message::class.java)
+        } catch (e: Exception) {
+            logger.error("[TRACE] FAILED to convert AI response map. Keys present: {}, Error: {}", data.keys, e.message)
+            return
         }
+
+        val messageId = message.id ?: return
+        logger.info("[TRACE] consumeAiResponse START - messageId: {}, bot: {}, user: {}", 
+            messageId, message.senderId, message.receiverId)
         
-        // Block to ensure persistence before delivery for consistency
-        mongoTemplate.upsert(query, update, Message::class.java).block()
-        
-        // Deliver to WebSockets after successful persistence
-        messageProducer.deliverMessage(message)
+        try {
+            val encryptedContent = encryptionUtils.encrypt(message.content)
+            val hashes = tokenizeAndHash(message.content)
+
+            // Atomic update in MongoDB using Update.push to preserve duplicates and order
+            val query = Query(Criteria.where("id").`is`(messageId))
+            val update = Update().setOnInsert("id", messageId)
+                .setOnInsert("senderId", message.senderId)
+                .setOnInsert("senderName", message.senderName)
+                .setOnInsert("receiverId", message.receiverId)
+                .setOnInsert("channelId", message.channelId)
+                .setOnInsert("authorType", message.authorType)
+                .setOnInsert("timestamp", message.timestamp)
+                .setOnInsert("content", encryptedContent) // Set initial encrypted content on insert
+                .push("contentChunks").each(*message.contentChunks.map { encryptionUtils.encrypt(it) }.toTypedArray())
+            
+            if (hashes.isNotEmpty()) {
+                update.addToSet("searchIndices").each(*hashes.toTypedArray())
+            }
+            
+            logger.info("[TRACE] Upserting AI response {} to MongoDB", messageId)
+            mongoTemplate.upsert(query, update, Message::class.java).block()
+            
+            // Deliver to WebSockets after successful persistence
+            val jsonMessage = objectMapper.writeValueAsString(message)
+            
+            if (message.receiverId == "all") {
+                logger.info("[TRACE] Broadcasting AI response {} to channel {}", messageId, message.channelId)
+                deliveryService.broadcastToChannel(message.channelId ?: "global", jsonMessage)
+            } else {
+                logger.info("[TRACE] Sending AI response {} to user {}", messageId, message.receiverId)
+                deliveryService.sendMessageToUser(message.receiverId, jsonMessage)
+                // Also send to the person who triggered it so they see the bot's reply in their DM
+                if (message.receiverId != message.senderId) {
+                    deliveryService.sendMessageToUser(message.senderId, jsonMessage)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("[TRACE] FAILED to process AI response {}", messageId, e)
+        }
     }
 
     private fun tokenizeAndHash(content: String): Set<String> {
@@ -120,7 +143,28 @@ class MessageConsumer(
     @RabbitListener(queues = ["#{adaptationQueue.name}"])
     fun consumeGenericEvent(eventData: Map<String, Any>) {
         val type = eventData["type"] as? String ?: "UI_ADAPTATION"
-        logger.info("Received real-time event: $type")
+        val channelId = eventData["channelId"] as? String
+        val userId = eventData["userId"] as? String
+        val messageId = eventData["messageId"] as? String
+        
+        logger.info("Received real-time event: $type for channel: ${channelId ?: "global"}, user: ${userId ?: "none"}")
+
+        // If this is a sentiment event for a specific message, persist the metadata
+        if (!messageId.isNullOrBlank() && eventData.containsKey("theme")) {
+            val theme = eventData["theme"] as? String
+            val intensity = (eventData["intensity"] as? Number)?.toDouble()
+            
+            if (theme != null && intensity != null) {
+                logger.info("Persisting sentiment for message $messageId: $theme ($intensity)")
+                val query = Query(Criteria.where("id").`is`(messageId))
+                val update = Update()
+                    .set("sentimentTheme", theme)
+                    .set("sentimentIntensity", intensity)
+                
+                mongoTemplate.updateFirst(query, update, Message::class.java).block()
+            }
+        }
+
         val jsonEvent = try {
             objectMapper.writeValueAsString(eventData)
         } catch (e: Exception) {
@@ -129,15 +173,67 @@ class MessageConsumer(
         }
 
         try {
-            webSocketHandler.broadcastMessage(jsonEvent)
+            // Priority 1: Direct to user (best for DMs/Status)
+            if (!userId.isNullOrBlank()) {
+                deliveryService.sendMessageToUser(userId, jsonEvent)
+            }
+            
+            // Priority 2: Channel broadcast (best for shared context)
+            if (!channelId.isNullOrBlank()) {
+                deliveryService.broadcastToChannel(channelId, jsonEvent)
+            }
+            
+            // Priority 3: Global (if no targets)
+            if (userId.isNullOrBlank() && channelId.isNullOrBlank()) {
+                deliveryService.broadcastMessage(jsonEvent)
+            }
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting generic event", e)
         }
     }
 
+    @RabbitListener(queues = [RabbitMQConfig.EVENT_STORAGE_QUEUE_NAME])
+    fun consumeEventStorage(eventData: Map<String, Any>) {
+        val type = eventData["type"] as? String ?: return
+        
+        when (type) {
+            "READ_RECEIPT" -> {
+                val messageId = eventData["messageId"] as? String ?: return
+                val userId = eventData["userId"] as? String ?: return
+                val channelId = eventData["channelId"] as? String
+                
+                if (channelId.isNullOrBlank()) {
+                    logger.warn("Dropping READ_RECEIPT event with missing/blank channelId. MessageId: $messageId, UserId: $userId")
+                    return
+                }
+                
+                logger.info("Processing read receipt for message $messageId by user $userId in channel $channelId")
+                
+                val query = Query(Criteria.where("id").`is`(messageId))
+                val update = Update().addToSet("readBy", userId)
+                
+                mongoTemplate.updateFirst(query, update, Message::class.java)
+                    .doOnSuccess { result ->
+                        if (result.matchedCount > 0) {
+                            try {
+                                // Broadcast the update back to the channel
+                                val jsonEvent = objectMapper.writeValueAsString(eventData)
+                                deliveryService.broadcastToChannel(channelId!!, jsonEvent)
+                            } catch (e: Exception) {
+                                logger.error("Failed to broadcast read receipt for message $messageId", e)
+                            }
+                        } else {
+                            logger.warn("Read receipt ignored: message $messageId not found")
+                        }
+                    }
+                    .block()
+            }
+        }
+    }
+
     @RabbitListener(queues = ["#{contentInjectionQueue.name}"])
     fun consumeContentInjectionEvent(event: ContentInjectionEvent) {
-        logger.info("Received Content Injection Event: ${event.contentType}")
+        logger.info("Received Content Injection Event: ${event.contentType} for channel: ${event.channelId}")
         val jsonEvent = try {
             objectMapper.writeValueAsString(event)
         } catch (e: Exception) {
@@ -146,7 +242,11 @@ class MessageConsumer(
         }
 
         try {
-            webSocketHandler.broadcastMessage(jsonEvent)
+            if (!event.channelId.isNullOrBlank()) {
+                deliveryService.broadcastToChannel(event.channelId, jsonEvent)
+            } else {
+                deliveryService.broadcastMessage(jsonEvent)
+            }
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting content injection event", e)
         }
@@ -164,7 +264,7 @@ class MessageConsumer(
 
         try {
             // Broadcast presence to all users as it affects the sidebar
-            webSocketHandler.broadcastMessage(jsonEvent)
+            deliveryService.broadcastMessage(jsonEvent)
         } catch (e: Exception) {
             logger.error("Transient failure broadcasting presence update for user ${event.userId}", e)
         }

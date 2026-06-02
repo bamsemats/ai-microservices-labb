@@ -69,14 +69,30 @@ class JwtAuthenticationFilter(
                     .parseSignedClaims(token)
                     .payload
                 if (claims["tokenType"] != "access") {
+                    logger.warn("Token type mismatch for {}. Expected: access, Found: {}", path, claims["tokenType"])
                     return@GatewayFilter onError(exchange, "Invalid token type", HttpStatus.UNAUTHORIZED)
                 }
             } catch (e: Exception) {
+                logger.error("JWT validation failed for path {}: {} - {}", path, e.javaClass.simpleName, e.message)
                 return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
             }
 
+            // For WebSocket routes, ensure the Bearer token is added to the headers 
+            // downstream services (message-service) can find it via extractToken()
+            if (path == "/ws/messages" || path.startsWith("/ws/")) {
+                val newUri = org.springframework.web.util.UriComponentsBuilder.fromUri(request.uri)
+                    .replaceQueryParam("token", null)
+                    .build()
+                    .toUri()
+
+                val mutatedRequest = request.mutate()
+                    .uri(newUri)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                    .build()
+                return@GatewayFilter chain.filter(exchange.mutate().request(mutatedRequest).build())
+            }
+
             // Convert query param token to Authorization header for non-WS routes
-            // Preserve query param token for WS routes as downstream auth might need it for initial handshake
             if (request.queryParams.containsKey("token") && !path.startsWith("/ws/")) {
                 val newUri = org.springframework.web.util.UriComponentsBuilder.fromUri(request.uri)
                     .replaceQueryParam("token", null)

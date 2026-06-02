@@ -1,265 +1,201 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore';
-import logoWithName from '../assets/logo-with-name.png';
+import { useUIStore } from '../store/useUIStore';
+import { usePresenceStore } from '../store/usePresenceStore';
+import { useFrequencyStore } from '../store/useFrequencyStore';
+import { useSocialStore } from '../store/useSocialStore';
+import BrandLogo from './BrandLogo';
+import Avatar from './Avatar';
+import { Plus, Hash, Globe, BarChart3, ShieldAlert, Users, Search } from 'lucide-react';
 
 interface SidebarProps {
-  activeReceiver: string;
-  onSelectReceiver: (id: string) => void;
+  activeReceiver?: string;
+  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, onSelectReceiver }) => {
-  const { userId, token } = useAuthStore();
-  const { presences, fetchPresences } = usePresenceStore();
+const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
   const navigate = useNavigate();
+  const { userId, username, isAdmin } = useAuthStore();
+  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { presences } = usePresenceStore();
+  const { frequencies, fetchFrequencies, createFrequency } = useFrequencyStore();
+  const { friends, fetchFriends } = useSocialStore();
 
-  React.useEffect(() => {
-    if (token) {
-      fetchPresences(token);
-    }
-  }, [token, fetchPresences]);
+  const [showCreateFreq, setShowCreateFreq] = useState(false);
+  const [newFreqName, setNewFreqName] = useState('');
 
-  const handleNav = (path: string, receiverId?: string) => {
+  useEffect(() => {
+    fetchFrequencies();
+    fetchFriends();
+  }, [fetchFrequencies, fetchFriends]);
+
+  const handleNav = (path: string) => {
     navigate(path);
-    if (receiverId) {
-      onSelectReceiver(receiverId);
+    if (window.innerWidth <= 768) {
+      toggleSidebar(false);
     }
   };
 
-  const getStatusClass = (status: PresenceStatus) => {
-    switch (status) {
-      case 'ONLINE': return 'online';
-      case 'AWAY': return 'away';
-      case 'DND': return 'dnd';
-      default: return 'offline';
+  const handleReceiverSelect = (id: string) => {
+    navigate({ pathname: '/', search: `?receiver=${encodeURIComponent(id)}` });
+    if (window.innerWidth <= 768) {
+      toggleSidebar(false);
     }
   };
+
+  const handleCreateFreq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFreqName.trim()) return;
+    try {
+      const freq = await createFrequency(newFreqName.trim());
+      setNewFreqName('');
+      setShowCreateFreq(false);
+      handleReceiverSelect(freq.id);
+    } catch (error) {
+      console.error('Failed to create frequency', error);
+    }
+  };
+
+  const onlineUsers = Object.values(presences).filter(p => p.userId !== userId);
+  const friendList = friends.map(f => {
+    const presence = presences[f.id];
+    return { ...f, status: presence?.status || 'OFFLINE' };
+  });
 
   return (
-    <aside className="sidebar glass-panel">
-      <div className="sidebar-header">
-        <img src={logoWithName} alt="AdaptaChat Logo" className="sidebar-logo" />
+    <aside className={`sidebar ${sidebarOpen ? 'is-open' : ''} ${className || ''}`} role="navigation" aria-label="Main navigation">
+      <button 
+        className="sidebar-brand"
+        onClick={() => handleNav('/')} 
+        aria-label="Go to Home"
+      >
+        <BrandLogo size="md" />
+      </button>
+
+      <div className="sidebar-section" role="group" aria-labelledby="main-nav-label">
+          <div className="frequencies-header">
+            <h3 id="main-nav-label" className="sidebar-label">Frequencies</h3>
+            <button
+              className="btn btn-icon btn-sm btn-plus"
+              onClick={() => setShowCreateFreq(!showCreateFreq)}
+              title="Create new frequency"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+
+        {showCreateFreq && (
+          <form onSubmit={handleCreateFreq} className="sidebar-create-form">
+            <input 
+              autoFocus
+              className="input"
+              placeholder="Frequency name..."
+              value={newFreqName}
+              onChange={(e) => setNewFreqName(e.target.value)}
+            />
+          </form>
+        )}
+
+        <ul className="nav-list">
+          <li>
+            <button
+              className={`nav-item ${activeReceiver === 'home' ? 'is-active' : ''}`}
+              onClick={() => handleReceiverSelect('home')}
+            >
+              <span className="at"><Hash size={16} /></span> general
+              {onlineUsers.length > 0 && <span className="status-dot online"></span>}
+            </button>
+          </li>
+          {frequencies.map((freq) => (
+            <li key={freq.id}>
+              <button
+                className={`nav-item ${activeReceiver === freq.id ? 'is-active' : ''}`}
+                onClick={() => handleReceiverSelect(freq.id)}
+              >
+                <span className="at"><Hash size={16} /></span> {freq.name}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="sidebar-section">
-        <h3>Main</h3>
-        <button 
-          className={`channel-item ${activeReceiver === 'home' ? 'active' : ''}`}
-          onClick={() => handleNav('/')}
-        >
-          <span className="icon">🏠</span> Home
-        </button>
-        <button 
-          className={`channel-item ${activeReceiver === 'explore' ? 'active' : ''}`}
-          onClick={() => handleNav('/explore')}
-        >
-          <span className="icon">✨</span> Discovery
-        </button>
-        <button 
-          className={`channel-item ${activeReceiver === 'insights' ? 'active' : ''}`}
-          onClick={() => handleNav('/insights')}
-        >
-          <span className="icon">📊</span> Insights
-        </button>
-      </div>
-      
-      <div className="sidebar-section">
-        <h3>Quick Actions</h3>
+        <h3>Intelligence</h3>
         <div className="action-grid">
-          <button className="lumina-button secondary small">
-            <span className="icon">🤖</span> AI Agent
+          <button 
+            className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
+            onClick={() => handleNav('/explore')}
+          >
+            <Globe size={16} /> Discovery
           </button>
-          <button className="lumina-button secondary small">
-            <span className="icon">🧠</span> Memory
+          <button 
+            className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
+            onClick={() => handleNav('/insights')}
+          >
+            <BarChart3 size={16} /> Insights
           </button>
+          <button 
+            className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
+            onClick={() => handleNav('/friends')}
+          >
+            <Users size={16} /> Social Hub
+          </button>
+          <button 
+            className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
+            onClick={() => handleNav('/search')}
+          >
+            <Search size={16} /> Search History
+          </button>
+          {isAdmin && (
+            <button 
+              className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/admin')}
+            >
+              <ShieldAlert size={16} /> Admin Panel
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="sidebar-section">
-        <h3>Channels</h3>
-        <button 
-          className={`channel-item ${activeReceiver === 'all' ? 'active' : ''}`}
-          onClick={() => onSelectReceiver('all')}
-        >
-          <span className="hash">#</span> general
-        </button>
-      </div>
-
-      <div className="sidebar-section">
-        <h3>Direct Messages</h3>
-        <button 
-          className={`channel-item ${activeReceiver === userId ? 'active' : ''}`}
-          onClick={() => userId && onSelectReceiver(userId)}
-          disabled={!userId}
-        >
-          <span className="at">@</span> Me (Notes)
-          <span className="status-indicator online"></span>
-        </button>
+      <div className="sidebar-section sidebar-footer">
+        <div>
+          <Users size={14} className="sidebar-label svg" />
+          <h3 className="sidebar-label">Entities</h3>
+        </div>
         
-        {(() => {
-          const filteredPeers = Object.values(presences).filter(p => p.userId !== userId);
-          return (
-            <>
-              {filteredPeers.map((presence) => (
-                <button 
-                  key={presence.userId}
-                  className={`channel-item ${activeReceiver === presence.userId ? 'active' : ''}`}
-                  onClick={() => onSelectReceiver(presence.userId)}
-                >
-                  <span className="at">@</span> {presence.username}
-                  <span className={`status-indicator ${getStatusClass(presence.status)}`}></span>
-                </button>
-              ))}
-              
-              {filteredPeers.length === 0 && (
-                <button className="channel-item disabled" disabled>
-                  <span className="at">@</span> No users online
-                </button>
-              )}
-            </>
-          );
-        })()}
+        <button 
+          className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
+          onClick={() => handleReceiverSelect(userId || 'me')}
+        >
+          <Avatar seed={username || 'me'} size="sm" />
+          Me (Notes)
+          <span className="status-dot online"></span>
+        </button>
+
+        {friendList.length > 0 && (
+          <div className="sidebar-friend-list">
+            {friendList.map(u => (
+              <button 
+                key={u.id} 
+                className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
+                onClick={() => handleReceiverSelect(u.id)}
+                aria-label={`${u.username} — ${u.status}`}
+              >
+                <Avatar seed={u.username} size="sm" isBot={u.isBot} />
+                {u.username}
+                <span className={`status-dot ${u.status.toLowerCase()}`}></span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {friendList.length === 0 && onlineUsers.length > 0 && (
+           <div className="sidebar-empty-hint">
+              Scan for entities in Discovery to add friends.
+           </div>
+        )}
       </div>
-      
-      <style href="Sidebar" precedence="default">{`
-        .sidebar {
-          width: 280px;
-          height: calc(100vh - 2rem);
-          margin: 1rem;
-          display: flex;
-          flex-direction: column;
-          padding: 1.5rem;
-          border-radius: 1.5rem;
-          background: rgba(11, 19, 38, 0.4);
-          flex-shrink: 0;
-          overflow-y: auto;
-        }
-
-        .sidebar-header {
-          margin-bottom: 2rem;
-          display: flex;
-          justify-content: center;
-        }
-
-        .sidebar-logo {
-          width: 100%;
-          max-width: 180px;
-          height: auto;
-          filter: drop-shadow(var(--accent-glow));
-        }
-
-        .sidebar-header h2 {
-          font-size: 1.25rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          background: var(--accent-gradient);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-section {
-          margin-bottom: 2rem;
-        }
-
-        .sidebar-section h3 {
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: var(--text-muted);
-          margin-bottom: 1rem;
-          font-weight: 700;
-        }
-
-        .action-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.75rem;
-        }
-
-        .lumina-button.small {
-          padding: 0.5rem;
-          font-size: 0.75rem;
-          border-radius: 0.5rem;
-        }
-
-        .channel-item {
-          padding: 0.75rem 1rem;
-          border-radius: 0.75rem;
-          margin-bottom: 0.25rem;
-          cursor: pointer;
-          font-size: 0.9375rem;
-          font-weight: 500;
-          color: var(--text-secondary);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          position: relative;
-          background: transparent;
-          border: none;
-          width: 100%;
-          text-align: left;
-        }
-
-        .channel-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-          color: var(--text-primary);
-          transform: translateX(4px);
-        }
-
-        .channel-item.active {
-          background: var(--accent-gradient);
-          color: white;
-          box-shadow: var(--accent-glow);
-        }
-
-        .channel-item.disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .hash, .at, .icon {
-          font-weight: 700;
-          opacity: 0.5;
-          width: 1.25rem;
-          display: flex;
-          justify-content: center;
-        }
-
-        .channel-item.active .icon {
-          opacity: 1;
-        }
-
-        .status-indicator {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          position: absolute;
-          right: 1rem;
-          transition: all 0.3s ease;
-        }
-
-        .status-indicator.online {
-          background: var(--success);
-          box-shadow: 0 0 8px var(--success);
-        }
-
-        .status-indicator.away {
-          background: #ffb74d;
-          box-shadow: 0 0 8px #ffb74d;
-        }
-
-        .status-indicator.dnd {
-          background: #ef5350;
-          box-shadow: 0 0 8px #ef5350;
-        }
-
-        .status-indicator.offline {
-          background: #78909c;
-          box-shadow: none;
-        }
-      `}</style>
     </aside>
   );
 };

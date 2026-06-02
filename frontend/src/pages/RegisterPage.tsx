@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
-import logoWithName from '../assets/logo-with-name.png';
+import BrandLogo from '../components/BrandLogo';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -27,45 +27,53 @@ const RegisterPage: React.FC = () => {
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleRegister}>
         <div className="auth-logo-wrapper">
-          <img src={logoWithName} alt="AdaptaChat" className="auth-logo" />
+          <BrandLogo size="lg" />
         </div>
         <h2>Register</h2>
-        {error && <p className="error">{error}</p>}
-        {success && <p className="success">Registration successful! Redirecting to login...</p>}
-        <div className="input-group">
-          <label>Username</label>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        {success && <p className="auth-success" aria-live="polite">Registration successful! Redirecting to login...</p>}
+        <div className="form-field">
+          <label htmlFor="username" className="form-label">Username</label>
           <input 
+            id="username"
             type="text" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <div className="input-group">
-          <label>Email</label>
+        <div className="form-field">
+          <label htmlFor="email" className="form-label">Email</label>
           <input 
+            id="email"
             type="email" 
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <div className="input-group">
-          <label>Password</label>
+        <div className="form-field">
+          <label htmlFor="password" className="form-label">Password</label>
           <input 
+            id="password"
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
-            required 
+            required
+            className="input"
           />
         </div>
-        <button type="submit">Register</button>
-        <p>
-          Already have an account? <Link to="/login">Login here</Link>
-        </p>
+        <button className="btn btn-primary" type="submit">Register</button>
+        <div className="auth-footer">
+          <p>Already have an account?</p>
+          <Link to="/login" className="btn btn-ghost">Login here</Link>
+        </div>
       </form>
     </div>
   );
 };
+
 
 export default RegisterPage;
