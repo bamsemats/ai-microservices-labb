@@ -93,6 +93,14 @@ class MessageWebSocketHandler(
                                 }
                             }
                         }
+                        "JOIN" -> {
+                            val currentSession = sessionRegistry.getSession(sessionId)
+                            val newChannelId = json.get("channelId")?.asText()
+                            if (currentSession != null && !newChannelId.isNullOrBlank()) {
+                                logger.info("User {} joining channel {} in session {}", currentSession.userId ?: "anonymous", newChannelId, sessionId)
+                                currentSession.channelId = newChannelId
+                            }
+                        }
                         "TYPING" -> {
                             val currentSession = sessionRegistry.getSession(sessionId)
                             val sessionUserId = currentSession?.userId

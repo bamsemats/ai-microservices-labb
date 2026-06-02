@@ -7,13 +7,15 @@ import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore
 type AiStatus = 'IDLE' | 'THINKING' | 'ERROR';
 
 export const useWebSocket = () => {
+  const token = useAuthStore((state) => state.token);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
   
-  const token = useAuthStore((state) => state.token);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const activeChannelId = useChatStore((state) => state.activeChannelId);
   const addMessage = useChatStore((state) => state.addMessage);
   const setPresence = usePresenceStore((state) => state.setPresence);
 
@@ -23,12 +25,16 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${encodeURIComponent(token)}`;
+    // Get latest activeChannelId directly from store to avoid closure staleness
+    const currentActiveId = useChatStore.getState().activeChannelId;
+    const channelId = (currentActiveId === 'home' || currentActiveId === 'all' || !currentActiveId) ? 'general' : currentActiveId;
+
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${encodeURIComponent(token)}&channel=${encodeURIComponent(channelId)}`;
     
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log('WebSocket Connected');
+      console.log('WebSocket Connected to channel:', channelId);
       reconnectAttemptsRef.current = 0;
     };
 
@@ -175,6 +181,14 @@ export const useWebSocket = () => {
       }
     };
   }, [connect]);
+
+  useEffect(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN && activeChannelId) {
+      const channelId = (activeChannelId === 'home' || activeChannelId === 'all') ? 'general' : activeChannelId;
+      console.log('Switching to channel:', channelId);
+      socketRef.current.send(JSON.stringify({ type: 'JOIN', channelId }));
+    }
+  }, [activeChannelId]);
 
   const sendMessage = useCallback((message: Message) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {

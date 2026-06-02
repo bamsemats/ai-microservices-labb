@@ -19,10 +19,10 @@ const TopDrawer: React.FC = () => {
     ? 'general' 
     : activeChannelId;
 
-  const combinedInjections = [
+  const combinedInjections = React.useMemo(() => [
     ...(injectedContentByChannel[effectiveChannelId] || []),
     ...(injectedContentByChannel['__global__'] || [])
-  ];
+  ], [injectedContentByChannel, effectiveChannelId]);
 
   // Mobile only view
   if (!isMobile) return null;

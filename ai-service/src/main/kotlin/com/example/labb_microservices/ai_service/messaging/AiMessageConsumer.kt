@@ -111,10 +111,14 @@ class AiMessageConsumer(
         val botName = botRegistry.getBotDisplayName(targetBotId)
         logger.info("[TRACE] Responding as bot: {} ({}) for user: {}", targetBotId, botName, message.senderId)
         
-        // If it's a specific channel (General or DM/Frequency), respond to "all" in that context
-        // so all participants can see the bot's reply.
+        // Logic: 
+        // 1. If global channel (general/global/home) -> Broadcast to "all"
+        // 2. If frequency (starts with "freq-") -> Broadcast to "all" in that channel
+        // 3. Otherwise (DM) -> Target the sender specifically
         val isBroadcastChannel = message.channelId.lowercase() in setOf("general", "global", "home")
-        val receiverId = if (message.receiverId == "all" || isBroadcastChannel || message.channelId.isNotBlank()) "all" else message.senderId
+        val isFrequency = message.channelId.startsWith("freq-")
+        
+        val receiverId = if (message.receiverId == "all" || isBroadcastChannel || isFrequency) "all" else message.senderId
         val channelId = if (isBroadcastChannel) "general" else message.channelId
 
         // Notify UI that AI is thinking

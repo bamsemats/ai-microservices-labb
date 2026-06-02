@@ -124,8 +124,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
 
       <nav className="sidebar-section" aria-label="Intelligence">
         <h3>Intelligence</h3>
-        <div className="action-grid" role="list">
-          <div role="listitem">
+        <ul className="action-grid">
+          <li>
             <button 
               className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
               onClick={() => handleNav('/explore')}
@@ -133,8 +133,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             >
               <Globe size={16} aria-hidden="true" /> Discovery
             </button>
-          </div>
-          <div role="listitem">
+          </li>
+          <li>
             <button 
               className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
               onClick={() => handleNav('/insights')}
@@ -142,8 +142,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             >
               <BarChart3 size={16} aria-hidden="true" /> Insights
             </button>
-          </div>
-          <div role="listitem">
+          </li>
+          <li>
             <button 
               className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
               onClick={() => handleNav('/friends')}
@@ -151,8 +151,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             >
               <Users size={16} aria-hidden="true" /> Social Hub
             </button>
-          </div>
-          <div role="listitem">
+          </li>
+          <li>
             <button 
               className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
               onClick={() => handleNav('/search')}
@@ -160,9 +160,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
             >
               <Search size={16} aria-hidden="true" /> Search History
             </button>
-          </div>
+          </li>
           {isAdmin && (
-            <div role="listitem">
+            <li>
               <button 
                 className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
                 onClick={() => handleNav('/admin')}
@@ -170,9 +170,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
               >
                 <ShieldAlert size={16} aria-hidden="true" /> Admin Panel
               </button>
-            </div>
+            </li>
           )}
-        </div>
+        </ul>
       </nav>
 
       <div className="sidebar-section sidebar-footer" role="group" aria-labelledby="entities-label">
@@ -181,8 +181,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           <h3 id="entities-label" className="sidebar-label">Entities</h3>
         </div>
         
-        <div role="list">
-          <div role="listitem">
+        <ul className="nav-list">
+          <li>
             <button 
               className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
               onClick={() => handleReceiverSelect(userId || 'me')}
@@ -192,11 +192,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
               Me (Notes)
               <span className="status-dot online" aria-label="Online"></span>
             </button>
-          </div>
+          </li>
 
           {friendList.length > 0 && (
             friendList.map(u => (
-              <div key={u.id} role="listitem">
+              <li key={u.id}>
                 <button 
                   className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
                   onClick={() => handleReceiverSelect(u.id)}
@@ -207,10 +207,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
                   {u.username}
                   <span className={`status-dot ${u.status.toLowerCase()}`} aria-hidden="true"></span>
                 </button>
-              </div>
+              </li>
             ))
           )}
-        </div>
+        </ul>
 
         {friendList.length === 0 && onlineUsers.length > 0 && (
            <div className="sidebar-empty-hint">

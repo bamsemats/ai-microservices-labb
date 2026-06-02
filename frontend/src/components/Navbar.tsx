@@ -156,10 +156,10 @@ const Navbar: React.FC<NavbarProps> = ({ prefix, contextName }) => {
         <button 
           className="btn btn-ghost user-baddge"
           onClick={() => navigate('/profile')}
-          aria-label="View your profile"
+          aria-label={`View your profile, ${displayName || username}`}
         >
           <Avatar seed={username || 'me'} size="sm" />
-          <span className="username" aria-hidden="true">{displayName || username}</span>
+          <span className="username">{displayName || username}</span>
         </button>
         
         <button className="btn btn-ghost" onClick={logout} aria-label="Logout of your account">Logout</button>
