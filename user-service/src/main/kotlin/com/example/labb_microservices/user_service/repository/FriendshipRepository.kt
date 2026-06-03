@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono
 interface FriendshipRepository : ReactiveMongoRepository<Friendship, String> {
     fun findByUserId(userId: String): Flux<Friendship>
     fun findByFriendId(friendId: String): Flux<Friendship>
-    fun findByUserIdAndFriendId(userId: String, friendId: String): Mono<Friendship>
+    fun findByUserIdAndFriendId(userId: String, friendId: String): Flux<Friendship>
     fun deleteAllByUserId(userId: String): Mono<Void>
     fun deleteAllByFriendId(friendId: String): Mono<Void>
 }

@@ -11,7 +11,8 @@ export interface Friend {
 
 interface SocialState {
   friends: Friend[];
-  pendingFriends: Friend[];
+  pendingFriends: Friend[]; // Incoming requests
+  outboundRequests: Friend[]; // Outbound requests
   fetchFriends: () => Promise<void>;
   fetchPendingFriends: () => Promise<void>;
   sendRequest: (friendId: string) => Promise<void>;
@@ -22,6 +23,7 @@ interface SocialState {
 export const useSocialStore = create<SocialState>((set, get) => ({
   friends: [],
   pendingFriends: [],
+  outboundRequests: [],
   fetchFriends: async () => {
     try {
       const response = await api.get('/friends');
@@ -32,8 +34,14 @@ export const useSocialStore = create<SocialState>((set, get) => ({
   },
   fetchPendingFriends: async () => {
     try {
-      const response = await api.get('/friends/pending');
-      set({ pendingFriends: response.data });
+      const [incomingRes, outboundRes] = await Promise.all([
+        api.get('/friends/pending'),
+        api.get('/friends/pending/outbound')
+      ]);
+      set({ 
+        pendingFriends: incomingRes.data,
+        outboundRequests: outboundRes.data
+      });
     } catch (error) {
       console.error('Failed to fetch pending requests', error);
     }
@@ -52,7 +60,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     await api.delete(`/friends/${encodeURIComponent(friendId)}`);
     set(state => ({ 
       friends: state.friends.filter(f => f.id !== friendId),
-      pendingFriends: state.pendingFriends.filter(f => f.id !== friendId)
+      pendingFriends: state.pendingFriends.filter(f => f.id !== friendId),
+      outboundRequests: state.outboundRequests.filter(f => f.id !== friendId)
     }));
   }
 }));

@@ -30,7 +30,7 @@ const DiscoveryPage: React.FC = () => {
   const [trending, setTrending] = useState<TrendingTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
-  const { friends, pendingFriends, sendRequest, fetchPendingFriends } = useSocialStore();
+  const { friends, pendingFriends, outboundRequests, sendRequest, fetchPendingFriends } = useSocialStore();
   const { userId } = useAuthStore();
 
   const handleSearch = React.useCallback(async (e?: React.FormEvent, searchQuery: string = query) => {
@@ -112,7 +112,7 @@ const DiscoveryPage: React.FC = () => {
   }, []);
 
   const isFriend = (id: string) => friends.some(f => f.id === id);
-  const isPending = (id: string) => pendingFriends.some(f => f.id === id);
+  const isPending = (id: string) => outboundRequests.some(f => f.id === id) || pendingFriends.some(f => f.id === id);
 
   return (
     <MainLayout

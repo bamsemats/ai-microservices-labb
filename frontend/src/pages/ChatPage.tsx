@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore, type Message } from '../store/useChatStore';
 import { useFrequencyStore } from '../store/useFrequencyStore';
+import { useSocialStore } from "../store/useSocialStore.ts";
 import { useWebSocket } from '../hooks/useWebSocket';
 import MessageBubble from '../components/MessageBubble';
 import MessageComposer from '../components/MessageComposer';
@@ -38,6 +39,8 @@ const ChatPage: React.FC = () => {
     }
     return id;
   }, [receiverId, userId]);
+
+  const receiverName = useSocialStore(state => state.friends.find(f => f.id === receiverId)?.displayName || state.friends.find(f => f.id === receiverId)?.username || receiverId);
 
   useEffect(() => {
     setActiveChannelId(effectiveChannelId);
@@ -83,7 +86,7 @@ const ChatPage: React.FC = () => {
   };
 
   const currentFreq = frequencies.find(f => f.id === receiverId);
-  const contextName = currentFreq ? currentFreq.name : (receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverId));
+  const contextName = currentFreq ? currentFreq.name : (receiverId === 'home' || receiverId === 'all' ? 'general' : (receiverId === userId ? 'Me (Notes)' : receiverName));
 
   return (
     <MainLayout

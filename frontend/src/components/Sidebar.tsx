@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
                   aria-current={activeReceiver === u.id ? 'page' : undefined}
                 >
                   <Avatar seed={u.username} size="sm" isBot={u.isBot} />
-                  {u.username}
+                  {u.displayName != undefined ? u.displayName : u.username}
                   <span className={`status-dot ${u.status.toLowerCase()}`} aria-hidden="true"></span>
                 </button>
               </li>

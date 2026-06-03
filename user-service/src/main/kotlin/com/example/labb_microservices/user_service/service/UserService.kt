@@ -40,22 +40,43 @@ class UserService(
         return userRepository.findById(friendId)
             .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found")))
             .flatMap { friend ->
-                val status = if (friend.isBot) FriendshipStatus.ACCEPTED else FriendshipStatus.PENDING
-                val friendship = Friendship(userId = userId, friendId = friendId, status = status)
-                friendshipRepository.save(friendship)
-                    .flatMap { saved ->
-                        if (friend.isBot) {
-                            val reciprocal = Friendship(userId = friendId, friendId = userId, status = FriendshipStatus.ACCEPTED)
-                            friendshipRepository.save(reciprocal).thenReturn(saved)
+                // Check if reciprocal request already exists
+                friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+                    .next()
+                    .flatMap { reciprocal ->
+                        if (reciprocal.status == FriendshipStatus.PENDING) {
+                            // Auto-accept if they already sent a request to us
+                            friendshipRepository.save(reciprocal.copy(status = FriendshipStatus.ACCEPTED))
                         } else {
-                            Mono.just(saved)
+                            Mono.just(reciprocal)
                         }
                     }
+                    .switchIfEmpty(
+                        // Check if we already sent a request
+                        friendshipRepository.findByUserIdAndFriendId(userId, friendId)
+                            .next()
+                            .switchIfEmpty(
+                                Mono.defer {
+                                    val status = if (friend.isBot) FriendshipStatus.ACCEPTED else FriendshipStatus.PENDING
+                                    val friendship = Friendship(userId = userId, friendId = friendId, status = status)
+                                    friendshipRepository.save(friendship)
+                                        .flatMap { saved ->
+                                            if (friend.isBot) {
+                                                val reciprocalBot = Friendship(userId = friendId, friendId = userId, status = FriendshipStatus.ACCEPTED)
+                                                friendshipRepository.save(reciprocalBot).thenReturn(saved)
+                                            } else {
+                                                Mono.just(saved)
+                                            }
+                                        }
+                                }
+                            )
+                    )
             }
     }
 
     fun acceptFriendRequest(userId: String, friendId: String): Mono<Friendship> {
         return friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+            .next()
             .switchIfEmpty(Mono.error(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Friend request not found")))
             .flatMap { 
                 friendshipRepository.save(it.copy(status = FriendshipStatus.ACCEPTED))
@@ -81,10 +102,21 @@ class UserService(
             .flatMap { userRepository.findById(it) }
     }
 
+    fun getOutboundPendingRequests(userId: String): Flux<User> {
+        return friendshipRepository.findByUserId(userId)
+            .filter { it.status == FriendshipStatus.PENDING }
+            .map { it.friendId }
+            .flatMap { userRepository.findById(it) }
+    }
+
     fun deleteFriend(userId: String, friendId: String): Mono<Void> {
-        return friendshipRepository.findByUserIdAndFriendId(userId, friendId)
-            .switchIfEmpty(friendshipRepository.findByUserIdAndFriendId(friendId, userId))
-            .flatMap { friendshipRepository.delete(it) }
+        // Delete any duplicates in both directions to be safe
+        return Flux.concat(
+            friendshipRepository.findByUserIdAndFriendId(userId, friendId),
+            friendshipRepository.findByUserIdAndFriendId(friendId, userId)
+        )
+        .flatMap { friendshipRepository.delete(it) }
+        .then()
     }
 
     fun changePassword(userId: String, oldPassword: String, newPassword: String): Mono<Void> {
