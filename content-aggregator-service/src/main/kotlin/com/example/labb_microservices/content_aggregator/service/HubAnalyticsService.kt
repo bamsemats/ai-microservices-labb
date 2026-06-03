@@ -1,5 +1,6 @@
 package com.example.labb_microservices.content_aggregator.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -12,6 +13,8 @@ data class UserStats(val messagesSent: Long, val aiTokens: Long, val connectionI
 
 @Service
 class HubAnalyticsService(private val redisTemplate: ReactiveRedisTemplate<String, Any>) {
+
+    private val logger = LoggerFactory.getLogger(HubAnalyticsService::class.java)
 
     companion object {
         private const val MAX_TRENDING_CHANNELS = 100L
@@ -28,6 +31,10 @@ class HubAnalyticsService(private val redisTemplate: ReactiveRedisTemplate<Strin
                     channelId = tuple.value as String,
                     score = tuple.score ?: 0.0
                 )
+            }
+            .onErrorResume { e ->
+                logger.error("Failed to fetch trending channels from Redis: ${e.message}")
+                Flux.empty()
             }
     }
 
@@ -50,6 +57,9 @@ class HubAnalyticsService(private val redisTemplate: ReactiveRedisTemplate<Strin
             // Calculate a dummy connection index
             val connectionIndex = (tuple.t1 * 0.5 + tuple.t2 * 0.01).coerceAtMost(100.0).toInt()
             UserStats(tuple.t1, tuple.t2, connectionIndex)
+        }.onErrorResume { e ->
+            logger.error("Failed to fetch user stats from Redis for $userId: ${e.message}")
+            Mono.just(UserStats(0L, 0L, 0))
         }
     }
 }

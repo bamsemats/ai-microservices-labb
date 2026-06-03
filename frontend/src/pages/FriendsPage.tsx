@@ -6,11 +6,11 @@ import { useFrequencyStore } from '../store/useFrequencyStore';
 import { useChatStore } from '../store/useChatStore';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
-import { UserMinus, MessageSquare, Search, Users } from 'lucide-react';
+import { UserMinus, MessageSquare, Search, Users, Check } from 'lucide-react';
 
 const FriendsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { friends, fetchFriends, removeFriend } = useSocialStore();
+  const { friends, pendingFriends, fetchFriends, fetchPendingFriends, removeFriend, acceptRequest } = useSocialStore();
   const { presences } = usePresenceStore();
   const { createFrequency } = useFrequencyStore();
   const { setActiveChannelId } = useChatStore();
@@ -19,7 +19,8 @@ const FriendsPage: React.FC = () => {
 
   useEffect(() => {
     fetchFriends();
-  }, [fetchFriends]);
+    fetchPendingFriends();
+  }, [fetchFriends, fetchPendingFriends]);
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -42,6 +43,14 @@ const FriendsPage: React.FC = () => {
   const handleRemoveFriend = async (friendId: string) => {
     if (window.confirm('Are you sure you want to remove this friend?')) {
       await removeFriend(friendId);
+    }
+  };
+
+  const handleAcceptRequest = async (friendId: string) => {
+    try {
+      await acceptRequest(friendId);
+    } catch (error) {
+      console.error('Failed to accept request', error);
     }
   };
 
@@ -77,6 +86,42 @@ const FriendsPage: React.FC = () => {
                   </div>
                 )}
               </section>
+
+              {pendingFriends.length > 0 && (
+                <section className="friends-list-section">
+                  <div className="page-header">
+                    <h2 className="page-title">
+                      Pending Requests ({pendingFriends.length})
+                    </h2>
+                  </div>
+                  <div className="friends-grid">
+                    {pendingFriends.map((friend) => (
+                      <div key={friend.id} className="card card--interactive friend-card">
+                        <div className="friend-card-top">
+                          <div className="avatar">
+                            <Avatar seed={friend.username} size="lg" isBot={friend.isBot} />
+                          </div>
+                          <div className="friend-info">
+                            <span className="friend-name">{friend.username}</span>
+                            <span className="friend-handle">{friend.displayName || 'Entity'}</span>
+                            <span className="friend-status-text offline">wants to connect</span>
+                          </div>
+                        </div>
+                        <div className="friend-card-actions">
+                          <button
+                            className="btn btn-primary full-width"
+                            title="Accept Connection"
+                            onClick={() => handleAcceptRequest(friend.id)}
+                          >
+                            <Check size={18} />
+                            <span>Accept</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className="friends-list-section">
                 <div className="page-header">

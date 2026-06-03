@@ -75,9 +75,9 @@ class UserService(
     }
 
     fun getPendingRequests(userId: String): Flux<User> {
-        return friendshipRepository.findByUserId(userId)
+        return friendshipRepository.findByFriendId(userId)
             .filter { it.status == FriendshipStatus.PENDING }
-            .map { it.friendId }
+            .map { it.userId }
             .flatMap { userRepository.findById(it) }
     }
 
