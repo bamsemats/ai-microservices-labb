@@ -24,7 +24,7 @@ class UserGrpcClient {
             .build()
 
         val future = userServiceStub
-            .withDeadlineAfter(2, TimeUnit.SECONDS)
+            .withDeadlineAfter(5, TimeUnit.SECONDS)
             .validateCredentials(request)
 
         return Mono.create { sink ->

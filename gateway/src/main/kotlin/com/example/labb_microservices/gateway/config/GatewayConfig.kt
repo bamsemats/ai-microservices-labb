@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.route.RouteLocator
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpStatus
 
 @Configuration
 class GatewayConfig(
@@ -29,6 +30,7 @@ class GatewayConfig(
                 r.path("/login", "/refresh", "/logout")
                     .filters { f -> 
                         f.secureHeaders()
+                        f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
                         f.requestRateLimiter { it.setRateLimiter(authRateLimiter).setKeyResolver(userKeyResolver) }
                     }
                     .uri(authServiceUrl)
@@ -37,6 +39,7 @@ class GatewayConfig(
                 r.path("/register", "/users/**", "/friends/**", "/events/**")
                     .filters { f -> 
                         f.secureHeaders()
+                        f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
                         f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
                         f.requestRateLimiter { it.setRateLimiter(authRateLimiter).setKeyResolver(userKeyResolver) }
                     }
@@ -46,6 +49,7 @@ class GatewayConfig(
                 r.path("/messages/**", "/ws/**", "/frequencies/**")
                     .filters { f -> 
                         f.secureHeaders()
+                        f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
                         f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
                         f.requestRateLimiter { it.setRateLimiter(messageRateLimiter).setKeyResolver(userKeyResolver) }
                     }
@@ -55,6 +59,7 @@ class GatewayConfig(
                 r.path("/analytics/**")
                     .filters { f -> 
                         f.secureHeaders()
+                        f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
                         f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
                     }
                     .uri(aggregatorServiceUrl)
@@ -63,6 +68,7 @@ class GatewayConfig(
                 r.path("/feedback/**")
                     .filters { f -> 
                         f.secureHeaders()
+                        f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
                         f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
                     }
                     .uri(feedbackServiceUrl)

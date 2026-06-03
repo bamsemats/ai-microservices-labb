@@ -47,11 +47,11 @@ class EntityConsumer(
                 }
                 
                 val sourceAction = when (reasoning.primarySource) {
-                    ContentSource.TWITCH -> handleTwitchSource(entityMessage)
-                    ContentSource.YOUTUBE -> handleYoutubeSource(entityMessage)
-                    ContentSource.NEWS -> handleNewsSource(entityMessage)
-                    ContentSource.SOCIAL -> handleSocialSource(entityMessage)
-                    ContentSource.FORUM -> handleForumSource(entityMessage)
+                    ContentSource.TWITCH -> handleTwitchSource(entityMessage, reasoning)
+                    ContentSource.YOUTUBE -> handleYoutubeSource(entityMessage, reasoning)
+                    ContentSource.NEWS -> handleNewsSource(entityMessage, reasoning)
+                    ContentSource.SOCIAL -> handleSocialSource(entityMessage, reasoning)
+                    ContentSource.FORUM -> handleForumSource(entityMessage, reasoning)
                 }
 
                 sourceAction.onErrorResume { error ->
@@ -62,7 +62,7 @@ class EntityConsumer(
             .then()
     }
 
-    private fun handleTwitchSource(entity: EntityMessage): Mono<Void> {
+    private fun handleTwitchSource(entity: EntityMessage, reasoning: com.example.labb_microservices.content_aggregator.service.EntityReasoning): Mono<Void> {
         val cacheKey = "content:twitch:${entity.entityValue.lowercase().replace(" ", "_")}"
         return redisTemplate.opsForValue().get(cacheKey)
             .switchIfEmpty(
@@ -101,22 +101,41 @@ class EntityConsumer(
             }
     }
 
-    private fun handleYoutubeSource(entity: EntityMessage): Mono<Void> {
+    private fun handleYoutubeSource(entity: EntityMessage, reasoning: com.example.labb_microservices.content_aggregator.service.EntityReasoning): Mono<Void> {
         val cacheKey = "content:youtube:${entity.entityValue.lowercase().replace(" ", "_")}"
         return redisTemplate.opsForValue().get(cacheKey)
             .switchIfEmpty(
                 Mono.defer {
                     logger.info("Cache miss for YouTube entity ${entity.entityValue}. Simulating API call...")
-                    val youtubeData = mapOf(
-                        "title" to "Best of ${entity.entityValue} Highlights",
-                        "channel" to entity.entityValue,
-                        "videoId" to listOf("dQw4w9WgXcQ", "30I06O3VnZ0", "i9LpT9xLw5Y", "9bZkp7q19f0").random(), // Mock IDs
-                        "url" to "https://www.youtube.com/results?search_query=${entity.entityValue.replace(" ", "+")}",
-                        "views" to "${(100..999).random()}k",
-                        "publishedAt" to "${(1..7).random()} days ago",
-                        "duration" to "${(5..20).random()}:${(10..59).random()}",
-                        "thumbnail" to "https://placeholder.com/youtube-thumb.jpg"
-                    )
+                    
+                    // Improved simulation logic: if we have a platform hint (channel ID), 
+                    // we simulate a search on THAT channel.
+                    val isLastWeekTonight = entity.entityValue.lowercase().contains("last week tonight") || 
+                                          entity.entityValue.lowercase().contains("john oliver")
+                    
+                    val youtubeData = if (isLastWeekTonight) {
+                        mapOf(
+                            "title" to "The Housing Market: Last Week Tonight with John Oliver",
+                            "channel" to "Last Week Tonight",
+                            "videoId" to "R_0S1G38Nks",
+                            "url" to "https://www.youtube.com/watch?v=R_0S1G38Nks",
+                            "views" to "${(800..1500).random()}k",
+                            "publishedAt" to "3 days ago",
+                            "duration" to "28:14",
+                            "thumbnail" to "https://i.ytimg.com/vi/R_0S1G38Nks/hqdefault.jpg"
+                        )
+                    } else {
+                        mapOf(
+                            "title" to "${entity.entityValue}: Latest Coverage",
+                            "channel" to if (reasoning.platformHint != null) entity.entityValue else "Community Hub",
+                            "videoId" to listOf("9G_6tHPr6hQ", "YvKuepX289s", "L3oOldViIgY", "fRh_vgS2dFE").random(), // Neutral IDs
+                            "url" to "https://www.youtube.com/results?search_query=${entity.entityValue.replace(" ", "+")}",
+                            "views" to "${(50..500).random()}k",
+                            "publishedAt" to "${(1..14).random()} days ago",
+                            "duration" to "${(8..15).random()}:${(10..59).random()}",
+                            "thumbnail" to "https://placeholder.com/youtube-thumb.jpg"
+                        )
+                    }
                     redisTemplate.opsForValue().set(cacheKey, youtubeData, Duration.ofMinutes(15)).thenReturn(youtubeData)
                 }
             )
@@ -131,7 +150,7 @@ class EntityConsumer(
             }
     }
 
-    private fun handleNewsSource(entity: EntityMessage): Mono<Void> {
+    private fun handleNewsSource(entity: EntityMessage, reasoning: com.example.labb_microservices.content_aggregator.service.EntityReasoning): Mono<Void> {
         val cacheKey = "content:news:${entity.entityValue.lowercase().replace(" ", "_")}"
         return redisTemplate.opsForValue().get(cacheKey)
             .switchIfEmpty(
@@ -157,7 +176,7 @@ class EntityConsumer(
             }
     }
 
-    private fun handleSocialSource(entity: EntityMessage): Mono<Void> {
+    private fun handleSocialSource(entity: EntityMessage, reasoning: com.example.labb_microservices.content_aggregator.service.EntityReasoning): Mono<Void> {
         val cacheKey = "content:social:${entity.entityValue.lowercase().replace(" ", "_")}"
         return redisTemplate.opsForValue().get(cacheKey)
             .switchIfEmpty(
@@ -183,7 +202,7 @@ class EntityConsumer(
             }
     }
 
-    private fun handleForumSource(entity: EntityMessage): Mono<Void> {
+    private fun handleForumSource(entity: EntityMessage, reasoning: com.example.labb_microservices.content_aggregator.service.EntityReasoning): Mono<Void> {
         val cacheKey = "content:forum:${entity.entityValue.lowercase().replace(" ", "_")}"
         return redisTemplate.opsForValue().get(cacheKey)
             .switchIfEmpty(
