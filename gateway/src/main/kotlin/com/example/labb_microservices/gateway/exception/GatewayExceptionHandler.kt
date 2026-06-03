@@ -33,12 +33,17 @@ class GatewayExceptionHandler(private val objectMapper: ObjectMapper) : ErrorWeb
         
         response.statusCode = status
 
+        val message = when (ex) {
+            is ResponseStatusException -> ex.reason ?: "An unexpected error occurred"
+            else -> "An unexpected error occurred"
+        }
+
         val errorBody = mapOf(
             "timestamp" to java.time.Instant.now().toString(),
             "path" to exchange.request.path.value(),
             "status" to status.value(),
             "error" to (status as? HttpStatus)?.reasonPhrase.orEmpty(),
-            "message" to (ex.message ?: "An unexpected error occurred")
+            "message" to message
         )
 
         logger.error("Gateway Error [{}]: {} {}", exchange.request.path.value(), status.value(), ex.message)

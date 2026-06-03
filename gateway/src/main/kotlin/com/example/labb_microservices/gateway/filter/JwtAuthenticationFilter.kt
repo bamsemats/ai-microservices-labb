@@ -110,8 +110,4 @@ class JwtAuthenticationFilter(
             chain.filter(exchange)
         }
     }
-
-    private fun onError(exchange: ServerWebExchange, err: String, httpStatus: HttpStatus): Mono<Void> {
-        return Mono.error(ResponseStatusException(httpStatus, err))
-    }
 }
