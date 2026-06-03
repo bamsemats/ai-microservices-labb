@@ -2,6 +2,16 @@ package com.example.labb_microservices.message_service.service
 
 import com.example.labb_microservices.message_service.messaging.MessageProducer
 import com.example.labb_microservices.message_service.model.Message
+import com.example.labb_microservices.proto.UserResponse
+import com.example.labb_microservices.message_service.client.UserGrpcClient
+import com.example.labb_microservices.message_service.repository.MessageRepository
+import com.example.labb_microservices.common.security.EncryptionUtils
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.domain.Sort
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -12,12 +22,12 @@ import java.time.Instant
 @Service
 class MessageService(
     private val messageProducer: MessageProducer,
-    private val userGrpcClient: com.example.labb_microservices.message_service.client.UserGrpcClient,
-    private val messageRepository: com.example.labb_microservices.message_service.repository.MessageRepository,
+    private val userGrpcClient: UserGrpcClient,
+    private val messageRepository: MessageRepository,
     private val frequencyService: FrequencyService,
     private val presenceService: PresenceService,
-    private val encryptionUtils: com.example.labb_microservices.common.security.EncryptionUtils,
-    private val mongoTemplate: org.springframework.data.mongodb.core.ReactiveMongoTemplate
+    private val encryptionUtils: EncryptionUtils,
+    private val mongoTemplate: ReactiveMongoTemplate
 ) {
     private val logger = LoggerFactory.getLogger(MessageService::class.java)
 
@@ -90,46 +100,46 @@ class MessageService(
         }
         .subscribeOn(Schedulers.boundedElastic())
         .flatMapMany { hashes ->
-            val query = org.springframework.data.mongodb.core.query.Query(
-                org.springframework.data.mongodb.core.query.Criteria.where("searchIndices").all(hashes)
+            val query = Query(
+                Criteria.where("searchIndices").all(hashes)
             )
 
             if (!isAdmin) {
-                val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                    org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
+                val visibilityCriteria = Criteria().orOperator(
+                    Criteria.where("senderId").`is`(principal),
+                    Criteria.where("receiverId").`is`(principal),
+                    Criteria.where("receiverId").`is`("all"),
+                    Criteria.where("receiverId").`is`(""),
+                    Criteria.where("receiverId").exists(false)
                 )
                 query.addCriteria(visibilityCriteria)
             }
 
             if (!channelId.isNullOrBlank()) {
-                query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId))
+                query.addCriteria(Criteria.where("channelId").`is`(channelId))
             }
 
             if (!senderId.isNullOrBlank()) {
-                query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(senderId))
+                query.addCriteria(Criteria.where("senderId").`is`(senderId))
             }
 
             if (startDate != null || endDate != null) {
-                val dateCriteria = org.springframework.data.mongodb.core.query.Criteria.where("timestamp")
+                val dateCriteria = Criteria.where("timestamp")
                 startDate?.let { dateCriteria.gte(it) }
                 endDate?.let { dateCriteria.lte(it) }
                 query.addCriteria(dateCriteria)
             }
 
             if (!sentimentTheme.isNullOrBlank()) {
-                query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("sentimentTheme").`is`(sentimentTheme))
+                query.addCriteria(Criteria.where("sentimentTheme").`is`(sentimentTheme))
             }
 
             if (minIntensity != null) {
-                query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("sentimentIntensity").gte(minIntensity))
+                query.addCriteria(Criteria.where("sentimentIntensity").gte(minIntensity))
             }
 
             query.limit(100)
-            query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
+            query.with(Sort.by(Sort.Direction.DESC, "timestamp"))
 
             mongoTemplate.find(query, Message::class.java)
                 .flatMap { encryptedMessage ->
@@ -156,55 +166,54 @@ class MessageService(
         }
 
         return authCheck.flatMapMany { authorized ->
-            if (!authorized) return@flatMapMany Flux.error<Message>(org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Not a member of this frequency"))
+            if (!authorized) return@flatMapMany Flux.error<Message>(ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this frequency"))
 
             val query = when {
                 channelId != null -> {
                     if (isAdmin) {
                         messageRepository.findAllByChannelId(channelId)
+                            .sort { m1, m2 -> m1.timestamp.compareTo(m2.timestamp) }
                     } else {
-                        mongoTemplate.find(
-                            org.springframework.data.mongodb.core.query.Query(
-                                org.springframework.data.mongodb.core.query.Criteria.where("channelId").`is`(channelId)
-                                    .andOperator(
-                                        org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                                            org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
-                                            // Ensure public channel messages are visible if they don't have a specific receiver (fallback)
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
-                                        )
+                        val q = Query(
+                            Criteria.where("channelId").`is`(channelId)
+                                .andOperator(
+                                    Criteria().orOperator(
+                                        Criteria.where("senderId").`is`(principal),
+                                        Criteria.where("receiverId").`is`(principal),
+                                        Criteria.where("receiverId").`is`("all"),
+                                        Criteria.where("receiverId").`is`(""),
+                                        Criteria.where("receiverId").exists(false)
                                     )
-                            ),
-                            Message::class.java
-                        )
+                                )
+                        ).with(Sort.by(Sort.Direction.ASC, "timestamp"))
+                        mongoTemplate.find(q, Message::class.java)
                     }
                 }
                 receiverId != null -> {
                     if (receiverId == principal) {
                         messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
+                            .sort { m1, m2 -> m1.timestamp.compareTo(m2.timestamp) }
                     } else {
                         messageRepository.findAllBySenderIdAndReceiverId(principal, receiverId)
                             .mergeWith(messageRepository.findAllBySenderIdAndReceiverId(receiverId, principal))
+                            .sort { m1, m2 -> m1.timestamp.compareTo(m2.timestamp) }
                     }
                 }
                 isAdmin -> {
                     messageRepository.findAll()
+                        .sort { m1, m2 -> m1.timestamp.compareTo(m2.timestamp) }
                 }
                 else -> {
-                    mongoTemplate.find(
-                        org.springframework.data.mongodb.core.query.Query(
-                            org.springframework.data.mongodb.core.query.Criteria().orOperator(
-                                org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
-                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
-                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
-                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
-                            )
-                        ),
-                        Message::class.java
-                    )
+                    val q = Query(
+                        Criteria().orOperator(
+                            Criteria.where("senderId").`is`(principal),
+                            Criteria.where("receiverId").`is`(principal),
+                            Criteria.where("receiverId").`is`("all"),
+                            Criteria.where("receiverId").`is`(""),
+                            Criteria.where("receiverId").exists(false)
+                        )
+                    ).with(Sort.by(Sort.Direction.ASC, "timestamp"))
+                    mongoTemplate.find(q, Message::class.java)
                 }
             }
 
@@ -226,15 +235,15 @@ class MessageService(
         }
     }
 
-    private fun getUserWithFallback(userId: String): Mono<com.example.labb_microservices.proto.UserResponse> {
+    private fun getUserWithFallback(userId: String): Mono<UserResponse> {
         if (AI_BOT_IDS.contains(userId.lowercase())) {
-             return Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+             return Mono.just(UserResponse.newBuilder().setUsername(userId).build())
         }
         return userGrpcClient.getUser(userId)
             .onErrorResume { e ->
                 logger.debug("User $userId not found or error via gRPC: ${e.message}")
-                Mono.just(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+                Mono.just(UserResponse.newBuilder().setUsername(userId).build())
             }
-            .defaultIfEmpty(com.example.labb_microservices.proto.UserResponse.newBuilder().setUsername(userId).build())
+            .defaultIfEmpty(UserResponse.newBuilder().setUsername(userId).build())
     }
 }
