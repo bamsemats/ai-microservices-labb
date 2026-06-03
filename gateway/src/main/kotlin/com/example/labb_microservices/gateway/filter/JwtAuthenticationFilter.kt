@@ -9,6 +9,7 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 import javax.crypto.SecretKey
@@ -59,7 +60,7 @@ class JwtAuthenticationFilter(
             }
 
             if (token == null) {
-                return@GatewayFilter onError(exchange, "Missing authorization token", HttpStatus.UNAUTHORIZED)
+                return@GatewayFilter Mono.error(ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authorization token"))
             }
 
             try {
@@ -70,11 +71,11 @@ class JwtAuthenticationFilter(
                     .payload
                 if (claims["tokenType"] != "access") {
                     logger.warn("Token type mismatch for {}. Expected: access, Found: {}", path, claims["tokenType"])
-                    return@GatewayFilter onError(exchange, "Invalid token type", HttpStatus.UNAUTHORIZED)
+                    return@GatewayFilter Mono.error(ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token type"))
                 }
             } catch (e: Exception) {
                 logger.error("JWT validation failed for path {}: {} - {}", path, e.javaClass.simpleName, e.message)
-                return@GatewayFilter onError(exchange, "Invalid token", HttpStatus.UNAUTHORIZED)
+                return@GatewayFilter Mono.error(ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"))
             }
 
             // For WebSocket routes, ensure the Bearer token is added to the headers 
@@ -111,9 +112,6 @@ class JwtAuthenticationFilter(
     }
 
     private fun onError(exchange: ServerWebExchange, err: String, httpStatus: HttpStatus): Mono<Void> {
-        logger.error("Authentication failed for path {}: {}", exchange.request.uri.path, err)
-        val response = exchange.response
-        response.statusCode = httpStatus
-        return response.setComplete()
+        return Mono.error(ResponseStatusException(httpStatus, err))
     }
 }

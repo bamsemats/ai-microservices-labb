@@ -46,10 +46,19 @@ class GatewayConfig(
                     .uri(userServiceUrl)
             }
             .route("message-service") { r ->
-                r.path("/messages/**", "/ws/**", "/frequencies/**")
+                r.path("/messages/**", "/frequencies/**")
                     .filters { f -> 
                         f.secureHeaders()
                         f.retry { it.setRetries(3).setStatuses(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT) }
+                        f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
+                        f.requestRateLimiter { it.setRateLimiter(messageRateLimiter).setKeyResolver(userKeyResolver) }
+                    }
+                    .uri(messageServiceUrl)
+            }
+            .route("message-service-ws") { r ->
+                r.path("/ws/**")
+                    .filters { f -> 
+                        f.secureHeaders()
                         f.filter(jwtFilter.apply(JwtAuthenticationFilter.Config())) 
                         f.requestRateLimiter { it.setRateLimiter(messageRateLimiter).setKeyResolver(userKeyResolver) }
                     }
