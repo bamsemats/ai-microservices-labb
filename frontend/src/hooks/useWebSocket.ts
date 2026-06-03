@@ -7,13 +7,16 @@ import { usePresenceStore, type PresenceStatus } from '../store/usePresenceStore
 type AiStatus = 'IDLE' | 'THINKING' | 'ERROR';
 
 export const useWebSocket = () => {
+  const token = useAuthStore((state) => state.token);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
+  const pendingChannelRef = useRef<string | null>(null);
   
-  const token = useAuthStore((state) => state.token);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const activeChannelId = useChatStore((state) => state.activeChannelId);
   const addMessage = useChatStore((state) => state.addMessage);
   const setPresence = usePresenceStore((state) => state.setPresence);
 
@@ -23,13 +26,24 @@ export const useWebSocket = () => {
     if (!isAuthenticated || !token || socketRef.current || !mountedRef.current) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${encodeURIComponent(token)}`;
+    // Get latest activeChannelId directly from store to avoid closure staleness
+    const currentActiveId = useChatStore.getState().activeChannelId;
+    const channelId = (currentActiveId === 'home' || currentActiveId === 'all' || !currentActiveId) ? 'general' : currentActiveId;
+
+    const wsUrl = `${protocol}://${window.location.host}/ws/messages?token=${encodeURIComponent(token)}&channel=${encodeURIComponent(channelId)}`;
     
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log('WebSocket Connected');
+      console.log('WebSocket Connected to channel:', channelId);
       reconnectAttemptsRef.current = 0;
+      
+      // If we have a pending channel change that happened while connecting, flush it now
+      if (pendingChannelRef.current && pendingChannelRef.current !== channelId) {
+        console.log('Flushing pending channel join:', pendingChannelRef.current);
+        socket.send(JSON.stringify({ type: 'JOIN', channelId: pendingChannelRef.current }));
+        pendingChannelRef.current = null;
+      }
     };
 
     socket.onmessage = (event) => {
@@ -54,10 +68,11 @@ export const useWebSocket = () => {
           }
         } else if (data.type === 'CONTENT_INJECTION') {
           if (typeof data.contentType === 'string' && data.data !== null && typeof data.data === 'object') {
-            console.log('Received Content Injection:', data.contentType);
+            console.log('Received Content Injection:', data.contentType, 'for channel:', data.channelId);
             useChatStore.getState().addInjectedContent({
               type: 'CONTENT_INJECTION',
               contentType: data.contentType,
+              channelId: data.channelId,
               data: data.data,
               timestamp: data.timestamp
             });
@@ -174,6 +189,21 @@ export const useWebSocket = () => {
       }
     };
   }, [connect]);
+
+  useEffect(() => {
+    if (activeChannelId) {
+      const channelId = (activeChannelId === 'home' || activeChannelId === 'all') ? 'general' : activeChannelId;
+      
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        console.log('Switching to channel:', channelId);
+        socketRef.current.send(JSON.stringify({ type: 'JOIN', channelId }));
+        pendingChannelRef.current = null;
+      } else {
+        console.log('Queueing channel join (socket not open):', channelId);
+        pendingChannelRef.current = channelId;
+      }
+    }
+  }, [activeChannelId]);
 
   const sendMessage = useCallback((message: Message) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {

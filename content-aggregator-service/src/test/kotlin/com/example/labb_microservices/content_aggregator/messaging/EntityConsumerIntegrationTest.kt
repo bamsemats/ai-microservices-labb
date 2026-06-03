@@ -62,8 +62,8 @@ class EntityConsumerIntegrationTest : BaseIntegrationTest() {
             senderId = "user-1"
         )
 
-        val cacheKey = "content:game:elden_ring"
-        val dedupKey = "dedup:injection:$channelId:elden_ring"
+        val cacheKey = "content:twitch:elden_ring"
+        val dedupKey = "dedup:injection:$channelId:twitch:elden_ring"
 
         // Drain queue first using purge
         rabbitAdmin.purgeQueue("test.content.queue")

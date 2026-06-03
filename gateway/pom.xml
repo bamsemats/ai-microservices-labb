@@ -45,6 +45,11 @@
 
 		<dependency>
 			<groupId>com.example</groupId>
+			<artifactId>common-security</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.example</groupId>
 			<artifactId>common-observability</artifactId>
 			<version>${project.version}</version>
 		</dependency>

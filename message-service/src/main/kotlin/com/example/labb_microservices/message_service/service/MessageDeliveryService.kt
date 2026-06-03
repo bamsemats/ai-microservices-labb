@@ -23,6 +23,13 @@ class MessageDeliveryService(
     }
 
     fun broadcastToChannel(channelId: String, message: String) {
+        // If it's a global/public channel, broadcast to ALL sessions to ensure delivery
+        // regardless of which specific channel the session started with.
+        if (channelId == "general" || channelId == "global" || channelId == "all") {
+            broadcastMessage(message)
+            return
+        }
+
         val targetSessions = sessionRegistry.getSessionsForChannel(channelId)
 
         targetSessions.forEach { session ->

@@ -98,7 +98,9 @@ class MessageService(
                 val visibilityCriteria = org.springframework.data.mongodb.core.query.Criteria().orOperator(
                     org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
                     org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
+                    org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
                 )
                 query.addCriteria(visibilityCriteria)
             }
@@ -168,7 +170,10 @@ class MessageService(
                                         org.springframework.data.mongodb.core.query.Criteria().orOperator(
                                             org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
                                             org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
-                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all")
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
+                                            // Ensure public channel messages are visible if they don't have a specific receiver (fallback)
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
+                                            org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
                                         )
                                     )
                             ),
@@ -188,8 +193,18 @@ class MessageService(
                     messageRepository.findAll()
                 }
                 else -> {
-                    messageRepository.findAllByReceiverIdOrSenderId(principal, principal)
-                        .mergeWith(messageRepository.findAllByReceiverId("all"))
+                    mongoTemplate.find(
+                        org.springframework.data.mongodb.core.query.Query(
+                            org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                                org.springframework.data.mongodb.core.query.Criteria.where("senderId").`is`(principal),
+                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(principal),
+                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`("all"),
+                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").`is`(""),
+                                org.springframework.data.mongodb.core.query.Criteria.where("receiverId").exists(false)
+                            )
+                        ),
+                        Message::class.java
+                    )
                 }
             }
 

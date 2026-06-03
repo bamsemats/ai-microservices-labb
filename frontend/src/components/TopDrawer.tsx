@@ -6,7 +6,7 @@ import ContentWidget from './ContentWidget';
 
 const TopDrawer: React.FC = () => {
   const { injectionPanelOpen, toggleInjectionPanel } = useUIStore();
-  const { injectedContent } = useChatStore();
+  const { injectedContentByChannel, activeChannelId } = useChatStore();
   const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
   React.useEffect(() => {
@@ -14,6 +14,15 @@ const TopDrawer: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const effectiveChannelId = (activeChannelId === 'home' || activeChannelId === 'all' || !activeChannelId) 
+    ? 'general' 
+    : activeChannelId;
+
+  const combinedInjections = React.useMemo(() => [
+    ...(injectedContentByChannel[effectiveChannelId] || []),
+    ...(injectedContentByChannel['__global__'] || [])
+  ], [injectedContentByChannel, effectiveChannelId]);
 
   // Mobile only view
   if (!isMobile) return null;
@@ -53,8 +62,8 @@ const TopDrawer: React.FC = () => {
             </div>
             
             <div className="drawer-content">
-              {injectedContent.length > 0 ? (
-                injectedContent.map((content, idx) => (
+              {combinedInjections.length > 0 ? (
+                combinedInjections.map((content, idx) => (
                   <ContentWidget key={`${content.type}-${idx}`} content={content} />
                 ))
               ) : (

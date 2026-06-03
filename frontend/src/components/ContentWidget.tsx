@@ -23,10 +23,12 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card twitch-widget"
+        role="region"
+        aria-label={`Twitch stream: ${streamer}`}
       >
-        <div className="widget-badge twitch">LIVE STREAM</div>
+        <div className="widget-badge twitch" aria-hidden="true">LIVE STREAM</div>
         <div className="twitch-header">
-          <div className="streamer-avatar">
+          <div className="streamer-avatar" aria-hidden="true">
             {streamer.charAt(0)}
           </div>
           <div className="stream-info">
@@ -42,15 +44,16 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
               width="100%"
               allowFullScreen
               className="border-none"
+              title={`Twitch stream by ${streamer}`}
             ></iframe>
           ) : thumbnail ? (
-            <img src={thumbnail} alt="Stream Preview" onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <img src={thumbnail} alt={`Stream preview for ${streamer}`} onError={(e) => (e.currentTarget.style.display = 'none')} />
           ) : (
-            <div className="thumbnail-placeholder" />
+            <div className="thumbnail-placeholder" aria-hidden="true" />
           )}
           {!isPlaying && (
             <div className="viewer-count">
-              <span className="live-dot"></span>
+              <span className="live-dot" aria-hidden="true"></span>
               {viewers} viewers
             </div>
           )}
@@ -110,8 +113,10 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="glass-card youtube-widget"
+        role="region"
+        aria-label={`YouTube video: ${title}`}
       >
-        <div className="widget-badge youtube">YOUTUBE VIDEO</div>
+        <div className="widget-badge youtube" aria-hidden="true">YOUTUBE VIDEO</div>
         <div className="youtube-header">
           <div className="video-info">
             <h4>{title}</h4>
@@ -124,14 +129,14 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !isPlaying) setIsPlaying(true); }}
           role="button"
           tabIndex={isPlaying ? -1 : 0}
-          aria-label="Play video"
+          aria-label={isPlaying ? undefined : `Play video: ${title}`}
         >
           {isPlaying ? (
             <iframe
               width="100%"
               height="100%"
               src={embedUrl}
-              title="YouTube video player"
+              title={`YouTube video: ${title}`}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -139,12 +144,12 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
           ) : (
             <>
               {thumbnail ? (
-                <img src={thumbnail} alt="Video Preview" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                <img src={thumbnail} alt={`Video preview for ${title}`} onError={(e) => (e.currentTarget.style.display = 'none')} />
               ) : (
-                <div className="thumbnail-placeholder" />
+                <div className="thumbnail-placeholder" aria-hidden="true" />
               )}
-              <div className="duration-tag">{duration}</div>
-              <div className="play-overlay">
+              <div className="duration-tag" aria-label={`Duration: ${duration}`}>{duration}</div>
+              <div className="play-overlay" aria-hidden="true">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
@@ -154,7 +159,7 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
         </div>
         <div className="video-stats">
           <span>{views} views</span>
-          <span>•</span>
+          <span aria-hidden="true">•</span>
           <span>{publishedAt}</span>
         </div>
         <div className="flex-gap-sm">
@@ -177,15 +182,21 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
     const publishedAt = content.data.publishedAt || "Recently";
 
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass-card news-widget">
-        <div className="widget-badge news">LATEST NEWS</div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        className="glass-card news-widget"
+        role="region"
+        aria-label={`News: ${title}`}
+      >
+        <div className="widget-badge news" aria-hidden="true">LATEST NEWS</div>
         <div className="news-content">
           <h4>{title}</h4>
-          <p className="news-publisher">{publisher} • {publishedAt}</p>
+          <p className="news-publisher">{publisher} <span aria-hidden="true">•</span> {publishedAt}</p>
           <p className="news-summary">{summary}</p>
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
-          Read Full Article
+          Read Full Article <span className="sr-only">(opens in new tab)</span>
         </a>
       </motion.div>
     );
@@ -199,16 +210,22 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
     const likes = content.data.likes || "0";
 
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass-card social-widget">
-        <div className="widget-badge social">{platform.toUpperCase()} POST</div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        className="glass-card social-widget"
+        role="region"
+        aria-label={`${platform} post by ${author}`}
+      >
+        <div className="widget-badge social" aria-hidden="true">{platform.toUpperCase()} POST</div>
         <div className="social-header">
-          <div className="social-avatar">{author.charAt(1) || author.charAt(0)}</div>
+          <div className="social-avatar" aria-hidden="true">{author.charAt(1) || author.charAt(0)}</div>
           <div className="social-author">{author}</div>
         </div>
         <div className="social-content">{text}</div>
-        <div className="social-stats">❤️ {likes} Likes</div>
+        <div className="social-stats"><span aria-hidden="true">❤️</span> {likes} Likes</div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
-          View on {platform}
+          View on {platform} <span className="sr-only">(opens in new tab)</span>
         </a>
       </motion.div>
     );
@@ -223,16 +240,22 @@ const ContentWidget: React.FC<ContentWidgetProps> = ({ content }) => {
     const replies = content.data.replies || "0";
 
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass-card forum-widget">
-        <div className="widget-badge forum">{forumName.toUpperCase()} THREAD</div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        className="glass-card forum-widget"
+        role="region"
+        aria-label={`${forumName} thread: ${threadTitle}`}
+      >
+        <div className="widget-badge forum" aria-hidden="true">{forumName.toUpperCase()} THREAD</div>
         <div className="forum-content">
           <h4>{threadTitle}</h4>
           <p className="forum-meta">Started by {author}</p>
-          <div className="forum-excerpt">"{excerpt}"</div>
-          <div className="forum-stats">💬 {replies} Replies</div>
+          <div className="forum-excerpt" aria-label="Excerpt">"{excerpt}"</div>
+          <div className="forum-stats"><span aria-hidden="true">💬</span> {replies} Replies</div>
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="lumina-button small full-width secondary center-link no-underline">
-          Join Discussion
+          Join Discussion <span className="sr-only">(opens in new tab)</span>
         </a>
       </motion.div>
     );

@@ -17,13 +17,14 @@ export interface Message {
 export interface InjectedContent {
   type: 'CONTENT_INJECTION';
   contentType: string;
+  channelId?: string;
   data: Record<string, string>;
   timestamp: number;
 }
 
 interface ChatState {
   messages: Message[];
-  injectedContent: InjectedContent[];
+  injectedContentByChannel: Record<string, InjectedContent[]>;
   aiStatus: 'IDLE' | 'THINKING' | 'ERROR';
   typingUsers: Record<string, string[]>; // channelId -> usernames
   activeChannelId: string;
@@ -41,7 +42,7 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  injectedContent: [],
+  injectedContentByChannel: {},
   aiStatus: 'IDLE',
   typingUsers: {},
   activeChannelId: 'home',
@@ -51,6 +52,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const isGlobal = channelId === 'home' || channelId === 'all';
       const params: Record<string, string | undefined> = {};
       
+      const effectiveId = isGlobal ? 'general' : channelId;
+
       if (isGlobal) {
         params.channelId = 'general';
       } else if (currentUserId && channelId !== 'general' && !channelId.startsWith('freq-')) {
@@ -61,7 +64,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       const response = await api.get<Message[]>('/messages', { params });
-      set({ messages: response.data, injectedContent: [] });
+      
+      set((state) => ({
+        messages: response.data,
+        injectedContentByChannel: {
+          ...state.injectedContentByChannel,
+          [effectiveId]: [] // Reset only the active channel's injections on explicit fetch
+        }
+      }));
     } catch (error) {
       console.error('Failed to fetch messages', error);
     }
@@ -135,12 +145,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       aiStatus: shouldResetAiStatus ? 'IDLE' : state.aiStatus 
     };
   }),
-  addInjectedContent: (content) => set((state) => ({
-    injectedContent: [...state.injectedContent, content]
-  })),
+  addInjectedContent: (content) => set((state) => {
+    const rawId = content.channelId || '__global__';
+    const channelId = (rawId === 'home' || rawId === 'all') ? 'general' : rawId;
+    const currentList = state.injectedContentByChannel[channelId] || [];
+    return {
+      injectedContentByChannel: {
+        ...state.injectedContentByChannel,
+        [channelId]: [...currentList, content]
+      }
+    };
+  }),
   setAiStatus: (status) => set({ aiStatus: status }),
-  setMessages: (messages) => set({ messages, injectedContent: [] }),
-  clearMessages: () => set({ messages: [], injectedContent: [] }),
+  setMessages: (messages) => set({ messages }),
+  clearMessages: () => set({ messages: [], injectedContentByChannel: {} }),
   setTyping: (username, channelId, isTyping) => set((state) => {
     const channelTyping = state.typingUsers[channelId] || [];
     const newChannelTyping = isTyping 

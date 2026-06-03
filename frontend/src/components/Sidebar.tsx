@@ -97,14 +97,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
           </form>
         )}
 
-        <ul className="nav-list">
+        <ul className="nav-list" role="list">
           <li>
             <button
               className={`nav-item ${activeReceiver === 'home' ? 'is-active' : ''}`}
               onClick={() => handleReceiverSelect('home')}
+              aria-current={activeReceiver === 'home' ? 'page' : undefined}
             >
-              <span className="at"><Hash size={16} /></span> general
-              {onlineUsers.length > 0 && <span className="status-dot online"></span>}
+              <span className="at" aria-hidden="true"><Hash size={16} /></span> general
+              {onlineUsers.length > 0 && <span className="status-dot online" aria-label="Users online"></span>}
             </button>
           </li>
           {frequencies.map((freq) => (
@@ -112,83 +113,104 @@ const Sidebar: React.FC<SidebarProps> = ({ activeReceiver, className }) => {
               <button
                 className={`nav-item ${activeReceiver === freq.id ? 'is-active' : ''}`}
                 onClick={() => handleReceiverSelect(freq.id)}
+                aria-current={activeReceiver === freq.id ? 'page' : undefined}
               >
-                <span className="at"><Hash size={16} /></span> {freq.name}
+                <span className="at" aria-hidden="true"><Hash size={16} /></span> {freq.name}
               </button>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="sidebar-section">
+      <nav className="sidebar-section" aria-label="Intelligence">
         <h3>Intelligence</h3>
-        <div className="action-grid">
-          <button 
-            className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/explore')}
-          >
-            <Globe size={16} /> Discovery
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/insights')}
-          >
-            <BarChart3 size={16} /> Insights
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/friends')}
-          >
-            <Users size={16} /> Social Hub
-          </button>
-          <button 
-            className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
-            onClick={() => handleNav('/search')}
-          >
-            <Search size={16} /> Search History
-          </button>
-          {isAdmin && (
+        <ul className="action-grid">
+          <li>
             <button 
-              className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
-              onClick={() => handleNav('/admin')}
+              className={`nav-item ${activeReceiver === 'explore' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/explore')}
+              aria-current={activeReceiver === 'explore' ? 'page' : undefined}
             >
-              <ShieldAlert size={16} /> Admin Panel
+              <Globe size={16} aria-hidden="true" /> Discovery
             </button>
+          </li>
+          <li>
+            <button 
+              className={`nav-item ${activeReceiver === 'insights' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/insights')}
+              aria-current={activeReceiver === 'insights' ? 'page' : undefined}
+            >
+              <BarChart3 size={16} aria-hidden="true" /> Insights
+            </button>
+          </li>
+          <li>
+            <button 
+              className={`nav-item ${activeReceiver === 'friends' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/friends')}
+              aria-current={activeReceiver === 'friends' ? 'page' : undefined}
+            >
+              <Users size={16} aria-hidden="true" /> Social Hub
+            </button>
+          </li>
+          <li>
+            <button 
+              className={`nav-item ${activeReceiver === 'search' ? 'is-active' : ''}`}
+              onClick={() => handleNav('/search')}
+              aria-current={activeReceiver === 'search' ? 'page' : undefined}
+            >
+              <Search size={16} aria-hidden="true" /> Search History
+            </button>
+          </li>
+          {isAdmin && (
+            <li>
+              <button 
+                className={`nav-item ${activeReceiver === 'admin' ? 'is-active' : ''}`}
+                onClick={() => handleNav('/admin')}
+                aria-current={activeReceiver === 'admin' ? 'page' : undefined}
+              >
+                <ShieldAlert size={16} aria-hidden="true" /> Admin Panel
+              </button>
+            </li>
           )}
-        </div>
-      </div>
+        </ul>
+      </nav>
 
-      <div className="sidebar-section sidebar-footer">
+      <div className="sidebar-section sidebar-footer" role="group" aria-labelledby="entities-label">
         <div>
-          <Users size={14} className="sidebar-label svg" />
-          <h3 className="sidebar-label">Entities</h3>
+          <Users size={14} className="sidebar-label svg" aria-hidden="true" />
+          <h3 id="entities-label" className="sidebar-label">Entities</h3>
         </div>
         
-        <button 
-          className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
-          onClick={() => handleReceiverSelect(userId || 'me')}
-        >
-          <Avatar seed={username || 'me'} size="sm" />
-          Me (Notes)
-          <span className="status-dot online"></span>
-        </button>
+        <ul className="nav-list">
+          <li>
+            <button 
+              className={`nav-item ${activeReceiver === userId ? 'is-active' : ''}`}
+              onClick={() => handleReceiverSelect(userId || 'me')}
+              aria-current={activeReceiver === userId ? 'page' : undefined}
+            >
+              <Avatar seed={username || 'me'} size="sm" />
+              Me (Notes)
+              <span className="status-dot online" aria-label="Online"></span>
+            </button>
+          </li>
 
-        {friendList.length > 0 && (
-          <div className="sidebar-friend-list">
-            {friendList.map(u => (
-              <button 
-                key={u.id} 
-                className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
-                onClick={() => handleReceiverSelect(u.id)}
-                aria-label={`${u.username} — ${u.status}`}
-              >
-                <Avatar seed={u.username} size="sm" isBot={u.isBot} />
-                {u.username}
-                <span className={`status-dot ${u.status.toLowerCase()}`}></span>
-              </button>
-            ))}
-          </div>
-        )}
+          {friendList.length > 0 && (
+            friendList.map(u => (
+              <li key={u.id}>
+                <button 
+                  className={`nav-item ${activeReceiver === u.id ? 'is-active' : ''}`}
+                  onClick={() => handleReceiverSelect(u.id)}
+                  aria-label={`${u.username}, ${u.status.toLowerCase()}${u.isBot ? ', AI entity' : ''}`}
+                  aria-current={activeReceiver === u.id ? 'page' : undefined}
+                >
+                  <Avatar seed={u.username} size="sm" isBot={u.isBot} />
+                  {u.username}
+                  <span className={`status-dot ${u.status.toLowerCase()}`} aria-hidden="true"></span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
 
         {friendList.length === 0 && onlineUsers.length > 0 && (
            <div className="sidebar-empty-hint">

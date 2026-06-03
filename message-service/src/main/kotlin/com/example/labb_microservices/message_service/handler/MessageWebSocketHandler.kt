@@ -93,6 +93,16 @@ class MessageWebSocketHandler(
                                 }
                             }
                         }
+                        "JOIN" -> {
+                            val currentSession = sessionRegistry.getSession(sessionId)
+                            val newChannelId = json.get("channelId")?.asText()
+                            if (currentSession?.userId != null && !newChannelId.isNullOrBlank()) {
+                                logger.info("User {} joining channel {} in session {}", currentSession.userId, newChannelId, sessionId)
+                                currentSession.channelId = newChannelId
+                            } else if (currentSession?.userId == null) {
+                                logger.warn("Anonymous session {} attempted to JOIN channel {}. Denied.", sessionId, newChannelId)
+                            }
+                        }
                         "TYPING" -> {
                             val currentSession = sessionRegistry.getSession(sessionId)
                             val sessionUserId = currentSession?.userId
@@ -271,10 +281,11 @@ class MessageWebSocketHandler(
     }
 
     private fun extractChannel(session: WebSocketSession): String? {
-        val query = session.handshakeInfo.uri.query ?: return null
+        val query = session.handshakeInfo.uri.rawQuery ?: return null
         return query.split("&")
             .find { it.startsWith("channel=") }
             ?.substringAfter("channel=")
+            ?.let { java.net.URLDecoder.decode(it, java.nio.charset.StandardCharsets.UTF_8) }
     }
 
     private class PolicyViolationException(message: String) : RuntimeException(message)

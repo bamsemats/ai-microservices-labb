@@ -154,13 +154,26 @@ For a deep dive into the system's roles, data flows, and security rationale, see
 AdaptaChat utilizes a modern, 3-layer Vanilla CSS architecture (`@layer tokens, base, components`) that provides deep, semantic control over theme variables without the overhead of utility frameworks. It supports GPU-accelerated transitions and multiple base aesthetics (Cyber, Nature, Minimal, Warm).
 
 ### Semantic Entity Extraction
-The system has moved away from regex-based link detection. Instead, it utilizes the LLM pipeline to identify entities (like Twitch streamers) from natural language phrases (e.g., "watching wagamama"). This allows for a more "intelligent" and less fragile injection system.
+The system has moved away from regex-based link detection. Instead, it utilizes the LLM pipeline to identify entities (like Twitch streamers) from natural language phrases (e.g., "watching wagamama"). A dedicated **Librarian Service** in the aggregator ensures these entities are mapped to their correct platforms (e.g., forcing Warhammer content to YouTube and Pro-gamers to Twitch), eliminating "hallucinated" media widgets.
+
+### Full-Stack Accessibility
+AdaptaChat is built with inclusion in mind. The frontend has been fully remediated to meet **WCAG 2.1 standards**, featuring ARIA landmarks, live regions for real-time announcements, high-contrast themes, and full keyboard navigation support (including skip-links).
 
 ### Zero-Trust Auth Hygiene
 Sensitive tokens are kept strictly in-memory. User metadata (`displayName`) is persisted in `localStorage` for UX continuity, but re-authentication or server-driven refresh is required upon reload to maintain a high security posture.
 
 ### Standardized Common Modules
 Shared logic is encapsulated in `com.example.labb_microservices.common.*` packages. This ensures that every service in the monorepo adheres to the same security, observability, and testing standards without duplication.     
+
+### External Content Simulation
+To provide a **zero-config local development experience**, external media injections (YouTube, Twitch, News) are currently **simulated** via the `Librarian Service`. This allows the system to demonstrate its "Adapta" capabilities—identifying topics and injecting relevant rich widgets—without requiring the developer to manage multiple third-party API keys or incur usage costs.
+
+---
+
+## 🚀 Future Roadmap & TODOs
+- [ ] **Real API Integration**: Implement bridges for YouTube Data API v3 and Twitch Helix API to replace simulated data with authentic, real-time content.
+- [ ] **Global Sentiment Heatmap**: Visualization of aggregate community mood across all public channels.
+- [ ] **End-to-End Encryption (E2EE)**: Implementation of Double Ratchet protocol for private frequencies.
 
 ---
 

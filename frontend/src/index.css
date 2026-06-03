@@ -4,22 +4,22 @@
 @layer utilities {
   .glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--sentiment-blur));
-    -webkit-backdrop-filter: blur(var(--sentiment-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    padding: var(--spacing-main);
+    padding: var(--space-4);
     & h3 {
       margin-block-end: 1rem;
     }
   }
 
   .glass-card {
-    background: rgb(var(--glass-base) / 0.03);
-    backdrop-filter: blur(calc(var(--sentiment-blur) * 0.8));
+    background: rgb(var(--glass-bg) / 0.03);
+    backdrop-filter: blur(calc(var(--glass-blur) * 0.8));
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-main);
+    padding: var(--space-4);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
   }
 
@@ -30,11 +30,11 @@
   }
 
   .lumina-button {
-    background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
     color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-md);
-    padding: var(--spacing-main);
+    padding: var(--space-4);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -42,7 +42,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    box-shadow: 0 4px 15px rgb(from var(--color-accent-primary) r g b / 0.3);
+    box-shadow: 0 4px 15px rgb(from var(--accent) r g b / 0.3);
   }
 
   @supports (corner-shape: squircle) {
@@ -53,7 +53,7 @@
 
   .lumina-button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgb(from var(--color-accent-primary) r g b / 0.4), var(--color-accent-glow);
+    box-shadow: 0 6px 20px rgb(from var(--accent) r g b / 0.4), var(--glow-accent);
     filter: brightness(1.1);
   }
 
@@ -61,3 +61,44 @@
     margin-inline-end: 0.5rem;
   }
 }
+
+/* Accessibility Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  background: var(--bg-surface);
+  color: var(--accent);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+}
+
