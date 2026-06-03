@@ -165,6 +165,16 @@ Sensitive tokens are kept strictly in-memory. User metadata (`displayName`) is p
 ### Standardized Common Modules
 Shared logic is encapsulated in `com.example.labb_microservices.common.*` packages. This ensures that every service in the monorepo adheres to the same security, observability, and testing standards without duplication.     
 
+### External Content Simulation
+To provide a **zero-config local development experience**, external media injections (YouTube, Twitch, News) are currently **simulated** via the `Librarian Service`. This allows the system to demonstrate its "Adapta" capabilities—identifying topics and injecting relevant rich widgets—without requiring the developer to manage multiple third-party API keys or incur usage costs.
+
+---
+
+## 🚀 Future Roadmap & TODOs
+- [ ] **Real API Integration**: Implement bridges for YouTube Data API v3 and Twitch Helix API to replace simulated data with authentic, real-time content.
+- [ ] **Global Sentiment Heatmap**: Visualization of aggregate community mood across all public channels.
+- [ ] **End-to-End Encryption (E2EE)**: Implementation of Double Ratchet protocol for private frequencies.
+
 ---
 
 ## Author
