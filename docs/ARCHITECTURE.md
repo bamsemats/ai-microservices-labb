@@ -91,3 +91,21 @@ Redundant infrastructure and security settings are consolidated into a shared `o
 ### Rationale
 - **Maintenance**: Reducing duplication makes the system less prone to configuration drift and easier to audit. 
 - **Clarity**: Service-specific properties now contain only relevant overrides, improving readability.
+
+## 10. Reactive Exception Handling
+
+### Decision
+The API Gateway handles errors using a native ErrorWebExceptionHandler rather than relying on @ControllerAdvice.
+
+### Rationale
+- **Reactive Native**: In Spring Cloud Gateway, failures often occur in the filter chain or during routing before reaching a traditional controller. A reactive web exception handler correctly intercepts these pipeline failures.
+- **Consistent Payloads**: Ensures that route timeouts, 5xx downstream errors, and JWT validation failures all return the exact same JSON error structure as the rest of the services.
+
+## 11. Enforced Chronological Data Retrieval
+
+### Decision
+All historical message queries in the MessageService explicitly enforce a database-level sort (	imestamp ASC), even when performing concurrent merge operations.
+
+### Rationale
+- **Predictable History**: Eliminates race conditions where concurrent .mergeWith() streams (like fetching Direct Messages from both perspectives) return interleaved or jumbled results.
+- **Client Agnosticism**: Guarantees that the REST API contract is honored strictly by the backend, removing the burden of chronological sorting from the frontend or mobile clients.

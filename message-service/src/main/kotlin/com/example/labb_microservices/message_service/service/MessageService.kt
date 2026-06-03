@@ -142,7 +142,7 @@ class MessageService(
             query.with(Sort.by(Sort.Direction.DESC, "timestamp"))
 
             mongoTemplate.find(query, Message::class.java)
-                .flatMap { encryptedMessage ->
+                .flatMapSequential { encryptedMessage ->
                     Mono.fromCallable { decryptMessage(encryptedMessage) }
                         .subscribeOn(Schedulers.boundedElastic())
                 }
@@ -217,7 +217,7 @@ class MessageService(
                 }
             }
 
-            query.flatMap { encryptedMessage ->
+            query.flatMapSequential { encryptedMessage ->
                 Mono.fromCallable { decryptMessage(encryptedMessage) }
                     .subscribeOn(Schedulers.boundedElastic())
             }
